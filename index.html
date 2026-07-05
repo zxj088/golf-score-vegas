@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#1f6f5b">
+  <title>Vegas Golf Scorecard</title>
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="stylesheet" href="./styles.css?v=7">
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">Las Vegas Rule</p>
+        <h1>Golf Scorecard</h1>
+      </div>
+      <button class="icon-button" id="installButton" type="button" hidden aria-label="Install app" title="Install app">
+        <span aria-hidden="true">+</span>
+      </button>
+    </header>
+
+    <main>
+      <section class="score-strip" aria-label="Match totals">
+        <div class="team-total team-a">
+          <span class="label">Team A</span>
+          <strong id="teamATotal">0</strong>
+          <span id="teamAMoney">$0.00</span>
+        </div>
+        <div class="match-meta">
+          <span id="holesComplete">0/18</span>
+          <span id="coursePar">Par 72</span>
+        </div>
+        <div class="team-total team-b">
+          <span class="label">Team B</span>
+          <strong id="teamBTotal">0</strong>
+          <span id="teamBMoney">$0.00</span>
+        </div>
+      </section>
+
+      <nav class="tabs" aria-label="Views">
+        <button class="tab active" type="button" data-view="play">Play</button>
+        <button class="tab" type="button" data-view="courses">Courses</button>
+        <button class="tab" type="button" data-view="history">History</button>
+      </nav>
+
+      <section class="view active" id="playView">
+        <div class="control-panel">
+          <label>
+            Course
+            <select id="courseSelect"></select>
+          </label>
+          <label>
+            Point value
+            <input id="pointValue" type="number" min="0" step="0.25" inputmode="decimal">
+          </label>
+          <label class="toggle-row">
+            <span>Birdie flip</span>
+            <input id="birdieFlip" type="checkbox">
+          </label>
+        </div>
+
+        <section class="scorecard" aria-label="Hole scores">
+          <table>
+            <thead>
+              <tr>
+                <th>H</th>
+                <th>Par</th>
+                <th class="team-a-cell"><input id="playerA1" type="text" autocomplete="off" aria-label="Team A player 1"></th>
+                <th class="team-a-cell"><input id="playerA2" type="text" autocomplete="off" aria-label="Team A player 2"></th>
+                <th class="team-a-cell">A#</th>
+                <th class="team-a-cell">A+/-</th>
+                <th class="team-b-cell"><input id="playerB1" type="text" autocomplete="off" aria-label="Team B player 1"></th>
+                <th class="team-b-cell"><input id="playerB2" type="text" autocomplete="off" aria-label="Team B player 2"></th>
+                <th class="team-b-cell">B#</th>
+                <th class="team-b-cell">B+/-</th>
+              </tr>
+            </thead>
+            <tbody id="scoreRows"></tbody>
+            <tfoot>
+              <tr>
+                <th>Total</th>
+                <th id="totalPar">72</th>
+                <th id="totalPlayerA1">0</th>
+                <th id="totalPlayerA2">0</th>
+                <th></th>
+                <th id="tableTeamATotal">0</th>
+                <th id="totalPlayerB1">0</th>
+                <th id="totalPlayerB2">0</th>
+                <th></th>
+                <th id="tableTeamBTotal">0</th>
+              </tr>
+            </tfoot>
+          </table>
+        </section>
+
+        <div class="action-row compact-actions">
+          <button class="primary" id="saveRound" type="button">Save</button>
+          <button id="clearRound" type="button">Clear</button>
+        </div>
+      </section>
+
+      <section class="view" id="coursesView">
+        <div class="section-heading">
+          <h2>Courses</h2>
+          <button class="primary" id="addCourse" type="button">Add Course</button>
+        </div>
+        <div class="course-list" id="courseList"></div>
+      </section>
+
+      <section class="view" id="historyView">
+        <div class="section-heading">
+          <h2>History</h2>
+        </div>
+        <div class="history-list" id="historyList"></div>
+      </section>
+    </main>
+  </div>
+
+  <div class="course-modal" id="courseModal" hidden>
+    <form class="course-form" id="courseForm">
+      <div class="modal-head">
+        <div>
+          <p class="eyebrow">New Course</p>
+          <h2>Add Course</h2>
+        </div>
+        <button class="icon-button" id="cancelCourse" type="button" aria-label="Close add course" title="Close">x</button>
+      </div>
+
+      <label>
+        Course name
+        <input id="newCourseName" type="text" autocomplete="off" required>
+      </label>
+
+      <div class="par-editor" aria-label="Course par strokes">
+        <section>
+          <h3>Holes 1-9</h3>
+          <div class="par-list" id="frontNineList"></div>
+          <div class="nine-total">Out <strong id="frontNineTotal">36</strong></div>
+        </section>
+        <section>
+          <h3>Holes 10-18</h3>
+          <div class="par-list" id="backNineList"></div>
+          <div class="nine-total">In <strong id="backNineTotal">36</strong></div>
+        </section>
+      </div>
+
+      <div class="course-total">Course total <strong id="courseParTotal">72</strong></div>
+
+      <div class="action-row">
+        <button class="primary" type="submit">Save Course</button>
+        <button type="button" id="cancelCourseBottom">Cancel</button>
+      </div>
+    </form>
+  </div>
+
+  <script src="./app.js?v=7" defer></script>
+</body>
+</html>
