@@ -181,7 +181,8 @@ async function supabaseRequest(table, query = '', options = {}) {
   }
 
   if (response.status === 204) return null;
-  return response.json();
+  const text = await response.text();
+  return text ? JSON.parse(text) : null;
 }
 
 function courseToCloudRow(course) {
@@ -203,20 +204,23 @@ function cloudRowToCourse(row) {
 }
 
 function roundToCloudRow(round) {
+  const savedAt = Number(round.savedAt || Date.now());
+  const courseName = round.courseName || 'Unknown Course';
+  const fallbackName = `${courseName}_Saved Round`;
   return {
-    id: cloudId('round', round.id),
+    id: cloudId('round', round.id || `round-${savedAt}`),
     sync_key: supabaseConfig().syncKey,
-    saved_at: round.savedAt,
-    name: round.name,
-    file_name: round.fileName,
-    course_id: round.courseId,
-    course_name: round.courseName,
-    pars: round.pars,
-    players: round.players,
-    point_value: round.pointValue,
-    birdie_flip: round.birdieFlip,
-    scores: round.scores,
-    totals: round.totals
+    saved_at: savedAt,
+    name: round.name || fallbackName,
+    file_name: round.fileName || `${safeFilePart(round.name || fallbackName)}.json`,
+    course_id: round.courseId || defaultCourses[0].id,
+    course_name: courseName,
+    pars: Array.isArray(round.pars) ? round.pars : currentCourse().pars,
+    players: Array.isArray(round.players) ? round.players : ['Player 1', 'Player 2', 'Player 3', 'Player 4'],
+    point_value: Number(round.pointValue || 1),
+    birdie_flip: Boolean(round.birdieFlip),
+    scores: Array.isArray(round.scores) ? round.scores : Array.from({ length: 18 }, () => ['', '', '', '']),
+    totals: round.totals || { a: 0, b: 0, complete: 0, players: [0, 0, 0, 0] }
   };
 }
 
