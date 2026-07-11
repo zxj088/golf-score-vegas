@@ -43,6 +43,7 @@ let syncState = {
 
 const els = {
   scoreStrip: document.querySelector('#scoreStrip'),
+  syncBar: document.querySelector('#syncBar'),
   installButton: document.querySelector('#installButton'),
   shareButton: document.querySelector('#shareButton'),
   courseSelect: document.querySelector('#courseSelect'),
@@ -391,6 +392,14 @@ async function upsertCloudRound(round) {
 async function deleteCloudCourse(courseId) {
   if (!hasSupabaseConfig()) return;
   await supabaseRequest('vegas_courses', `id=eq.${encodeURIComponent(cloudId('course', courseId))}`, {
+    method: 'DELETE',
+    prefer: 'return=minimal'
+  });
+}
+
+async function deleteCloudRound(roundId) {
+  if (!hasSupabaseConfig()) return;
+  await supabaseRequest('vegas_rounds', `id=eq.${encodeURIComponent(cloudId('round', roundId))}`, {
     method: 'DELETE',
     prefer: 'return=minimal'
   });
@@ -780,11 +789,11 @@ async function confirmDialog(title, message) {
   });
 }
 
-async function askCodeDialog() {
+async function askCodeDialog(errorMessage = '') {
   return openAppDialog({
     eyebrow: 'Edit Code',
     title: "what's the code?",
-    message: 'Enter the 2 digit edit code for this game.',
+    message: errorMessage || 'Enter the 2 digit edit code for this game.',
     input: true,
     inputLabel: 'Code',
     inputMode: 'numeric',
@@ -795,20 +804,51 @@ async function askCodeDialog() {
   });
 }
 
-async function verifyActiveCode() {
-  const round = currentGame();
+async function verifyCodeForRound(round) {
   const code = gameCode(round);
   if (!round) return false;
-  if (!/^\d{2}$/.test(code)) {
-    await showMessage('No edit code', 'This game does not have an edit code.');
-    return false;
+  let errorMessage = '';
+  while (true) {
+    const answer = await askCodeDialog(errorMessage);
+    if (answer === false) return false;
+    if (answer === '59' || (/^\d{2}$/.test(code) && answer === code)) return true;
+    errorMessage = 'The edit code is not correct. Try again.';
   }
-  const answer = await askCodeDialog();
-  if (answer === code) return true;
-  if (answer !== false) {
-    await showMessage('Wrong code', 'The edit code is not correct.');
+}
+
+async function verifyActiveCode() {
+  return verifyCodeForRound(currentGame());
+}
+
+async function deleteHistoryGame(round) {
+  if (!(await confirmDialog('Delete game', 'Delete this finished game from History?'))) return;
+  if (!(await verifyCodeForRound(round))) return;
+  savedRounds = savedRounds.filter(item => item.id !== round.id);
+  if (activeGameId === round.id) {
+    activeGameId = '';
+    chooseInitialGame();
   }
-  return false;
+  saveHistoryLocal();
+  saveState();
+  render();
+  try {
+    await deleteCloudRound(round.id);
+    setSyncState({
+      ready: true,
+      busy: false,
+      ok: true,
+      label: 'Cloud sync ok',
+      title: 'Deleted from cloud.'
+    });
+  } catch (error) {
+    setSyncState({
+      ready: true,
+      busy: false,
+      ok: false,
+      label: 'Cloud sync Not ok',
+      title: error.message
+    });
+  }
 }
 
 function renderCourseSelect() {
@@ -972,7 +1012,7 @@ function roundSummary(round) {
   return `${date.toLocaleDateString()} ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - ${round.courseName} - ${gameTee(round)} - A ${total.a}, B ${total.b}`;
 }
 
-function renderGameList(container, rounds, emptyText) {
+function renderGameList(container, rounds, emptyText, status) {
   container.innerHTML = '';
   if (!rounds.length) {
     const empty = document.createElement('div');
@@ -983,19 +1023,32 @@ function renderGameList(container, rounds, emptyText) {
   }
 
   rounds.forEach(round => {
-    const row = document.createElement('button');
-    row.type = 'button';
+    const row = document.createElement('div');
     row.className = 'history-row game-row';
+    row.classList.toggle('history-game-row', status === 'history');
     row.classList.toggle('active-game', round.id === activeGameId);
     row.innerHTML = `
-      <div>
-        <strong></strong>
-        <span></span>
-      </div>
+      <button class="game-open" type="button">
+        <span class="playing-icon" aria-hidden="true"></span>
+        <span class="game-copy">
+          <strong></strong>
+          <span></span>
+        </span>
+      </button>
+      <div class="small-actions"></div>
     `;
+    row.querySelector('.playing-icon').hidden = status !== 'playing';
     row.querySelector('strong').textContent = round.name || round.courseName;
     row.querySelector('span').textContent = roundSummary(round);
-    row.addEventListener('click', () => loadGame(round.id, false, true));
+    row.querySelector('.game-open').addEventListener('click', () => loadGame(round.id, false, true));
+    if (status === 'history') {
+      const deleteButton = document.createElement('button');
+      deleteButton.type = 'button';
+      deleteButton.className = 'danger';
+      deleteButton.textContent = 'Delete';
+      deleteButton.addEventListener('click', () => deleteHistoryGame(round));
+      row.querySelector('.small-actions').append(deleteButton);
+    }
     container.append(row);
   });
 }
@@ -1003,8 +1056,8 @@ function renderGameList(container, rounds, emptyText) {
 function renderStart() {
   const playing = savedRounds.filter(round => gameStatus(round) === 'playing');
   const history = savedRounds.filter(round => gameStatus(round) !== 'playing');
-  renderGameList(els.playingList, playing, 'No games currently playing');
-  renderGameList(els.historyList, history, 'No finished games');
+  renderGameList(els.playingList, playing, 'No games currently playing', 'playing');
+  renderGameList(els.historyList, history, 'No finished games', 'history');
 }
 
 function render() {
@@ -1026,6 +1079,9 @@ function switchView(name) {
   });
   if (els.scoreStrip) {
     els.scoreStrip.hidden = name !== 'play';
+  }
+  if (els.syncBar) {
+    els.syncBar.hidden = name !== 'play';
   }
 }
 
