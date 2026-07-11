@@ -237,6 +237,14 @@ h3 {
   opacity: 0.65;
 }
 
+.sync-ok {
+  color: var(--green);
+}
+
+.sync-bad {
+  color: var(--red);
+}
+
 .view {
   display: none;
 }
@@ -348,6 +356,17 @@ textarea {
   gap: 10px;
 }
 
+.game-section {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.game-section h3 {
+  color: var(--muted);
+  text-transform: uppercase;
+}
+
 .course-row,
 .history-row {
   display: flex;
@@ -359,6 +378,17 @@ textarea {
 .course-row,
 .history-row {
   padding: 12px;
+}
+
+button.history-row {
+  width: 100%;
+  min-height: 0;
+  text-align: left;
+}
+
+.game-row.active-game {
+  border-color: var(--green);
+  background: var(--green-2);
 }
 
 .scorecard {
@@ -446,6 +476,15 @@ textarea {
 
 .scorecard input[type="number"] {
   background: #ffffff;
+}
+
+.scorecard input:disabled,
+select:disabled,
+input:disabled {
+  opacity: 1;
+  color: var(--ink);
+  -webkit-text-fill-color: var(--ink);
+  background: #f8f7f3;
 }
 
 .team-a-cell,
@@ -547,6 +586,16 @@ textarea {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
+}
+
+.game-form {
+  width: min(760px, 100%);
+}
+
+.game-options {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(88px, 0.7fr) minmax(88px, 0.7fr) minmax(110px, 0.8fr);
+  gap: 8px;
 }
 
 .par-editor section {
@@ -692,6 +741,10 @@ textarea {
 
   .par-editor {
     gap: 6px;
+  }
+
+  .game-options {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .par-row {

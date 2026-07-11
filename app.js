@@ -1,7 +1,7 @@
 const STORAGE_KEY = 'vegasGolfState.v1';
 const HISTORY_KEY = 'vegasGolfHistory.v1';
 const COURSE_KEY = 'vegasGolfCourses.v1';
-const HISTORY_LIMIT = 60;
+const GAME_LIMIT = 200;
 
 const defaultCourses = [
   { id: 'bro-hof-stadium', name: 'Bro Hof Stadium', pars: [5,4,4,3,4,4,3,4,5,4,3,5,5,4,5,3,3,4] },
@@ -19,12 +19,15 @@ const defaultCourses = [
 ];
 
 let deferredInstallPrompt = null;
+let activeGameId = '';
+let isEditing = false;
+let autoSyncTimer = null;
 let state = {
   courseId: defaultCourses[0].id,
   players: ['Player 1', 'Player 2', 'Player 3', 'Player 4'],
   pointValue: 1,
   birdieFlip: true,
-  scores: Array.from({ length: 18 }, () => ['', '', '', ''])
+  scores: emptyScores()
 };
 
 let customCourses = [];
@@ -32,8 +35,9 @@ let savedRounds = [];
 let syncState = {
   ready: false,
   busy: false,
-  label: 'Local only',
-  title: 'Supabase is not configured yet.'
+  ok: false,
+  label: 'Cloud sync Not ok',
+  title: 'Supabase is not connected.'
 };
 
 const els = {
@@ -63,10 +67,7 @@ const els = {
   ],
   tableTeamATotal: document.querySelector('#tableTeamATotal'),
   tableTeamBTotal: document.querySelector('#tableTeamBTotal'),
-  saveRound: document.querySelector('#saveRound'),
-  clearRound: document.querySelector('#clearRound'),
-  syncStatus: document.querySelector('#syncStatus'),
-  syncNow: document.querySelector('#syncNow'),
+  editGame: document.querySelector('#editGame'),
   courseList: document.querySelector('#courseList'),
   addCourse: document.querySelector('#addCourse'),
   courseModal: document.querySelector('#courseModal'),
@@ -79,8 +80,35 @@ const els = {
   frontNineTotal: document.querySelector('#frontNineTotal'),
   backNineTotal: document.querySelector('#backNineTotal'),
   courseParTotal: document.querySelector('#courseParTotal'),
-  historyList: document.querySelector('#historyList')
+  newGame: document.querySelector('#newGame'),
+  gameModal: document.querySelector('#gameModal'),
+  gameForm: document.querySelector('#gameForm'),
+  cancelGame: document.querySelector('#cancelGame'),
+  cancelGameBottom: document.querySelector('#cancelGameBottom'),
+  newPlayerA1: document.querySelector('#newPlayerA1'),
+  newPlayerA2: document.querySelector('#newPlayerA2'),
+  newPlayerB1: document.querySelector('#newPlayerB1'),
+  newPlayerB2: document.querySelector('#newPlayerB2'),
+  newGameCourse: document.querySelector('#newGameCourse'),
+  newGameTee: document.querySelector('#newGameTee'),
+  newGameCode: document.querySelector('#newGameCode'),
+  newGameBirdieFlip: document.querySelector('#newGameBirdieFlip'),
+  playingList: document.querySelector('#playingList'),
+  historyList: document.querySelector('#historyList'),
+  syncStatus: document.querySelector('#syncStatus')
 };
+
+function emptyScores() {
+  return Array.from({ length: 18 }, () => ['', '', '', '']);
+}
+
+function normalizeScores(scores) {
+  const rows = Array.isArray(scores) ? scores : [];
+  return Array.from({ length: 18 }, (_, rowIndex) => {
+    const row = Array.isArray(rows[rowIndex]) ? rows[rowIndex] : [];
+    return Array.from({ length: 4 }, (_, scoreIndex) => row[scoreIndex] ?? '');
+  });
+}
 
 function allCourses() {
   return [...defaultCourses, ...customCourses];
@@ -88,6 +116,10 @@ function allCourses() {
 
 function currentCourse() {
   return allCourses().find(course => course.id === state.courseId) || allCourses()[0];
+}
+
+function currentGame() {
+  return savedRounds.find(round => round.id === activeGameId) || null;
 }
 
 function loadJson(key, fallback) {
@@ -100,7 +132,7 @@ function loadJson(key, fallback) {
 }
 
 function saveState() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...state, activeGameId }));
 }
 
 function saveCoursesLocal() {
@@ -108,7 +140,7 @@ function saveCoursesLocal() {
 }
 
 function saveHistoryLocal() {
-  localStorage.setItem(HISTORY_KEY, JSON.stringify(savedRounds.slice(0, HISTORY_LIMIT)));
+  localStorage.setItem(HISTORY_KEY, JSON.stringify(savedRounds.slice(0, GAME_LIMIT)));
 }
 
 function slugify(value) {
@@ -124,17 +156,63 @@ function safeFilePart(value) {
     .slice(0, 160);
 }
 
-function roundDisplayName(course = currentCourse()) {
-  return `${course.name}_Team A(${state.players[0]}+ ${state.players[1]}) vs. Team B(${state.players[2]}+${state.players[3]})`;
+function roundDisplayName(course = currentCourse(), players = state.players) {
+  return `${course.name}_Team A(${players[0]}+ ${players[1]}) vs. Team B(${players[2]}+${players[3]})`;
 }
 
-function roundFileName(course = currentCourse()) {
-  return `${safeFilePart(roundDisplayName(course))}.json`;
+function roundFileName(course = currentCourse(), players = state.players) {
+  return `${safeFilePart(roundDisplayName(course, players))}.json`;
 }
 
 function applySignedClass(element, value) {
   element.classList.toggle('point-positive', Number(value) > 0);
   element.classList.toggle('point-negative', Number(value) < 0);
+}
+
+function gameStatus(round) {
+  return round?.totals?.status === 'playing' ? 'playing' : 'history';
+}
+
+function gameTee(round) {
+  return round?.totals?.tee || 'yellow';
+}
+
+function gameCode(round) {
+  return String(round?.totals?.editCode || '').trim();
+}
+
+function normalizeRound(round) {
+  const savedAt = Number(round.savedAt || Date.now());
+  const baseTotals = round.totals && typeof round.totals === 'object' ? round.totals : {};
+  const players = Array.isArray(round.players) && round.players.length === 4
+    ? round.players
+    : ['Player 1', 'Player 2', 'Player 3', 'Player 4'];
+  const courseId = round.courseId || defaultCourses[0].id;
+  const course = allCourses().find(item => item.id === courseId) || defaultCourses[0];
+  const courseName = round.courseName || course.name || 'Unknown Course';
+  const name = round.name || roundDisplayName({ name: courseName }, players);
+  return {
+    id: round.id || `round-${savedAt}`,
+    savedAt,
+    name,
+    fileName: round.fileName || `${safeFilePart(name)}.json`,
+    courseId,
+    courseName,
+    pars: Array.isArray(round.pars) && round.pars.length === 18 ? round.pars : course.pars,
+    players,
+    pointValue: Number(round.pointValue || 1),
+    birdieFlip: Boolean(round.birdieFlip),
+    scores: normalizeScores(round.scores),
+    totals: {
+      a: Number(baseTotals.a || 0),
+      b: Number(baseTotals.b || 0),
+      complete: Number(baseTotals.complete || 0),
+      players: Array.isArray(baseTotals.players) ? baseTotals.players : [0, 0, 0, 0],
+      status: baseTotals.status === 'playing' ? 'playing' : 'history',
+      tee: baseTotals.tee || 'yellow',
+      editCode: String(baseTotals.editCode || '')
+    }
+  };
 }
 
 function supabaseConfig() {
@@ -204,41 +282,39 @@ function cloudRowToCourse(row) {
 }
 
 function roundToCloudRow(round) {
-  const savedAt = Number(round.savedAt || Date.now());
-  const courseName = round.courseName || 'Unknown Course';
-  const fallbackName = `${courseName}_Saved Round`;
+  const normalized = normalizeRound(round);
   return {
-    id: cloudId('round', round.id || `round-${savedAt}`),
+    id: cloudId('round', normalized.id),
     sync_key: supabaseConfig().syncKey,
-    saved_at: savedAt,
-    name: round.name || fallbackName,
-    file_name: round.fileName || `${safeFilePart(round.name || fallbackName)}.json`,
-    course_id: round.courseId || defaultCourses[0].id,
-    course_name: courseName,
-    pars: Array.isArray(round.pars) ? round.pars : currentCourse().pars,
-    players: Array.isArray(round.players) ? round.players : ['Player 1', 'Player 2', 'Player 3', 'Player 4'],
-    point_value: Number(round.pointValue || 1),
-    birdie_flip: Boolean(round.birdieFlip),
-    scores: Array.isArray(round.scores) ? round.scores : Array.from({ length: 18 }, () => ['', '', '', '']),
-    totals: round.totals || { a: 0, b: 0, complete: 0, players: [0, 0, 0, 0] }
+    saved_at: normalized.savedAt,
+    name: normalized.name,
+    file_name: normalized.fileName,
+    course_id: normalized.courseId,
+    course_name: normalized.courseName,
+    pars: normalized.pars,
+    players: normalized.players,
+    point_value: normalized.pointValue,
+    birdie_flip: normalized.birdieFlip,
+    scores: normalized.scores,
+    totals: normalized.totals
   };
 }
 
 function cloudRowToRound(row) {
-  return {
+  return normalizeRound({
     id: String(row.id).split(':round:').pop(),
     savedAt: Number(row.saved_at),
     name: row.name,
     fileName: row.file_name,
     courseId: row.course_id,
     courseName: row.course_name,
-    pars: Array.isArray(row.pars) ? row.pars : [],
-    players: Array.isArray(row.players) ? row.players : ['Player 1', 'Player 2', 'Player 3', 'Player 4'],
-    pointValue: Number(row.point_value || 1),
-    birdieFlip: Boolean(row.birdie_flip),
-    scores: Array.isArray(row.scores) ? row.scores : Array.from({ length: 18 }, () => ['', '', '', '']),
-    totals: row.totals || { a: 0, b: 0, complete: 0, players: [0, 0, 0, 0] }
-  };
+    pars: row.pars,
+    players: row.players,
+    pointValue: row.point_value,
+    birdieFlip: row.birdie_flip,
+    scores: row.scores,
+    totals: row.totals
+  });
 }
 
 function mergeById(localItems, remoteItems) {
@@ -249,9 +325,9 @@ function mergeById(localItems, remoteItems) {
 }
 
 function mergeRounds(localRounds, remoteRounds) {
-  return mergeById(localRounds, remoteRounds)
+  return mergeById(localRounds.map(normalizeRound), remoteRounds.map(normalizeRound))
     .sort((a, b) => Number(b.savedAt || 0) - Number(a.savedAt || 0))
-    .slice(0, HISTORY_LIMIT);
+    .slice(0, GAME_LIMIT);
 }
 
 function setSyncState(next) {
@@ -260,11 +336,13 @@ function setSyncState(next) {
 }
 
 function renderSyncStatus() {
-  if (!els.syncStatus || !els.syncNow) return;
-  els.syncStatus.textContent = syncState.label;
+  if (!els.syncStatus || !els.editGame) return;
+  els.syncStatus.textContent = syncState.busy ? 'Syncing...' : syncState.label;
   els.syncStatus.title = syncState.title;
-  els.syncNow.disabled = syncState.busy || !syncState.ready;
-  els.syncNow.hidden = !syncState.ready;
+  els.syncStatus.classList.toggle('sync-ok', Boolean(syncState.ok) && !syncState.busy);
+  els.syncStatus.classList.toggle('sync-bad', !syncState.ok && !syncState.busy);
+  els.editGame.textContent = isEditing ? 'Finish' : 'Edit';
+  els.editGame.disabled = !currentGame();
 }
 
 async function fetchCloudCourses() {
@@ -274,7 +352,7 @@ async function fetchCloudCourses() {
 }
 
 async function fetchCloudRounds() {
-  const query = `select=*&sync_key=eq.${encodeURIComponent(supabaseConfig().syncKey)}&order=saved_at.desc&limit=${HISTORY_LIMIT}`;
+  const query = `select=*&sync_key=eq.${encodeURIComponent(supabaseConfig().syncKey)}&order=saved_at.desc&limit=${GAME_LIMIT}`;
   const rows = await supabaseRequest('vegas_rounds', query);
   return rows.map(cloudRowToRound);
 }
@@ -305,12 +383,11 @@ async function deleteCloudCourse(courseId) {
   });
 }
 
-async function deleteCloudRound(roundId) {
-  if (!hasSupabaseConfig()) return;
-  await supabaseRequest('vegas_rounds', `id=eq.${encodeURIComponent(cloudId('round', roundId))}`, {
-    method: 'DELETE',
-    prefer: 'return=minimal'
-  });
+function chooseInitialGame() {
+  if (activeGameId && savedRounds.some(round => round.id === activeGameId)) return;
+  const playing = savedRounds.find(round => gameStatus(round) === 'playing');
+  activeGameId = (playing || savedRounds[0] || {}).id || '';
+  if (activeGameId) loadGame(activeGameId, false, false);
 }
 
 async function syncFromCloud(pushLocal = true) {
@@ -318,7 +395,8 @@ async function syncFromCloud(pushLocal = true) {
     setSyncState({
       ready: false,
       busy: false,
-      label: 'Local only',
+      ok: false,
+      label: 'Cloud sync Not ok',
       title: 'Add your Supabase URL and anon key to supabase-config.js.'
     });
     return;
@@ -327,7 +405,6 @@ async function syncFromCloud(pushLocal = true) {
   setSyncState({
     ready: true,
     busy: true,
-    label: 'Syncing...',
     title: 'Sending and loading scorecard data.'
   });
 
@@ -346,12 +423,14 @@ async function syncFromCloud(pushLocal = true) {
 
     customCourses = mergeById(customCourses, cloudCourses);
     savedRounds = mergeRounds(savedRounds, cloudRounds);
+    chooseInitialGame();
     saveCoursesLocal();
     saveHistoryLocal();
     setSyncState({
       ready: true,
       busy: false,
-      label: 'Cloud synced',
+      ok: true,
+      label: 'Cloud sync ok',
       title: `Supabase room: ${supabaseConfig().syncKey}`
     });
     render();
@@ -359,10 +438,41 @@ async function syncFromCloud(pushLocal = true) {
     setSyncState({
       ready: true,
       busy: false,
-      label: 'Sync failed',
+      ok: false,
+      label: 'Cloud sync Not ok',
       title: error.message
     });
   }
+}
+
+function scheduleAutoSync(round) {
+  if (!round) return;
+  window.clearTimeout(autoSyncTimer);
+  if (!hasSupabaseConfig()) {
+    setSyncState({ ok: false, busy: false, label: 'Cloud sync Not ok', title: 'Supabase is not configured.' });
+    return;
+  }
+  setSyncState({ ready: true, busy: true, title: 'Saving scorecard changes.' });
+  autoSyncTimer = window.setTimeout(async () => {
+    try {
+      await upsertCloudRound(round);
+      setSyncState({
+        ready: true,
+        busy: false,
+        ok: true,
+        label: 'Cloud sync ok',
+        title: `Saved ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
+      });
+    } catch (error) {
+      setSyncState({
+        ready: true,
+        busy: false,
+        ok: false,
+        label: 'Cloud sync Not ok',
+        title: error.message
+      });
+    }
+  }, 650);
 }
 
 function courseParInputs() {
@@ -402,6 +512,17 @@ function renderCourseParInputs(pars = currentCourse().pars) {
   updateCourseFormTotals();
 }
 
+function renderNewGameCourses() {
+  els.newGameCourse.innerHTML = '';
+  allCourses().forEach(course => {
+    const option = document.createElement('option');
+    option.value = course.id;
+    option.textContent = course.name;
+    els.newGameCourse.append(option);
+  });
+  els.newGameCourse.value = state.courseId;
+}
+
 function openCourseModal() {
   els.courseForm.reset();
   renderCourseParInputs();
@@ -412,6 +533,24 @@ function openCourseModal() {
 function closeCourseModal() {
   els.courseModal.hidden = true;
   els.courseForm.reset();
+}
+
+function openGameModal() {
+  els.gameForm.reset();
+  renderNewGameCourses();
+  els.newGameTee.value = 'yellow';
+  els.newGameBirdieFlip.checked = true;
+  els.newPlayerA1.value = 'Player 1';
+  els.newPlayerA2.value = 'Player 2';
+  els.newPlayerB1.value = 'Player 3';
+  els.newPlayerB2.value = 'Player 4';
+  els.gameModal.hidden = false;
+  els.newPlayerA1.focus();
+}
+
+function closeGameModal() {
+  els.gameModal.hidden = true;
+  els.gameForm.reset();
 }
 
 function readCourseFormPars() {
@@ -477,6 +616,99 @@ function money(points) {
   return `${sign}$${value.toFixed(2)}`;
 }
 
+function roundFromState(existing = {}, statusOverride = null) {
+  const course = currentCourse();
+  const previousTotals = existing.totals || {};
+  const scoreTotals = totals();
+  const status = statusOverride || previousTotals.status || 'playing';
+  const tee = previousTotals.tee || 'yellow';
+  const editCode = previousTotals.editCode || '';
+  const name = roundDisplayName(course);
+  return normalizeRound({
+    ...existing,
+    id: existing.id || `round-${Date.now()}`,
+    savedAt: existing.savedAt || Date.now(),
+    name,
+    fileName: roundFileName(course),
+    courseId: course.id,
+    courseName: course.name,
+    pars: course.pars,
+    players: [...state.players],
+    pointValue: state.pointValue,
+    birdieFlip: state.birdieFlip,
+    scores: state.scores.map(row => [...row]),
+    totals: {
+      ...scoreTotals,
+      status,
+      tee,
+      editCode
+    }
+  });
+}
+
+function replaceRound(round) {
+  const normalized = normalizeRound(round);
+  const index = savedRounds.findIndex(item => item.id === normalized.id);
+  if (index >= 0) {
+    savedRounds[index] = normalized;
+  } else {
+    savedRounds.unshift(normalized);
+  }
+  savedRounds = mergeRounds(savedRounds, []);
+  saveHistoryLocal();
+  return normalized;
+}
+
+function ensureCourseFromRound(round) {
+  if (allCourses().some(course => course.id === round.courseId)) return;
+  if (!Array.isArray(round.pars) || round.pars.length !== 18) return;
+  customCourses.push({
+    id: round.courseId,
+    name: round.courseName,
+    pars: round.pars
+  });
+  saveCoursesLocal();
+}
+
+function loadGame(gameId, editable = false, goToPlay = true) {
+  const round = savedRounds.find(item => item.id === gameId);
+  if (!round) return;
+  ensureCourseFromRound(round);
+  activeGameId = round.id;
+  isEditing = editable;
+  state = {
+    courseId: round.courseId,
+    players: [...round.players],
+    pointValue: round.pointValue,
+    birdieFlip: round.birdieFlip,
+    scores: normalizeScores(round.scores)
+  };
+  saveState();
+  render();
+  if (goToPlay) switchView('play');
+}
+
+function persistActiveGame(shouldSync = true) {
+  const existing = currentGame();
+  if (!existing) return null;
+  const round = replaceRound(roundFromState(existing));
+  saveState();
+  if (shouldSync) scheduleAutoSync(round);
+  return round;
+}
+
+function verifyActiveCode() {
+  const round = currentGame();
+  const code = gameCode(round);
+  if (!round) return false;
+  if (!/^\d{2}$/.test(code)) {
+    window.alert('This game does not have an edit code.');
+    return false;
+  }
+  const answer = window.prompt("what's the code?");
+  return answer === code;
+}
+
 function renderCourseSelect() {
   const selected = state.courseId;
   els.courseSelect.innerHTML = '';
@@ -492,10 +724,14 @@ function renderCourseSelect() {
 
 function renderInputs() {
   els.courseSelect.value = state.courseId;
+  els.courseSelect.disabled = true;
   els.pointValue.value = state.pointValue;
+  els.pointValue.disabled = true;
   els.birdieFlip.checked = state.birdieFlip;
+  els.birdieFlip.disabled = true;
   els.players.forEach((input, index) => {
     input.value = state.players[index];
+    input.readOnly = true;
   });
 }
 
@@ -503,6 +739,7 @@ function renderScoreStrip() {
   const course = currentCourse();
   const total = totals();
   const parTotal = course.pars.reduce((a, b) => a + b, 0);
+  const tee = currentGame() ? gameTee(currentGame()) : 'yellow';
   els.teamATotal.textContent = total.a;
   els.teamBTotal.textContent = total.b;
   applySignedClass(els.teamATotal, total.a);
@@ -512,7 +749,7 @@ function renderScoreStrip() {
   applySignedClass(els.teamAMoney, total.a);
   applySignedClass(els.teamBMoney, total.b);
   els.holesComplete.textContent = `${total.complete}/18`;
-  els.coursePar.textContent = `Par ${parTotal}`;
+  els.coursePar.textContent = `Par ${parTotal} - ${tee}`;
   els.totalPar.textContent = parTotal;
   els.playerTotals.forEach((cell, index) => {
     cell.textContent = total.players[index];
@@ -546,9 +783,11 @@ function renderHoles() {
     [0, 1, 2, 3].forEach(scoreIndex => {
       const input = row.querySelector(`.score-${scoreIndex}`);
       input.value = scores[scoreIndex];
+      input.disabled = !isEditing;
       input.addEventListener('change', () => {
+        if (!isEditing) return;
         state.scores[index][scoreIndex] = input.value;
-        saveState();
+        persistActiveGame(true);
         render();
       });
     });
@@ -615,7 +854,7 @@ function renderCourses() {
           await deleteCloudCourse(course.id);
           await syncFromCloud(false);
         } catch (error) {
-          setSyncState({ label: 'Sync failed', title: error.message, busy: false, ready: hasSupabaseConfig() });
+          setSyncState({ ok: false, busy: false, label: 'Cloud sync Not ok', title: error.message });
         }
       });
       row.querySelector('.small-actions').append(deleteButton);
@@ -625,78 +864,45 @@ function renderCourses() {
   });
 }
 
-function ensureCourseFromRound(round) {
-  if (allCourses().some(course => course.id === round.courseId)) return;
-  if (!Array.isArray(round.pars) || round.pars.length !== 18) return;
-  customCourses.push({
-    id: round.courseId,
-    name: round.courseName,
-    pars: round.pars
-  });
-  saveCoursesLocal();
+function roundSummary(round) {
+  const date = new Date(round.savedAt);
+  const total = round.totals || {};
+  return `${date.toLocaleDateString()} ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - ${round.courseName} - ${gameTee(round)} - A ${total.a}, B ${total.b}`;
 }
 
-function renderHistory() {
-  els.historyList.innerHTML = '';
-
-  if (!savedRounds.length) {
+function renderGameList(container, rounds, emptyText) {
+  container.innerHTML = '';
+  if (!rounds.length) {
     const empty = document.createElement('div');
     empty.className = 'empty-state';
-    empty.textContent = 'No saved rounds';
-    els.historyList.append(empty);
+    empty.textContent = emptyText;
+    container.append(empty);
     return;
   }
 
-  savedRounds.forEach(round => {
-    const row = document.createElement('div');
-    row.className = 'history-row';
-    const date = new Date(round.savedAt);
+  rounds.forEach(round => {
+    const row = document.createElement('button');
+    row.type = 'button';
+    row.className = 'history-row game-row';
+    row.classList.toggle('active-game', round.id === activeGameId);
     row.innerHTML = `
       <div>
         <strong></strong>
         <span></span>
       </div>
-      <div class="small-actions"></div>
     `;
     row.querySelector('strong').textContent = round.name || round.courseName;
-    row.querySelector('span').textContent = `${date.toLocaleDateString()} ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - A ${round.totals.a}, B ${round.totals.b}`;
-
-    const loadButton = document.createElement('button');
-    loadButton.type = 'button';
-    loadButton.textContent = 'Load';
-    loadButton.addEventListener('click', () => {
-      ensureCourseFromRound(round);
-      state = {
-        courseId: round.courseId,
-        players: round.players,
-        pointValue: round.pointValue,
-        birdieFlip: round.birdieFlip,
-        scores: round.scores
-      };
-      saveState();
-      render();
-      switchView('play');
-    });
-
-    const deleteButton = document.createElement('button');
-    deleteButton.type = 'button';
-    deleteButton.className = 'danger';
-    deleteButton.textContent = 'Delete';
-    deleteButton.addEventListener('click', async () => {
-      savedRounds = savedRounds.filter(item => item.id !== round.id);
-      saveHistoryLocal();
-      renderHistory();
-      try {
-        await deleteCloudRound(round.id);
-        await syncFromCloud(false);
-      } catch (error) {
-        setSyncState({ label: 'Sync failed', title: error.message, busy: false, ready: hasSupabaseConfig() });
-      }
-    });
-
-    row.querySelector('.small-actions').append(loadButton, deleteButton);
-    els.historyList.append(row);
+    row.querySelector('span').textContent = roundSummary(round);
+    row.addEventListener('click', () => loadGame(round.id, false, true));
+    container.append(row);
   });
+}
+
+function renderStart() {
+  const playing = savedRounds.filter(round => gameStatus(round) === 'playing');
+  const history = savedRounds.filter(round => gameStatus(round) !== 'playing');
+  renderGameList(els.playingList, playing, 'No games currently playing');
+  renderGameList(els.historyList, history, 'No finished games');
 }
 
 function render() {
@@ -705,7 +911,7 @@ function render() {
   renderScoreStrip();
   renderHoles();
   renderCourses();
-  renderHistory();
+  renderStart();
   renderSyncStatus();
 }
 
@@ -723,8 +929,22 @@ function addListeners() {
     tab.addEventListener('click', () => switchView(tab.dataset.view));
   });
 
-  els.syncNow.addEventListener('click', () => {
-    syncFromCloud(true);
+  els.editGame.addEventListener('click', () => {
+    if (!currentGame()) return;
+    if (!isEditing) {
+      if (!verifyActiveCode()) return;
+      isEditing = true;
+      render();
+      return;
+    }
+
+    if (!window.confirm('Finish this game and move it to History?')) return;
+    if (!verifyActiveCode()) return;
+    const finished = replaceRound(roundFromState(currentGame(), 'history'));
+    isEditing = false;
+    scheduleAutoSync(finished);
+    render();
+    switchView('start');
   });
 
   els.courseSelect.addEventListener('change', () => {
@@ -753,52 +973,9 @@ function addListeners() {
     });
   });
 
-  els.clearRound.addEventListener('click', () => {
-    state.scores = Array.from({ length: 18 }, () => ['', '', '', '']);
-    saveState();
-    render();
-  });
-
-  els.saveRound.addEventListener('click', async () => {
-    const course = currentCourse();
-    const name = roundDisplayName(course);
-    const round = {
-      id: `round-${Date.now()}`,
-      savedAt: Date.now(),
-      name,
-      fileName: roundFileName(course),
-      courseId: course.id,
-      courseName: course.name,
-      pars: course.pars,
-      players: [...state.players],
-      pointValue: state.pointValue,
-      birdieFlip: state.birdieFlip,
-      scores: state.scores.map(row => [...row]),
-      totals: totals()
-    };
-    savedRounds = mergeRounds([round, ...savedRounds], []);
-    saveHistoryLocal();
-    renderHistory();
-    switchView('history');
-    try {
-      await upsertCloudRound(round);
-      await syncFromCloud(false);
-    } catch (error) {
-      setSyncState({ label: 'Sync failed', title: error.message, busy: false, ready: hasSupabaseConfig() });
-    }
-  });
-
-  els.addCourse.addEventListener('click', () => {
-    openCourseModal();
-  });
-
-  els.cancelCourse.addEventListener('click', () => {
-    closeCourseModal();
-  });
-
-  els.cancelCourseBottom.addEventListener('click', () => {
-    closeCourseModal();
-  });
+  els.addCourse.addEventListener('click', openCourseModal);
+  els.cancelCourse.addEventListener('click', closeCourseModal);
+  els.cancelCourseBottom.addEventListener('click', closeCourseModal);
 
   els.courseModal.addEventListener('click', event => {
     if (event.target === els.courseModal) closeCourseModal();
@@ -835,8 +1012,55 @@ function addListeners() {
       await upsertCloudCourse(course);
       await syncFromCloud(false);
     } catch (error) {
-      setSyncState({ label: 'Sync failed', title: error.message, busy: false, ready: hasSupabaseConfig() });
+      setSyncState({ ok: false, busy: false, label: 'Cloud sync Not ok', title: error.message });
     }
+  });
+
+  els.newGame.addEventListener('click', openGameModal);
+  els.cancelGame.addEventListener('click', closeGameModal);
+  els.cancelGameBottom.addEventListener('click', closeGameModal);
+
+  els.gameModal.addEventListener('click', event => {
+    if (event.target === els.gameModal) closeGameModal();
+  });
+
+  els.gameForm.addEventListener('submit', event => {
+    event.preventDefault();
+    const players = [
+      els.newPlayerA1.value.trim() || 'Player 1',
+      els.newPlayerA2.value.trim() || 'Player 2',
+      els.newPlayerB1.value.trim() || 'Player 3',
+      els.newPlayerB2.value.trim() || 'Player 4'
+    ];
+    const code = els.newGameCode.value.trim();
+    if (!/^\d{2}$/.test(code)) {
+      els.newGameCode.setCustomValidity('Enter a 2 digit code.');
+      els.newGameCode.reportValidity();
+      els.newGameCode.setCustomValidity('');
+      return;
+    }
+    const course = allCourses().find(item => item.id === els.newGameCourse.value) || allCourses()[0];
+    state = {
+      courseId: course.id,
+      players,
+      pointValue: 1,
+      birdieFlip: els.newGameBirdieFlip.checked,
+      scores: emptyScores()
+    };
+    const game = replaceRound(roundFromState({
+      totals: {
+        status: 'playing',
+        tee: els.newGameTee.value,
+        editCode: code
+      }
+    }, 'playing'));
+    activeGameId = game.id;
+    isEditing = true;
+    saveState();
+    closeGameModal();
+    render();
+    switchView('play');
+    scheduleAutoSync(game);
   });
 
   window.addEventListener('beforeinstallprompt', event => {
@@ -856,19 +1080,21 @@ function addListeners() {
 
 function init() {
   customCourses = loadJson(COURSE_KEY, []);
-  savedRounds = loadJson(HISTORY_KEY, []);
-  state = { ...state, ...loadJson(STORAGE_KEY, {}) };
-  if (!Array.isArray(state.scores) || state.scores.length !== 18) {
-    state.scores = Array.from({ length: 18 }, () => ['', '', '', '']);
-  }
+  savedRounds = loadJson(HISTORY_KEY, []).map(normalizeRound);
+  const savedState = loadJson(STORAGE_KEY, {});
+  activeGameId = savedState.activeGameId || '';
+  state = { ...state, ...savedState, scores: normalizeScores(savedState.scores) };
   if (!Array.isArray(state.players) || state.players.length !== 4) {
     state.players = ['Player 1', 'Player 2', 'Player 3', 'Player 4'];
   }
+  chooseInitialGame();
+  if (activeGameId) loadGame(activeGameId, false, false);
   if (hasSupabaseConfig()) {
     setSyncState({
       ready: true,
       busy: false,
-      label: 'Cloud ready',
+      ok: false,
+      label: 'Cloud sync Not ok',
       title: `Supabase room: ${supabaseConfig().syncKey}`
     });
   }
@@ -876,6 +1102,11 @@ function init() {
   addListeners();
   render();
   syncFromCloud(true);
+  window.setInterval(() => {
+    if (!isEditing && hasSupabaseConfig() && !syncState.busy) {
+      syncFromCloud(false);
+    }
+  }, 30000);
 }
 
 if ('serviceWorker' in navigator) {
