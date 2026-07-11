@@ -970,17 +970,6 @@ function renderCourses() {
     row.querySelector('strong').textContent = course.name;
     row.querySelector('span').textContent = `Par ${course.pars.reduce((a, b) => a + b, 0)} - ${isCustom ? 'Custom' : 'Preset'}`;
 
-    const useButton = document.createElement('button');
-    useButton.type = 'button';
-    useButton.textContent = 'Use';
-    useButton.addEventListener('click', () => {
-      state.courseId = course.id;
-      saveState();
-      render();
-      switchView('play');
-    });
-    row.querySelector('.small-actions').append(useButton);
-
     if (isCustom) {
       const deleteButton = document.createElement('button');
       deleteButton.type = 'button';
@@ -1009,7 +998,7 @@ function renderCourses() {
 function roundSummary(round) {
   const date = new Date(round.savedAt);
   const total = round.totals || {};
-  return `${date.toLocaleDateString()} ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - ${round.courseName} - ${gameTee(round)} - A ${total.a}, B ${total.b}`;
+  return `${date.toLocaleDateString()} ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} | ${round.courseName} | ${gameTee(round)} | A ${total.a}, B ${total.b}`;
 }
 
 function renderGameList(container, rounds, emptyText, status) {
@@ -1025,6 +1014,7 @@ function renderGameList(container, rounds, emptyText, status) {
   rounds.forEach(round => {
     const row = document.createElement('div');
     row.className = 'history-row game-row';
+    row.classList.toggle('playing-game-row', status === 'playing');
     row.classList.toggle('history-game-row', status === 'history');
     row.classList.toggle('active-game', round.id === activeGameId);
     row.innerHTML = `
@@ -1032,14 +1022,14 @@ function renderGameList(container, rounds, emptyText, status) {
         <span class="playing-icon" aria-hidden="true"></span>
         <span class="game-copy">
           <strong></strong>
-          <span></span>
+          <span class="game-meta"></span>
         </span>
       </button>
       <div class="small-actions"></div>
     `;
     row.querySelector('.playing-icon').hidden = status !== 'playing';
     row.querySelector('strong').textContent = round.name || round.courseName;
-    row.querySelector('span').textContent = roundSummary(round);
+    row.querySelector('.game-meta').textContent = roundSummary(round);
     row.querySelector('.game-open').addEventListener('click', () => loadGame(round.id, false, true));
     if (status === 'history') {
       const deleteButton = document.createElement('button');
@@ -1093,6 +1083,7 @@ function addListeners() {
   els.editGame.addEventListener('click', async () => {
     if (!currentGame()) return;
     if (!isEditing) {
+      if (!(await confirmDialog('Edit game', 'Edit this game?'))) return;
       if (!(await verifyActiveCode())) return;
       isEditing = true;
       render();
@@ -1123,9 +1114,7 @@ function addListeners() {
       } else {
         await showMessage('Share app', shareData.url);
       }
-    } catch {
-      await showMessage('Share cancelled', 'The app was not shared.');
-    }
+    } catch {}
   });
 
   els.dialogForm.addEventListener('submit', event => {
