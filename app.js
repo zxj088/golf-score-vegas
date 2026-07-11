@@ -1122,6 +1122,14 @@ function renderHoles() {
       const input = row.querySelector(`.score-${scoreIndex}`);
       input.value = scores[scoreIndex];
       input.disabled = !isEditing;
+      input.autocomplete = 'off';
+      input.enterKeyHint = 'next';
+      input.addEventListener('focus', () => input.select());
+      input.closest('td').addEventListener('click', () => {
+        if (!isEditing) return;
+        input.focus();
+        input.select();
+      });
       input.addEventListener('change', () => {
         if (!isEditing) return;
         state.scores[index][scoreIndex] = input.value;
@@ -1471,9 +1479,11 @@ function addListeners() {
 }
 
 function init() {
+  const cloudReady = hasSupabaseConfig();
   customCourses = loadJson(COURSE_KEY, []);
   deletedRoundKeys = loadJson(DELETE_KEY, []);
-  savedRounds = loadJson(HISTORY_KEY, []).map(normalizeRound).filter(round => !isRoundDeleted(round));
+  savedRounds = cloudReady ? [] : loadJson(HISTORY_KEY, []).map(normalizeRound).filter(round => !isRoundDeleted(round));
+  if (cloudReady) saveHistoryLocal();
   const savedState = loadJson(STORAGE_KEY, {});
   activeGameId = savedState.activeGameId || '';
   state = { ...state, ...savedState, scores: normalizeScores(savedState.scores) };
@@ -1482,7 +1492,7 @@ function init() {
   }
   chooseInitialGame();
   if (activeGameId) loadGame(activeGameId, false, false);
-  if (hasSupabaseConfig()) {
+  if (cloudReady) {
     setSyncState({
       ready: true,
       busy: false,
