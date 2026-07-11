@@ -4,6 +4,7 @@ const COURSE_KEY = 'vegasGolfCourses.v1';
 const CLIENT_KEY = 'vegasGolfClientId.v1';
 const DELETE_KEY = 'vegasGolfDeletedRounds.v1';
 const GAME_LIMIT = 200;
+const CLOUD_ROUND_LIMIT = 1000;
 const EDIT_LOCK_TTL_MS = 12000;
 
 const defaultCourses = [
@@ -216,6 +217,15 @@ function roundDeleteKey(round) {
   return [round.id || '', round.savedAt || '', round.name || ''].join('|');
 }
 
+function parseRoundDeleteKey(key) {
+  const [id = '', savedAt = '', ...nameParts] = String(key || '').split('|');
+  return {
+    id,
+    savedAt: Number(savedAt || 0),
+    name: nameParts.join('|')
+  };
+}
+
 function markRoundDeleted(round) {
   const key = roundDeleteKey(round);
   if (!key || deletedRoundKeys.includes(key)) return;
@@ -310,6 +320,10 @@ function cloudId(type, id) {
   return `${supabaseConfig().syncKey}:${type}:${id}`;
 }
 
+function cloudRowLocalId(row, type = 'round') {
+  return String(row.id || '').split(`:${type}:`).pop();
+}
+
 async function supabaseRequest(table, query = '', options = {}) {
   const config = supabaseConfig();
   const url = `${config.url}/rest/v1/${table}${query ? `?${query}` : ''}`;
@@ -372,9 +386,70 @@ function roundToCloudRow(round) {
   };
 }
 
+function deleteInfoToCloudRow(info) {
+  const deletedAt = Date.now();
+  const savedAt = Number(info.savedAt || deletedAt);
+  const name = String(info.name || 'Deleted game');
+  return {
+    id: cloudId('round-delete', `${info.id || 'round'}-${savedAt}`),
+    sync_key: supabaseConfig().syncKey,
+    saved_at: deletedAt,
+    name: `Deleted ${name}`,
+    file_name: '',
+    course_id: defaultCourses[0].id,
+    course_name: 'Deleted',
+    pars: defaultCourses[0].pars,
+    players: ['Deleted', 'Deleted', 'Deleted', 'Deleted'],
+    point_value: 1,
+    birdie_flip: true,
+    scores: emptyScores(),
+    totals: {
+      status: 'history',
+      deleted: true,
+      deletedAt,
+      deletedRoundId: String(info.id || ''),
+      deletedSavedAt: savedAt,
+      deletedName: name
+    }
+  };
+}
+
+function deleteMarkerToCloudRow(round) {
+  const normalized = normalizeRound(round);
+  return deleteInfoToCloudRow({
+    id: normalized.id,
+    savedAt: normalized.savedAt,
+    name: normalized.name
+  });
+}
+
+function isDeleteMarkerRow(row) {
+  return Boolean(row?.totals?.deleted);
+}
+
+function rowDeleteInfo(row) {
+  const totals = row?.totals || {};
+  return {
+    id: String(totals.deletedRoundId || ''),
+    savedAt: Number(totals.deletedSavedAt || 0),
+    name: String(totals.deletedName || '')
+  };
+}
+
+function rowMatchesDeleteInfo(row, deleted) {
+  if (!deleted) return false;
+  const localId = cloudRowLocalId(row);
+  const savedAt = Number(row.saved_at || 0);
+  return Boolean(
+    (deleted.id && localId === deleted.id) ||
+    (deleted.savedAt && savedAt === deleted.savedAt) ||
+    (deleted.savedAt && deleted.name && savedAt === deleted.savedAt && row.name === deleted.name)
+  );
+}
+
 function cloudRowToRound(row) {
   return normalizeRound({
-    id: String(row.id).split(':round:').pop(),
+    id: cloudRowLocalId(row),
     savedAt: Number(row.saved_at),
     name: row.name,
     fileName: row.file_name,
@@ -433,9 +508,21 @@ async function fetchCloudCourses() {
 }
 
 async function fetchCloudRounds() {
-  const query = `select=*&sync_key=eq.${encodeURIComponent(supabaseConfig().syncKey)}&order=saved_at.desc&limit=${GAME_LIMIT}`;
+  const query = `select=*&sync_key=eq.${encodeURIComponent(supabaseConfig().syncKey)}&order=saved_at.desc&limit=${CLOUD_ROUND_LIMIT}`;
   const rows = await supabaseRequest('vegas_rounds', query);
-  return rows.map(cloudRowToRound);
+  const deleteMarkers = rows.filter(isDeleteMarkerRow).map(rowDeleteInfo);
+  rows
+    .filter(isDeleteMarkerRow)
+    .map(rowDeleteInfo)
+    .forEach(info => {
+      if (info.id || info.savedAt || info.name) {
+        markRoundDeleted({ id: info.id, savedAt: info.savedAt, name: info.name });
+      }
+    });
+  return rows
+    .filter(row => !isDeleteMarkerRow(row))
+    .filter(row => !deleteMarkers.some(deleted => rowMatchesDeleteInfo(row, deleted)))
+    .map(cloudRowToRound);
 }
 
 async function fetchCloudRoundById(roundId) {
@@ -463,6 +550,29 @@ async function upsertCloudRound(round) {
   });
 }
 
+async function upsertCloudDeleteMarker(round) {
+  if (!hasSupabaseConfig()) return;
+  await supabaseRequest('vegas_rounds', 'on_conflict=id', {
+    method: 'POST',
+    body: deleteMarkerToCloudRow(round),
+    prefer: 'resolution=merge-duplicates,return=minimal'
+  });
+}
+
+async function uploadLocalDeleteMarkers() {
+  if (!hasSupabaseConfig() || !deletedRoundKeys.length) return;
+  await Promise.all(
+    deletedRoundKeys
+      .map(parseRoundDeleteKey)
+      .filter(info => info.id || info.savedAt || info.name)
+      .map(info => supabaseRequest('vegas_rounds', 'on_conflict=id', {
+        method: 'POST',
+        body: deleteInfoToCloudRow(info),
+        prefer: 'resolution=merge-duplicates,return=minimal'
+      }))
+  );
+}
+
 async function deleteCloudCourse(courseId) {
   if (!hasSupabaseConfig()) return;
   await supabaseRequest('vegas_courses', `id=eq.${encodeURIComponent(cloudId('course', courseId))}`, {
@@ -474,6 +584,7 @@ async function deleteCloudCourse(courseId) {
 async function deleteCloudRound(roundOrId) {
   if (!hasSupabaseConfig()) return;
   const round = typeof roundOrId === 'string' ? { id: roundOrId } : normalizeRound(roundOrId);
+  await upsertCloudDeleteMarker(round);
   const byId = await supabaseRequest('vegas_rounds', `id=eq.${encodeURIComponent(cloudId('round', round.id))}`, {
     method: 'DELETE',
     prefer: 'return=representation'
@@ -528,6 +639,7 @@ async function syncFromCloud(pushLocal = true, quiet = false) {
   }
 
   try {
+    await uploadLocalDeleteMarkers();
     if (pushLocal) await Promise.all(customCourses.map(upsertCloudCourse));
 
     const [cloudCourses, cloudRounds] = await Promise.all([
