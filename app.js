@@ -22,6 +22,7 @@ let deferredInstallPrompt = null;
 let activeGameId = '';
 let isEditing = false;
 let autoSyncTimer = null;
+let dialogResolver = null;
 let state = {
   courseId: defaultCourses[0].id,
   players: ['Player 1', 'Player 2', 'Player 3', 'Player 4'],
@@ -41,7 +42,9 @@ let syncState = {
 };
 
 const els = {
+  scoreStrip: document.querySelector('#scoreStrip'),
   installButton: document.querySelector('#installButton'),
+  shareButton: document.querySelector('#shareButton'),
   courseSelect: document.querySelector('#courseSelect'),
   pointValue: document.querySelector('#pointValue'),
   birdieFlip: document.querySelector('#birdieFlip'),
@@ -95,7 +98,17 @@ const els = {
   newGameBirdieFlip: document.querySelector('#newGameBirdieFlip'),
   playingList: document.querySelector('#playingList'),
   historyList: document.querySelector('#historyList'),
-  syncStatus: document.querySelector('#syncStatus')
+  syncStatus: document.querySelector('#syncStatus'),
+  appDialog: document.querySelector('#appDialog'),
+  dialogForm: document.querySelector('#dialogForm'),
+  dialogEyebrow: document.querySelector('#dialogEyebrow'),
+  dialogTitle: document.querySelector('#dialogTitle'),
+  dialogMessage: document.querySelector('#dialogMessage'),
+  dialogInputWrap: document.querySelector('#dialogInputWrap'),
+  dialogInputLabel: document.querySelector('#dialogInputLabel'),
+  dialogInput: document.querySelector('#dialogInput'),
+  dialogOk: document.querySelector('#dialogOk'),
+  dialogCancel: document.querySelector('#dialogCancel')
 };
 
 function emptyScores() {
@@ -390,7 +403,7 @@ function chooseInitialGame() {
   if (activeGameId) loadGame(activeGameId, false, false);
 }
 
-async function syncFromCloud(pushLocal = true) {
+async function syncFromCloud(pushLocal = true, quiet = false) {
   if (!hasSupabaseConfig()) {
     setSyncState({
       ready: false,
@@ -402,11 +415,13 @@ async function syncFromCloud(pushLocal = true) {
     return;
   }
 
-  setSyncState({
-    ready: true,
-    busy: true,
-    title: 'Sending and loading scorecard data.'
-  });
+  if (!quiet) {
+    setSyncState({
+      ready: true,
+      busy: true,
+      title: 'Sending and loading scorecard data.'
+    });
+  }
 
   try {
     if (pushLocal) {
@@ -423,7 +438,12 @@ async function syncFromCloud(pushLocal = true) {
 
     customCourses = mergeById(customCourses, cloudCourses);
     savedRounds = mergeRounds(savedRounds, cloudRounds);
-    chooseInitialGame();
+    if (activeGameId && !isEditing && savedRounds.some(round => round.id === activeGameId)) {
+      applyGameToState(savedRounds.find(round => round.id === activeGameId));
+      saveState();
+    } else {
+      chooseInitialGame();
+    }
     saveCoursesLocal();
     saveHistoryLocal();
     setSyncState({
@@ -670,12 +690,8 @@ function ensureCourseFromRound(round) {
   saveCoursesLocal();
 }
 
-function loadGame(gameId, editable = false, goToPlay = true) {
-  const round = savedRounds.find(item => item.id === gameId);
-  if (!round) return;
+function applyGameToState(round) {
   ensureCourseFromRound(round);
-  activeGameId = round.id;
-  isEditing = editable;
   state = {
     courseId: round.courseId,
     players: [...round.players],
@@ -683,6 +699,14 @@ function loadGame(gameId, editable = false, goToPlay = true) {
     birdieFlip: round.birdieFlip,
     scores: normalizeScores(round.scores)
   };
+}
+
+function loadGame(gameId, editable = false, goToPlay = true) {
+  const round = savedRounds.find(item => item.id === gameId);
+  if (!round) return;
+  activeGameId = round.id;
+  isEditing = editable;
+  applyGameToState(round);
   saveState();
   render();
   if (goToPlay) switchView('play');
@@ -697,16 +721,94 @@ function persistActiveGame(shouldSync = true) {
   return round;
 }
 
-function verifyActiveCode() {
+function openAppDialog({
+  eyebrow = 'Action',
+  title = 'Confirm',
+  message = '',
+  input = false,
+  inputLabel = 'Code',
+  inputMode = 'text',
+  maxLength = '',
+  pattern = '',
+  okText = 'OK',
+  cancelText = 'Cancel'
+}) {
+  return new Promise(resolve => {
+    dialogResolver = resolve;
+    els.dialogEyebrow.textContent = eyebrow;
+    els.dialogTitle.textContent = title;
+    els.dialogMessage.textContent = message;
+    els.dialogOk.textContent = okText;
+    els.dialogCancel.textContent = cancelText;
+    els.dialogInputWrap.hidden = !input;
+    els.dialogInputLabel.textContent = inputLabel;
+    els.dialogInput.value = '';
+    els.dialogInput.inputMode = inputMode;
+    els.dialogInput.maxLength = maxLength;
+    els.dialogInput.pattern = pattern;
+    els.appDialog.hidden = false;
+    if (input) els.dialogInput.focus();
+    else els.dialogOk.focus();
+  });
+}
+
+function closeAppDialog(value) {
+  els.appDialog.hidden = true;
+  els.dialogInput.setCustomValidity('');
+  const resolver = dialogResolver;
+  dialogResolver = null;
+  if (resolver) resolver(value);
+}
+
+async function showMessage(title, message) {
+  await openAppDialog({
+    eyebrow: 'Notice',
+    title,
+    message,
+    okText: 'OK',
+    cancelText: 'Close'
+  });
+}
+
+async function confirmDialog(title, message) {
+  return openAppDialog({
+    eyebrow: 'Confirm',
+    title,
+    message,
+    okText: 'Yes',
+    cancelText: 'No'
+  });
+}
+
+async function askCodeDialog() {
+  return openAppDialog({
+    eyebrow: 'Edit Code',
+    title: "what's the code?",
+    message: 'Enter the 2 digit edit code for this game.',
+    input: true,
+    inputLabel: 'Code',
+    inputMode: 'numeric',
+    maxLength: '2',
+    pattern: '[0-9]{2}',
+    okText: 'OK',
+    cancelText: 'Cancel'
+  });
+}
+
+async function verifyActiveCode() {
   const round = currentGame();
   const code = gameCode(round);
   if (!round) return false;
   if (!/^\d{2}$/.test(code)) {
-    window.alert('This game does not have an edit code.');
+    await showMessage('No edit code', 'This game does not have an edit code.');
     return false;
   }
-  const answer = window.prompt("what's the code?");
-  return answer === code;
+  const answer = await askCodeDialog();
+  if (answer === code) return true;
+  if (answer !== false) {
+    await showMessage('Wrong code', 'The edit code is not correct.');
+  }
+  return false;
 }
 
 function renderCourseSelect() {
@@ -922,6 +1024,9 @@ function switchView(name) {
   document.querySelectorAll('.view').forEach(view => {
     view.classList.toggle('active', view.id === `${name}View`);
   });
+  if (els.scoreStrip) {
+    els.scoreStrip.hidden = name !== 'play';
+  }
 }
 
 function addListeners() {
@@ -929,22 +1034,64 @@ function addListeners() {
     tab.addEventListener('click', () => switchView(tab.dataset.view));
   });
 
-  els.editGame.addEventListener('click', () => {
+  els.editGame.addEventListener('click', async () => {
     if (!currentGame()) return;
     if (!isEditing) {
-      if (!verifyActiveCode()) return;
+      if (!(await verifyActiveCode())) return;
       isEditing = true;
       render();
       return;
     }
 
-    if (!window.confirm('Finish this game and move it to History?')) return;
-    if (!verifyActiveCode()) return;
+    if (!(await confirmDialog('Finish game', 'Finish this game and move it to History?'))) return;
+    if (!(await verifyActiveCode())) return;
     const finished = replaceRound(roundFromState(currentGame(), 'history'));
     isEditing = false;
     scheduleAutoSync(finished);
     render();
     switchView('start');
+  });
+
+  els.shareButton.addEventListener('click', async () => {
+    const shareData = {
+      title: 'Vegas Golf Scorecard',
+      text: 'Vegas Golf Scorecard',
+      url: window.location.href.split('?')[0]
+    };
+    try {
+      if (navigator.share) {
+        await navigator.share(shareData);
+      } else if (navigator.clipboard) {
+        await navigator.clipboard.writeText(shareData.url);
+        await showMessage('Link copied', 'The app link was copied to the clipboard.');
+      } else {
+        await showMessage('Share app', shareData.url);
+      }
+    } catch {
+      await showMessage('Share cancelled', 'The app was not shared.');
+    }
+  });
+
+  els.dialogForm.addEventListener('submit', event => {
+    event.preventDefault();
+    if (!els.dialogInputWrap.hidden) {
+      const value = els.dialogInput.value.trim();
+      if (els.dialogInput.pattern && !new RegExp(`^${els.dialogInput.pattern}$`).test(value)) {
+        els.dialogInput.setCustomValidity('Enter a valid value.');
+        els.dialogInput.reportValidity();
+        els.dialogInput.setCustomValidity('');
+        return;
+      }
+      closeAppDialog(value);
+      return;
+    }
+    closeAppDialog(true);
+  });
+
+  els.dialogCancel.addEventListener('click', () => closeAppDialog(false));
+
+  els.appDialog.addEventListener('click', event => {
+    if (event.target === els.appDialog) closeAppDialog(false);
   });
 
   els.courseSelect.addEventListener('change', () => {
@@ -1066,15 +1213,16 @@ function addListeners() {
   window.addEventListener('beforeinstallprompt', event => {
     event.preventDefault();
     deferredInstallPrompt = event;
-    els.installButton.hidden = false;
   });
 
   els.installButton.addEventListener('click', async () => {
-    if (!deferredInstallPrompt) return;
+    if (!deferredInstallPrompt) {
+      await showMessage('Save to desktop', 'Use your browser menu, then choose Add to Home Screen or Install App.');
+      return;
+    }
     deferredInstallPrompt.prompt();
     await deferredInstallPrompt.userChoice;
     deferredInstallPrompt = null;
-    els.installButton.hidden = true;
   });
 }
 
@@ -1104,9 +1252,19 @@ function init() {
   syncFromCloud(true);
   window.setInterval(() => {
     if (!isEditing && hasSupabaseConfig() && !syncState.busy) {
-      syncFromCloud(false);
+      syncFromCloud(false, true);
     }
-  }, 30000);
+  }, 4000);
+  window.addEventListener('focus', () => {
+    if (!isEditing && hasSupabaseConfig() && !syncState.busy) {
+      syncFromCloud(false, true);
+    }
+  });
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden && !isEditing && hasSupabaseConfig() && !syncState.busy) {
+      syncFromCloud(false, true);
+    }
+  });
 }
 
 if ('serviceWorker' in navigator) {

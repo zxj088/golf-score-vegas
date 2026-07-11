@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#1f6f5b">
   <title>Vegas Golf Scorecard</title>
   <link rel="manifest" href="./manifest.webmanifest">
-  <link rel="stylesheet" href="./styles.css?v=14">
+  <link rel="stylesheet" href="./styles.css?v=15">
 </head>
 <body>
   <div class="app-shell">
@@ -15,13 +15,14 @@
         <p class="eyebrow">Las Vegas Rule</p>
         <h1>Golf Scorecard</h1>
       </div>
-      <button class="icon-button" id="installButton" type="button" hidden aria-label="Install app" title="Install app">
-        <span aria-hidden="true">+</span>
-      </button>
+      <div class="top-actions">
+        <button id="shareButton" type="button" aria-label="Share app" title="Share app">Share</button>
+        <button id="installButton" type="button" aria-label="Save to phone desktop" title="Save to phone desktop">Install</button>
+      </div>
     </header>
 
     <main>
-      <section class="score-strip" aria-label="Match totals">
+      <section class="score-strip" id="scoreStrip" aria-label="Match totals" hidden>
         <div class="team-total team-a">
           <span class="label">Team A</span>
           <strong id="teamATotal">0</strong>
@@ -39,9 +40,9 @@
       </section>
 
       <nav class="tabs" aria-label="Views">
+        <button class="tab active" type="button" data-view="start">Home</button>
         <button class="tab" type="button" data-view="play">Play</button>
         <button class="tab" type="button" data-view="courses">Courses</button>
-        <button class="tab active" type="button" data-view="start">Start</button>
       </nav>
 
       <div class="sync-bar">
@@ -73,12 +74,12 @@
                 <th>Par</th>
                 <th class="team-a-cell"><input id="playerA1" type="text" autocomplete="off" aria-label="Team A player 1"></th>
                 <th class="team-a-cell"><input id="playerA2" type="text" autocomplete="off" aria-label="Team A player 2"></th>
-                <th class="team-a-cell">A#</th>
-                <th class="team-a-cell">A+/-</th>
+                <th class="team-a-cell calc-head">A#</th>
+                <th class="team-a-cell calc-head">A+/-</th>
                 <th class="team-b-cell"><input id="playerB1" type="text" autocomplete="off" aria-label="Team B player 1"></th>
                 <th class="team-b-cell"><input id="playerB2" type="text" autocomplete="off" aria-label="Team B player 2"></th>
-                <th class="team-b-cell">B#</th>
-                <th class="team-b-cell">B+/-</th>
+                <th class="team-b-cell calc-head">B#</th>
+                <th class="team-b-cell calc-head">B+/-</th>
               </tr>
             </thead>
             <tbody id="scoreRows"></tbody>
@@ -110,7 +111,7 @@
 
       <section class="view active" id="startView">
         <div class="section-heading">
-          <h2>Start</h2>
+          <h2>Home</h2>
           <button class="primary" id="newGame" type="button">New Game</button>
         </div>
         <section class="game-section">
@@ -229,7 +230,27 @@
     </form>
   </div>
 
-  <script src="./supabase-config.js?v=14"></script>
-  <script src="./app.js?v=14" defer></script>
+  <div class="course-modal" id="appDialog" hidden>
+    <form class="course-form dialog-form" id="dialogForm">
+      <div class="modal-head">
+        <div>
+          <p class="eyebrow" id="dialogEyebrow">Action</p>
+          <h2 id="dialogTitle">Confirm</h2>
+        </div>
+      </div>
+      <p class="dialog-message" id="dialogMessage"></p>
+      <label id="dialogInputWrap" hidden>
+        <span id="dialogInputLabel">Code</span>
+        <input id="dialogInput" type="text" inputmode="numeric" autocomplete="off">
+      </label>
+      <div class="action-row">
+        <button class="primary" id="dialogOk" type="submit">OK</button>
+        <button id="dialogCancel" type="button">Cancel</button>
+      </div>
+    </form>
+  </div>
+
+  <script src="./supabase-config.js?v=15"></script>
+  <script src="./app.js?v=15" defer></script>
 </body>
 </html>
