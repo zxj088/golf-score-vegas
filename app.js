@@ -1402,7 +1402,7 @@ function renderCourses() {
 
 function dateTimeInputValue(date) {
   const pad = value => String(value).padStart(2, '0');
-  return `${String(date.getFullYear()).slice(2)}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
 function formatTeeTime(value, fallback = Date.now()) {
@@ -1411,7 +1411,7 @@ function formatTeeTime(value, fallback = Date.now()) {
   const match = raw.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
   if (match) return `${match[1].slice(2)}-${match[2]}-${match[3]} ${match[4]}:${match[5]}`;
   const date = new Date(fallback);
-  return dateTimeInputValue(date);
+  return dateTimeInputValue(date).slice(2).replace('T', ' ');
 }
 
 function roundListDate(round) {
