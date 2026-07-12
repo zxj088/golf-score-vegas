@@ -567,6 +567,10 @@ textarea {
   background: #ffffff;
 }
 
+.scorecard input.score {
+  cursor: pointer;
+}
+
 .scorecard input:disabled,
 select:disabled,
 input:disabled {
@@ -675,6 +679,79 @@ input:disabled {
   margin: 0;
   color: var(--ink);
   line-height: 1.35;
+}
+
+.score-pad[hidden] {
+  display: none;
+}
+
+.score-pad {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: grid;
+  align-items: end;
+  padding: 12px;
+  background: rgba(18, 30, 25, 0.24);
+}
+
+.score-pad-sheet {
+  display: grid;
+  gap: 12px;
+  width: min(480px, 100%);
+  margin: 0 auto;
+  border: 1px solid var(--line);
+  border-radius: 8px 8px 0 0;
+  padding: 14px;
+  padding-bottom: calc(14px + env(safe-area-inset-bottom));
+  background: var(--panel);
+  box-shadow: var(--shadow);
+}
+
+.score-stepper {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr) 64px;
+  gap: 8px;
+  align-items: center;
+}
+
+.score-stepper button {
+  min-height: 58px;
+  border-color: var(--green);
+  color: var(--green);
+  font-size: 28px;
+  font-weight: 900;
+}
+
+.score-stepper input {
+  min-height: 58px;
+  padding: 4px 6px;
+  text-align: center;
+  font-size: 30px;
+  font-weight: 900;
+}
+
+.score-quick {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.score-quick button {
+  min-height: 42px;
+  padding: 4px;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.score-quick button.active {
+  border-color: var(--green);
+  color: #ffffff;
+  background: var(--green);
+}
+
+.score-pad-actions {
+  grid-template-columns: 1fr 1fr 1fr;
 }
 
 .modal-head {
