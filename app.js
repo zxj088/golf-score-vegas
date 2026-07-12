@@ -60,6 +60,8 @@ const els = {
     document.querySelector('#playerB2')
   ],
   scoreRows: document.querySelector('#scoreRows'),
+  teamAPlayers: document.querySelector('#teamAPlayers'),
+  teamBPlayers: document.querySelector('#teamBPlayers'),
   teamATotal: document.querySelector('#teamATotal'),
   teamBTotal: document.querySelector('#teamBTotal'),
   holesComplete: document.querySelector('#holesComplete'),
@@ -1238,6 +1240,8 @@ function renderScoreStrip() {
   const course = currentCourse();
   const total = totals();
   const parTotal = course.pars.reduce((a, b) => a + b, 0);
+  els.teamAPlayers.textContent = `${state.players[0]} + ${state.players[1]}`;
+  els.teamBPlayers.textContent = `${state.players[2]} + ${state.players[3]}`;
   els.teamATotal.textContent = total.a;
   els.teamBTotal.textContent = total.b;
   applySignedClass(els.teamATotal, total.a);

@@ -155,6 +155,16 @@ h3 {
   gap: 2px;
 }
 
+.team-players {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.15;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .team-total strong {
   font-size: 24px;
   line-height: 1;
