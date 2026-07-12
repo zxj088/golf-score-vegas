@@ -723,12 +723,17 @@ input:disabled {
   font-weight: 900;
 }
 
-.score-stepper input {
+.score-pad-value {
+  display: grid;
+  place-items: center;
   min-height: 58px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
   padding: 4px 6px;
   text-align: center;
   font-size: 30px;
   font-weight: 900;
+  background: #ffffff;
 }
 
 .score-quick {

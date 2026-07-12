@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#1f6f5b">
   <title>Vegas Golf Scorecard</title>
   <link rel="manifest" href="./manifest.webmanifest">
-  <link rel="stylesheet" href="./styles.css?v=23">
+  <link rel="stylesheet" href="./styles.css?v=26">
 </head>
 <body>
   <div class="app-shell">
@@ -242,7 +242,7 @@
 
       <div class="score-stepper" aria-label="Score entry">
         <button id="scorePadMinus" type="button" aria-label="Decrease score">-</button>
-        <input id="scorePadInput" type="number" min="1" max="20" inputmode="numeric" pattern="[0-9]*" autocomplete="off">
+        <div class="score-pad-value" id="scorePadInput" aria-live="polite">--</div>
         <button id="scorePadPlus" type="button" aria-label="Increase score">+</button>
       </div>
 
@@ -282,7 +282,7 @@
     </form>
   </div>
 
-  <script src="./supabase-config.js?v=23"></script>
-  <script src="./app.js?v=23" defer></script>
+  <script src="./supabase-config.js?v=26"></script>
+  <script src="./app.js?v=26" defer></script>
 </body>
 </html>

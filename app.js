@@ -827,7 +827,7 @@ function updateScorePad() {
   const value = state.scores[holeIndex][scoreIndex] || '';
   els.scorePadHole.textContent = `Hole ${holeIndex + 1} - Par ${par}`;
   els.scorePadPlayer.textContent = scoreTargetLabel(activeScoreTarget);
-  els.scorePadInput.value = value;
+  els.scorePadInput.textContent = value || '--';
   document.querySelectorAll('.score-quick button').forEach(button => {
     const quickScore = String(par + Number(button.dataset.scoreOffset || 0));
     button.classList.toggle('active', value === quickScore);
@@ -855,10 +855,6 @@ function moveScoreTarget(step) {
     scoreIndex: nextFlatIndex % 4
   };
   updateScorePad();
-  window.setTimeout(() => {
-    els.scorePadInput.focus();
-    els.scorePadInput.select();
-  }, 0);
 }
 
 function openScorePad(holeIndex, scoreIndex) {
@@ -866,10 +862,6 @@ function openScorePad(holeIndex, scoreIndex) {
   activeScoreTarget = { holeIndex, scoreIndex };
   els.scorePad.hidden = false;
   updateScorePad();
-  window.setTimeout(() => {
-    els.scorePadInput.focus();
-    els.scorePadInput.select();
-  }, 0);
 }
 
 function closeScorePad() {
@@ -1314,9 +1306,12 @@ function renderHoles() {
       const input = row.querySelector(`.score-${scoreIndex}`);
       input.value = scores[scoreIndex];
       input.disabled = !isEditing;
+      input.readOnly = true;
       input.autocomplete = 'off';
-      input.enterKeyHint = 'next';
-      input.addEventListener('focus', () => input.select());
+      input.addEventListener('pointerdown', event => {
+        if (!isEditing) return;
+        event.preventDefault();
+      });
       input.addEventListener('click', event => {
         if (!isEditing) return;
         event.preventDefault();
@@ -1561,23 +1556,12 @@ function addListeners() {
     if (event.target === els.scorePad) closeScorePad();
   });
   els.scorePadMinus.addEventListener('click', () => {
-    const current = parseScore(els.scorePadInput.value) || currentCourse().pars[activeScoreTarget?.holeIndex || 0] || 4;
+    const current = parseScore(els.scorePadInput.textContent) || currentCourse().pars[activeScoreTarget?.holeIndex || 0] || 4;
     commitScorePadValue(current - 1);
   });
   els.scorePadPlus.addEventListener('click', () => {
-    const current = parseScore(els.scorePadInput.value) || currentCourse().pars[activeScoreTarget?.holeIndex || 0] || 4;
+    const current = parseScore(els.scorePadInput.textContent) || currentCourse().pars[activeScoreTarget?.holeIndex || 0] || 4;
     commitScorePadValue(current + 1);
-  });
-  els.scorePadInput.addEventListener('input', () => {
-    if (!activeScoreTarget) return;
-    const value = els.scorePadInput.value;
-    if (!value) return;
-    commitScorePadValue(value);
-  });
-  els.scorePadInput.addEventListener('keydown', event => {
-    if (event.key !== 'Enter') return;
-    event.preventDefault();
-    moveScoreTarget(1);
   });
   document.querySelectorAll('.score-quick button').forEach(button => {
     button.addEventListener('click', () => {
