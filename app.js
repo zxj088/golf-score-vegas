@@ -1,3 +1,4 @@
+const t = window.VEGAS_I18N.t;
 const STORAGE_KEY = 'vegasGolfState.v1';
 const HISTORY_KEY = 'vegasGolfHistory.v1';
 const COURSE_KEY = 'vegasGolfCourses.v1';
@@ -42,8 +43,8 @@ let syncState = {
   ready: false,
   busy: false,
   ok: false,
-  label: 'Cloud sync Not ok',
-  title: 'Supabase is not connected.'
+  label: t('Cloud sync Not ok'),
+  title: t('Supabase is not connected.')
 };
 
 const els = {
@@ -495,11 +496,11 @@ function setSyncState(next) {
 
 function renderSyncStatus() {
   if (!els.syncStatus || !els.editGame) return;
-  els.syncStatus.textContent = syncState.busy ? 'Syncing...' : syncState.label;
+  els.syncStatus.textContent = syncState.busy ? t('Syncing...') : syncState.label;
   els.syncStatus.title = syncState.title;
   els.syncStatus.classList.toggle('sync-ok', Boolean(syncState.ok) && !syncState.busy);
   els.syncStatus.classList.toggle('sync-bad', !syncState.ok && !syncState.busy);
-  els.editGame.textContent = isEditing ? 'Finish' : 'Edit';
+  els.editGame.textContent = isEditing ? t('Finish') : t('Edit');
   els.editGame.disabled = !currentGame();
 }
 
@@ -626,8 +627,8 @@ async function syncFromCloud(pushLocal = true, quiet = false) {
       ready: false,
       busy: false,
       ok: false,
-      label: 'Cloud sync Not ok',
-      title: 'Add your Supabase URL and anon key to supabase-config.js.'
+      label: t('Cloud sync Not ok'),
+      title: t('Add your Supabase URL and anon key to supabase-config.js.')
     });
     return;
   }
@@ -636,7 +637,7 @@ async function syncFromCloud(pushLocal = true, quiet = false) {
     setSyncState({
       ready: true,
       busy: true,
-      title: 'Sending and loading scorecard data.'
+      title: t('Sending and loading scorecard data.')
     });
   }
 
@@ -663,7 +664,7 @@ async function syncFromCloud(pushLocal = true, quiet = false) {
       ready: true,
       busy: false,
       ok: true,
-      label: 'Cloud sync ok',
+      label: t('Cloud sync ok'),
       title: `Supabase room: ${supabaseConfig().syncKey}`
     });
     render();
@@ -672,7 +673,7 @@ async function syncFromCloud(pushLocal = true, quiet = false) {
       ready: true,
       busy: false,
       ok: false,
-      label: 'Cloud sync Not ok',
+      label: t('Cloud sync Not ok'),
       title: error.message
     });
   }
@@ -682,10 +683,10 @@ function scheduleAutoSync(round) {
   if (!round) return;
   window.clearTimeout(autoSyncTimer);
   if (!hasSupabaseConfig()) {
-    setSyncState({ ok: false, busy: false, label: 'Cloud sync Not ok', title: 'Supabase is not configured.' });
+    setSyncState({ ok: false, busy: false, label: t('Cloud sync Not ok'), title: t('Supabase is not configured.') });
     return;
   }
-  setSyncState({ ready: true, busy: true, title: 'Saving scorecard changes.' });
+  setSyncState({ ready: true, busy: true, title: t('Saving scorecard changes.') });
   autoSyncTimer = window.setTimeout(async () => {
     try {
       if (isEditing && round.id === activeGameId) {
@@ -698,7 +699,7 @@ function scheduleAutoSync(round) {
         ready: true,
         busy: false,
         ok: true,
-        label: 'Cloud sync ok',
+        label: t('Cloud sync ok'),
         title: `Saved ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
       });
     } catch (error) {
@@ -706,7 +707,7 @@ function scheduleAutoSync(round) {
         ready: true,
         busy: false,
         ok: false,
-        label: 'Cloud sync Not ok',
+        label: t('Cloud sync Not ok'),
         title: error.message
       });
     }
@@ -734,8 +735,8 @@ function renderCourseParInputs(pars = currentCourse().pars) {
     const row = document.createElement('label');
     row.className = 'par-row';
     row.innerHTML = `
-      <span>Hole ${index + 1}</span>
-      <input class="course-par-input" type="number" min="1" max="7" inputmode="numeric" required aria-label="Hole ${index + 1} par">
+      <span>${t('Hole {hole}', { hole: index + 1 })}</span>
+      <input class="course-par-input" type="number" min="1" max="7" inputmode="numeric" required aria-label="${t('Hole {hole}', { hole: index + 1 })} ${t('Par')}">
     `;
     const input = row.querySelector('input');
     input.value = pars[index] || 4;
@@ -815,7 +816,7 @@ function updateScorePad() {
   const { holeIndex, scoreIndex } = activeScoreTarget;
   const par = currentCourse().pars[holeIndex] || 4;
   const value = state.scores[holeIndex][scoreIndex] || '';
-  els.scorePadHole.textContent = `Hole ${holeIndex + 1} - Par ${par}`;
+  els.scorePadHole.textContent = t('Hole {hole} - Par {par}', { hole: holeIndex + 1, par });
   els.scorePadPlayer.textContent = scoreTargetLabel(activeScoreTarget);
   els.scorePadInput.textContent = value || '--';
   document.querySelectorAll('.score-quick button').forEach(button => {
@@ -969,8 +970,8 @@ async function acquireEditLock(round) {
     ready: true,
     busy: false,
     ok: true,
-    label: 'Cloud sync ok',
-    title: 'Edit lock acquired.'
+    label: t('Cloud sync ok'),
+    title: t('Edit lock acquired.')
   });
   return locked;
 }
@@ -990,8 +991,8 @@ async function ensureEditLockStillMine() {
       ready: true,
       busy: false,
       ok: true,
-      label: 'Cloud sync ok',
-      title: 'Another phone is now editing this game.'
+      label: t('Cloud sync ok'),
+      title: t('Another phone is now editing this game.')
     });
     return false;
   }
@@ -1001,8 +1002,8 @@ async function ensureEditLockStillMine() {
     ready: true,
     busy: false,
     ok: true,
-    label: 'Cloud sync ok',
-    title: 'Edit lock refreshed.'
+    label: t('Cloud sync ok'),
+    title: t('Edit lock refreshed.')
   });
   return true;
 }
@@ -1049,16 +1050,16 @@ function persistActiveGame(shouldSync = true) {
 }
 
 function openAppDialog({
-  eyebrow = 'Action',
-  title = 'Confirm',
+  eyebrow = t('Action'),
+  title = t('Confirm'),
   message = '',
   input = false,
-  inputLabel = 'Code',
+  inputLabel = t('Code'),
   inputMode = 'text',
   maxLength = '',
   pattern = '',
   okText = 'OK',
-  cancelText = 'Cancel'
+  cancelText = t('Cancel')
 }) {
   return new Promise(resolve => {
     dialogResolver = resolve;
@@ -1089,51 +1090,51 @@ function closeAppDialog(value) {
 
 async function showMessage(title, message) {
   await openAppDialog({
-    eyebrow: 'Notice',
+    eyebrow: t('Notice'),
     title,
     message,
-    okText: 'OK',
-    cancelText: 'Close'
+    okText: t('OK'),
+    cancelText: t('Close')
   });
 }
 
 async function confirmDialog(title, message) {
   return openAppDialog({
-    eyebrow: 'Confirm',
+    eyebrow: t('Confirm'),
     title,
     message,
-    okText: 'Yes',
-    cancelText: 'No'
+    okText: t('Yes'),
+    cancelText: t('No')
   });
 }
 
 async function confirmCodeDialog(title, message, errorMessage = '') {
   return openAppDialog({
-    eyebrow: 'Edit Code',
+    eyebrow: t('Edit Code'),
     title,
     message: errorMessage || message,
     input: true,
-    inputLabel: 'Code',
+    inputLabel: t('Code'),
     inputMode: 'numeric',
     maxLength: '2',
     pattern: '[0-9]{2}',
-    okText: 'Yes',
-    cancelText: 'No'
+    okText: t('Yes'),
+    cancelText: t('No')
   });
 }
 
 async function askCodeDialog(errorMessage = '') {
   return openAppDialog({
-    eyebrow: 'Edit Code',
-    title: "what's the code?",
-    message: errorMessage || 'Enter the 2 digit edit code for this game.',
+    eyebrow: t('Edit Code'),
+    title: t("what's the code?"),
+    message: errorMessage || t('Enter the 2 digit edit code for this game.'),
     input: true,
-    inputLabel: 'Code',
+    inputLabel: t('Code'),
     inputMode: 'numeric',
     maxLength: '2',
     pattern: '[0-9]{2}',
-    okText: 'OK',
-    cancelText: 'Cancel'
+    okText: t('OK'),
+    cancelText: t('Cancel')
   });
 }
 
@@ -1145,7 +1146,7 @@ async function verifyCodeForRound(round) {
     const answer = await askCodeDialog(errorMessage);
     if (answer === false) return false;
     if (codeMatchesRound(round, answer)) return true;
-    errorMessage = 'The edit code is not correct. Try again.';
+    errorMessage = t('The edit code is not correct. Try again.');
   }
 }
 
@@ -1160,35 +1161,35 @@ async function confirmActionWithCode(round, title, message) {
     const answer = await confirmCodeDialog(title, message, errorMessage);
     if (answer === false) return false;
     if (codeMatchesRound(round, answer)) return true;
-    errorMessage = 'The edit code is not correct. Try again.';
+    errorMessage = t('The edit code is not correct. Try again.');
   }
 }
 
 async function confirmEditWithCode(round) {
-  return confirmActionWithCode(round, 'Edit game', 'Enter code, then choose Yes to edit this game.');
+  return confirmActionWithCode(round, t('Edit game'), t('Enter code, then choose Yes to edit this game.'));
 }
 
 async function confirmFinishWithCode(round) {
-  return confirmActionWithCode(round, 'Finish game', 'Enter code, then choose Yes to finish this game.');
+  return confirmActionWithCode(round, t('Finish game'), t('Enter code, then choose Yes to finish this game.'));
 }
 
 async function confirmDeleteWithCode(round) {
-  return confirmActionWithCode(round, 'Delete game', 'Enter code, then choose Yes to delete this finished game.');
+  return confirmActionWithCode(round, t('Delete game'), t('Enter code, then choose Yes to delete this finished game.'));
 }
 
 async function confirmDeleteCourseWithCode(course) {
   let errorMessage = '';
   while (true) {
     const answer = await confirmCodeDialog(
-      'Delete course',
+      t('Delete course'),
       course.editCode
-        ? 'Enter the course edit code, then choose Yes to delete this course.'
-        : 'This older course has no edit code. Use the universal code to delete it.',
+        ? t('Enter the course edit code, then choose Yes to delete this course.')
+        : t('This older course has no edit code. Use the universal code to delete it.'),
       errorMessage
     );
     if (answer === false) return false;
     if (answer === '59' || (/^\d{2}$/.test(course.editCode || '') && answer === course.editCode)) return true;
-    errorMessage = 'The edit code is not correct. Try again.';
+    errorMessage = t('The edit code is not correct. Try again.');
   }
 }
 
@@ -1201,7 +1202,7 @@ async function deleteHistoryGame(round) {
   setSyncState({
     ready: true,
     busy: true,
-    title: 'Deleting game from cloud.'
+    title: t('Deleting game from cloud.')
   });
   try {
     await deleteCloudRound(round);
@@ -1210,10 +1211,10 @@ async function deleteHistoryGame(round) {
       ready: true,
       busy: false,
       ok: false,
-      label: 'Cloud sync Not ok',
+      label: t('Cloud sync Not ok'),
       title: error.message
     });
-    await showMessage('Delete failed', 'Could not delete this game from the cloud. Try again.');
+    await showMessage(t('Delete failed'), t('Could not delete this game from the cloud. Try again.'));
     return;
   }
   markRoundDeleted(round);
@@ -1229,8 +1230,8 @@ async function deleteHistoryGame(round) {
     ready: true,
     busy: false,
     ok: true,
-    label: 'Cloud sync ok',
-    title: 'Deleted from cloud.'
+    label: t('Cloud sync ok'),
+    title: t('Deleted from cloud.')
   });
 }
 
@@ -1269,7 +1270,7 @@ function renderScoreStrip() {
   applySignedClass(els.teamATotal, total.a);
   applySignedClass(els.teamBTotal, total.b);
   els.holesComplete.textContent = `${total.complete}/18`;
-  els.coursePar.textContent = `Par ${parTotal}`;
+  els.coursePar.textContent = t('Par {value}', { value: parTotal });
   els.totalPar.textContent = parTotal;
   els.playerTotals.forEach((cell, index) => {
     cell.textContent = total.players[index];
@@ -1290,12 +1291,12 @@ function renderHoles() {
     row.innerHTML = `
       <td>${index + 1}</td>
       <td>${course.pars[index]}</td>
-      <td class="team-a-score"><input class="score score-0" type="number" min="1" max="20" inputmode="numeric" aria-label="Hole ${index + 1} ${state.players[0]} score"></td>
-      <td class="team-a-score"><input class="score score-1" type="number" min="1" max="20" inputmode="numeric" aria-label="Hole ${index + 1} ${state.players[1]} score"></td>
+      <td class="team-a-score"><input class="score score-0" type="number" min="1" max="20" inputmode="numeric" aria-label="${t('Hole {hole} {player} score', { hole: index + 1, player: state.players[0] })}"></td>
+      <td class="team-a-score"><input class="score score-1" type="number" min="1" max="20" inputmode="numeric" aria-label="${t('Hole {hole} {player} score', { hole: index + 1, player: state.players[1] })}"></td>
       <td class="team-a-score vegas-number"></td>
       <td class="team-a-score hole-points"></td>
-      <td class="team-b-score"><input class="score score-2" type="number" min="1" max="20" inputmode="numeric" aria-label="Hole ${index + 1} ${state.players[2]} score"></td>
-      <td class="team-b-score"><input class="score score-3" type="number" min="1" max="20" inputmode="numeric" aria-label="Hole ${index + 1} ${state.players[3]} score"></td>
+      <td class="team-b-score"><input class="score score-2" type="number" min="1" max="20" inputmode="numeric" aria-label="${t('Hole {hole} {player} score', { hole: index + 1, player: state.players[2] })}"></td>
+      <td class="team-b-score"><input class="score score-3" type="number" min="1" max="20" inputmode="numeric" aria-label="${t('Hole {hole} {player} score', { hole: index + 1, player: state.players[3] })}"></td>
       <td class="team-b-score vegas-number"></td>
       <td class="team-b-score hole-points"></td>
     `;
@@ -1362,13 +1363,16 @@ function renderCourses() {
       <div class="small-actions"></div>
     `;
     row.querySelector('strong').textContent = course.name;
-    row.querySelector('span').textContent = `Par ${course.pars.reduce((a, b) => a + b, 0)} - ${isCustom ? 'Custom' : 'Preset'}`;
+    row.querySelector('span').textContent = t('Par {par} - {type}', {
+      par: course.pars.reduce((a, b) => a + b, 0),
+      type: t(isCustom ? 'Custom' : 'Preset')
+    });
 
     if (isCustom) {
       const deleteButton = document.createElement('button');
       deleteButton.type = 'button';
       deleteButton.className = 'danger';
-      deleteButton.textContent = 'Delete';
+      deleteButton.textContent = t('Delete');
       deleteButton.addEventListener('click', async () => {
         if (!(await confirmDeleteCourseWithCode(course))) return;
         customCourses = customCourses.filter(item => item.id !== course.id);
@@ -1380,7 +1384,7 @@ function renderCourses() {
           await deleteCloudCourse(course.id);
           await syncFromCloud(false);
         } catch (error) {
-          setSyncState({ ok: false, busy: false, label: 'Cloud sync Not ok', title: error.message });
+          setSyncState({ ok: false, busy: false, label: t('Cloud sync Not ok'), title: error.message });
         }
       });
       row.querySelector('.small-actions').append(deleteButton);
@@ -1400,7 +1404,7 @@ function roundListDate(round) {
 function roundTeamsLine(round) {
   const players = Array.isArray(round.players) ? round.players : [];
   const [a1 = 'Player 1', a2 = 'Player 2', b1 = 'Player 3', b2 = 'Player 4'] = players;
-  return `Team A (${a1}+${a2}) vs. Team B (${b1}+${b2})`;
+  return t('Team A ({a1}+{a2}) vs. Team B ({b1}+{b2})', { a1, a2, b1, b2 });
 }
 
 function renderGameList(container, rounds, emptyText, status) {
@@ -1432,15 +1436,15 @@ function renderGameList(container, rounds, emptyText, status) {
     `;
     const total = round.totals || {};
     row.querySelector('.playing-icon').hidden = status !== 'playing';
-    row.querySelector('.game-main').textContent = `${round.courseName || 'Course'} | ${roundListDate(round)}`;
+    row.querySelector('.game-main').textContent = `${round.courseName || t('Course')} | ${roundListDate(round)}`;
     row.querySelector('.game-teams').textContent = roundTeamsLine(round);
-    row.querySelector('.game-score').textContent = `Total score: A ${Number(total.a || 0)}, B ${Number(total.b || 0)}`;
+    row.querySelector('.game-score').textContent = t('Total score: A {a}, B {b}', { a: Number(total.a || 0), b: Number(total.b || 0) });
     row.querySelector('.game-open').addEventListener('click', () => loadGame(round.id, false, true));
     if (status === 'history') {
       const deleteButton = document.createElement('button');
       deleteButton.type = 'button';
       deleteButton.className = 'danger';
-      deleteButton.textContent = 'Delete';
+      deleteButton.textContent = t('Delete');
       deleteButton.addEventListener('click', event => {
         event.stopPropagation();
         deleteHistoryGame(round);
@@ -1454,8 +1458,8 @@ function renderGameList(container, rounds, emptyText, status) {
 function renderStart() {
   const playing = savedRounds.filter(round => gameStatus(round) === 'playing');
   const history = savedRounds.filter(round => gameStatus(round) !== 'playing');
-  renderGameList(els.playingList, playing, 'No games currently playing', 'playing');
-  renderGameList(els.historyList, history, 'No finished games', 'history');
+  renderGameList(els.playingList, playing, t('No games currently playing'), 'playing');
+  renderGameList(els.historyList, history, t('No finished games'), 'history');
 }
 
 function render() {
@@ -1511,8 +1515,8 @@ function addListeners() {
 
   els.shareButton.addEventListener('click', async () => {
     const shareData = {
-      title: 'Vegas Golf Scorecard',
-      text: 'Vegas Golf Scorecard',
+      title: t('Vegas Golf Scorecard'),
+      text: t('Vegas Golf Scorecard'),
       url: window.location.href.split('?')[0]
     };
     try {
@@ -1520,9 +1524,9 @@ function addListeners() {
         await navigator.share(shareData);
       } else if (navigator.clipboard) {
         await navigator.clipboard.writeText(shareData.url);
-        await showMessage('Link copied', 'The app link was copied to the clipboard.');
+        await showMessage(t('Link copied'), t('The app link was copied to the clipboard.'));
       } else {
-        await showMessage('Share app', shareData.url);
+        await showMessage(t('Share app'), shareData.url);
       }
     } catch {}
   });
@@ -1532,7 +1536,7 @@ function addListeners() {
     if (!els.dialogInputWrap.hidden) {
       const value = els.dialogInput.value.trim();
       if (els.dialogInput.pattern && !new RegExp(`^${els.dialogInput.pattern}$`).test(value)) {
-        els.dialogInput.setCustomValidity('Enter a valid value.');
+        els.dialogInput.setCustomValidity(t('Enter a valid value.'));
         els.dialogInput.reportValidity();
         els.dialogInput.setCustomValidity('');
         return;
@@ -1606,7 +1610,7 @@ function addListeners() {
     if (!valid) {
       const invalidInput = courseParInputs().find(input => !Number.isInteger(Number(input.value)) || Number(input.value) <= 0 || Number(input.value) >= 8);
       const target = !name ? els.newCourseName : (!/^\d{2}$/.test(editCode) ? els.newCourseCode : invalidInput);
-      target.setCustomValidity(!name ? 'Enter a course name.' : (!/^\d{2}$/.test(editCode) ? 'Enter a 2 digit code.' : 'Enter a par from 1 to 7.'));
+      target.setCustomValidity(t(!name ? 'Enter a course name.' : (!/^\d{2}$/.test(editCode) ? 'Enter a 2 digit code.' : 'Enter a par from 1 to 7.')));
       target.reportValidity();
       target.setCustomValidity('');
       return;
@@ -1629,7 +1633,7 @@ function addListeners() {
       await upsertCloudCourse(course);
       await syncFromCloud(false);
     } catch (error) {
-      setSyncState({ ok: false, busy: false, label: 'Cloud sync Not ok', title: error.message });
+      setSyncState({ ok: false, busy: false, label: t('Cloud sync Not ok'), title: error.message });
     }
   });
 
@@ -1651,7 +1655,7 @@ function addListeners() {
     ];
     const code = els.newGameCode.value.trim();
     if (!/^\d{2}$/.test(code)) {
-      els.newGameCode.setCustomValidity('Enter a 2 digit code.');
+      els.newGameCode.setCustomValidity(t('Enter a 2 digit code.'));
       els.newGameCode.reportValidity();
       els.newGameCode.setCustomValidity('');
       return;
@@ -1678,9 +1682,7 @@ function addListeners() {
     scheduleAutoSync(game);
   });
 
-  els.languageButton.addEventListener('click', () => {
-    window.location.assign('https://zxj088.github.io/golf-score-vegas-cn/');
-  });
+  els.languageButton.addEventListener('click', window.VEGAS_I18N.toggle);
 }
 
 function init() {
@@ -1702,7 +1704,7 @@ function init() {
       ready: true,
       busy: false,
       ok: false,
-      label: 'Cloud sync Not ok',
+      label: t('Cloud sync Not ok'),
       title: `Supabase room: ${supabaseConfig().syncKey}`
     });
   }

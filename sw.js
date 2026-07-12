@@ -1,8 +1,9 @@
-const CACHE_NAME = 'vegas-golf-v33';
+const CACHE_NAME = 'vegas-golf-v34';
 const ASSETS = [
   './',
   './index.html',
   './styles.css',
+  './i18n.js',
   './app.js',
   './supabase-config.js',
   './manifest.webmanifest',
