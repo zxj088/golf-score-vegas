@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#1f6f5b">
   <title>Vegas Golf Scorecard</title>
   <link rel="manifest" href="./manifest.webmanifest">
-  <link rel="stylesheet" href="./styles.css?v=26">
+  <link rel="stylesheet" href="./styles.css?v=27">
 </head>
 <body>
   <div class="app-shell">
@@ -26,7 +26,6 @@
         <div class="team-total team-a">
           <span class="label">Team A</span>
           <strong id="teamATotal">0</strong>
-          <span id="teamAMoney">$0.00</span>
         </div>
         <div class="match-meta">
           <span id="holesComplete">0/18</span>
@@ -35,7 +34,6 @@
         <div class="team-total team-b">
           <span class="label">Team B</span>
           <strong id="teamBTotal">0</strong>
-          <span id="teamBMoney">$0.00</span>
         </div>
       </section>
 
@@ -55,10 +53,6 @@
           <label>
             Course
             <select id="courseSelect"></select>
-          </label>
-          <label>
-            Point value
-            <input id="pointValue" type="number" min="0" step="0.25" inputmode="decimal">
           </label>
           <label class="toggle-row">
             <span>Birdie flip</span>
@@ -282,7 +276,7 @@
     </form>
   </div>
 
-  <script src="./supabase-config.js?v=26"></script>
-  <script src="./app.js?v=26" defer></script>
+  <script src="./supabase-config.js?v=27"></script>
+  <script src="./app.js?v=27" defer></script>
 </body>
 </html>

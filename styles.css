@@ -282,7 +282,7 @@ h3 {
 }
 
 .control-panel {
-  grid-template-columns: minmax(0, 1.35fr) minmax(76px, 0.65fr) minmax(92px, 0.7fr);
+  grid-template-columns: minmax(0, 1fr) minmax(110px, 0.34fr);
   gap: 6px;
   margin-bottom: 7px;
 }
@@ -855,7 +855,7 @@ input:disabled {
   }
 
   .control-panel {
-    grid-template-columns: 1fr 180px 170px;
+    grid-template-columns: minmax(0, 1fr) 170px;
   }
 
   .scorecard table {
@@ -907,7 +907,7 @@ input:disabled {
   }
 
   .control-panel {
-    grid-template-columns: minmax(0, 1fr) 70px 86px;
+    grid-template-columns: minmax(0, 1fr) 86px;
   }
 
   .scorecard table {

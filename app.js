@@ -31,7 +31,6 @@ const clientId = getClientId();
 let state = {
   courseId: defaultCourses[0].id,
   players: ['Player 1', 'Player 2', 'Player 3', 'Player 4'],
-  pointValue: 1,
   birdieFlip: true,
   scores: emptyScores()
 };
@@ -53,7 +52,6 @@ const els = {
   installButton: document.querySelector('#installButton'),
   shareButton: document.querySelector('#shareButton'),
   courseSelect: document.querySelector('#courseSelect'),
-  pointValue: document.querySelector('#pointValue'),
   birdieFlip: document.querySelector('#birdieFlip'),
   players: [
     document.querySelector('#playerA1'),
@@ -64,8 +62,6 @@ const els = {
   scoreRows: document.querySelector('#scoreRows'),
   teamATotal: document.querySelector('#teamATotal'),
   teamBTotal: document.querySelector('#teamBTotal'),
-  teamAMoney: document.querySelector('#teamAMoney'),
-  teamBMoney: document.querySelector('#teamBMoney'),
   holesComplete: document.querySelector('#holesComplete'),
   coursePar: document.querySelector('#coursePar'),
   totalPar: document.querySelector('#totalPar'),
@@ -292,7 +288,6 @@ function normalizeRound(round) {
     courseName,
     pars: Array.isArray(round.pars) && round.pars.length === 18 ? round.pars : course.pars,
     players,
-    pointValue: Number(round.pointValue || 1),
     birdieFlip: Boolean(round.birdieFlip),
     scores: normalizeScores(round.scores),
     totals: {
@@ -390,7 +385,6 @@ function roundToCloudRow(round) {
     course_name: normalized.courseName,
     pars: normalized.pars,
     players: normalized.players,
-    point_value: normalized.pointValue,
     birdie_flip: normalized.birdieFlip,
     scores: normalized.scores,
     totals: normalized.totals
@@ -411,7 +405,6 @@ function deleteInfoToCloudRow(info) {
     course_name: 'Deleted',
     pars: defaultCourses[0].pars,
     players: ['Deleted', 'Deleted', 'Deleted', 'Deleted'],
-    point_value: 1,
     birdie_flip: true,
     scores: emptyScores(),
     totals: {
@@ -468,7 +461,6 @@ function cloudRowToRound(row) {
     courseName: row.course_name,
     pars: row.pars,
     players: row.players,
-    pointValue: row.point_value,
     birdieFlip: row.birdie_flip,
     scores: row.scores,
     totals: row.totals
@@ -918,12 +910,6 @@ function totals() {
   }, { a: 0, b: 0, complete: 0, players: [0, 0, 0, 0] });
 }
 
-function money(points) {
-  const value = Math.abs(points * Number(state.pointValue || 0));
-  const sign = points < 0 ? '-' : '';
-  return `${sign}$${value.toFixed(2)}`;
-}
-
 function roundFromState(existing = {}, statusOverride = null) {
   const course = currentCourse();
   const previousTotals = existing.totals || {};
@@ -943,7 +929,6 @@ function roundFromState(existing = {}, statusOverride = null) {
     courseName: course.name,
     pars: course.pars,
     players: [...state.players],
-    pointValue: state.pointValue,
     birdieFlip: state.birdieFlip,
     scores: state.scores.map(row => [...row]),
     totals: {
@@ -1035,7 +1020,6 @@ function applyGameToState(round) {
   state = {
     courseId: round.courseId,
     players: [...round.players],
-    pointValue: round.pointValue,
     birdieFlip: round.birdieFlip,
     scores: normalizeScores(round.scores)
   };
@@ -1247,8 +1231,6 @@ function renderCourseSelect() {
 function renderInputs() {
   els.courseSelect.value = state.courseId;
   els.courseSelect.disabled = true;
-  els.pointValue.value = state.pointValue;
-  els.pointValue.disabled = true;
   els.birdieFlip.checked = state.birdieFlip;
   els.birdieFlip.disabled = true;
   els.players.forEach((input, index) => {
@@ -1266,10 +1248,6 @@ function renderScoreStrip() {
   els.teamBTotal.textContent = total.b;
   applySignedClass(els.teamATotal, total.a);
   applySignedClass(els.teamBTotal, total.b);
-  els.teamAMoney.textContent = money(total.a);
-  els.teamBMoney.textContent = money(total.b);
-  applySignedClass(els.teamAMoney, total.a);
-  applySignedClass(els.teamBMoney, total.b);
   els.holesComplete.textContent = `${total.complete}/18`;
   els.coursePar.textContent = `Par ${parTotal} - ${tee}`;
   els.totalPar.textContent = parTotal;
@@ -1579,12 +1557,6 @@ function addListeners() {
     render();
   });
 
-  els.pointValue.addEventListener('input', () => {
-    state.pointValue = Number(els.pointValue.value || 0);
-    saveState();
-    renderScoreStrip();
-  });
-
   els.birdieFlip.addEventListener('change', () => {
     state.birdieFlip = els.birdieFlip.checked;
     saveState();
@@ -1669,7 +1641,6 @@ function addListeners() {
     state = {
       courseId: course.id,
       players,
-      pointValue: 1,
       birdieFlip: els.newGameBirdieFlip.checked,
       scores: emptyScores()
     };
