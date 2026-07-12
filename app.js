@@ -49,7 +49,7 @@ let syncState = {
 const els = {
   scoreStrip: document.querySelector('#scoreStrip'),
   syncBar: document.querySelector('#syncBar'),
-  installButton: document.querySelector('#installButton'),
+  languageButton: document.querySelector('#languageButton'),
   shareButton: document.querySelector('#shareButton'),
   courseSelect: document.querySelector('#courseSelect'),
   birdieFlip: document.querySelector('#birdieFlip'),
@@ -1654,8 +1654,8 @@ function addListeners() {
     scheduleAutoSync(game);
   });
 
-  els.installButton.addEventListener('click', () => {
-    window.location.reload();
+  els.languageButton.addEventListener('click', () => {
+    window.location.assign('https://zxj088.github.io/golf-score-vegas-cn/');
   });
 }
 
