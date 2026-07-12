@@ -1,79 +1,79 @@
 <!doctype html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#1f6f5b">
-  <title>Vegas Golf Scorecard</title>
+  <title>拉斯维加斯高尔夫记分卡</title>
   <link rel="manifest" href="./manifest.webmanifest">
-  <link rel="stylesheet" href="./styles.css?v=30">
+  <link rel="stylesheet" href="./styles.css?v=31">
 </head>
 <body>
   <div class="app-shell">
     <header class="topbar">
       <div>
-        <p class="eyebrow">Las Vegas Rule</p>
-        <h1>Golf Scorecard</h1>
+        <p class="eyebrow">拉斯维加斯规则</p>
+        <h1>高尔夫记分卡</h1>
       </div>
       <div class="top-actions">
-        <button id="shareButton" type="button" aria-label="Share app" title="Share app">Share</button>
-        <button id="installButton" class="refresh-button" type="button" aria-label="Refresh page" title="Refresh page">↻</button>
+        <button id="shareButton" type="button" aria-label="分享应用" title="分享应用">分享</button>
+        <button id="installButton" class="refresh-button" type="button" aria-label="刷新页面" title="刷新页面">↻</button>
       </div>
     </header>
 
     <main>
-      <section class="score-strip" id="scoreStrip" aria-label="Match totals" hidden>
+      <section class="score-strip" id="scoreStrip" aria-label="比赛总分" hidden>
         <div class="team-total team-a">
-          <span class="label">Team A</span>
-          <span class="team-players" id="teamAPlayers">Player 1 + Player 2</span>
+          <span class="label">A队</span>
+          <span class="team-players" id="teamAPlayers">球员1 + 球员2</span>
           <strong id="teamATotal">0</strong>
         </div>
         <div class="match-meta">
           <span id="holesComplete">0/18</span>
-          <span id="coursePar">Par 72</span>
+          <span id="coursePar">标准杆 72</span>
         </div>
         <div class="team-total team-b">
-          <span class="label">Team B</span>
-          <span class="team-players" id="teamBPlayers">Player 3 + Player 4</span>
+          <span class="label">B队</span>
+          <span class="team-players" id="teamBPlayers">球员3 + 球员4</span>
           <strong id="teamBTotal">0</strong>
         </div>
       </section>
 
-      <nav class="tabs" aria-label="Views">
-        <button class="tab active" type="button" data-view="start">Home</button>
-        <button class="tab" type="button" data-view="play">Play</button>
-        <button class="tab" type="button" data-view="courses">Courses</button>
+      <nav class="tabs" aria-label="页面">
+        <button class="tab active" type="button" data-view="start">主页</button>
+        <button class="tab" type="button" data-view="play">记分</button>
+        <button class="tab" type="button" data-view="courses">球场</button>
       </nav>
 
       <div class="sync-bar" id="syncBar" hidden>
-        <span id="syncStatus">Local only</span>
-        <button id="editGame" type="button">Edit</button>
+        <span id="syncStatus">仅保存在本机</span>
+        <button id="editGame" type="button">编辑</button>
       </div>
 
       <section class="view" id="playView">
         <div class="control-panel">
           <label>
-            Course
+            球场
             <select id="courseSelect"></select>
           </label>
           <label class="toggle-row">
-            <span>Birdie flip</span>
+            <span>小鸟球翻转</span>
             <input id="birdieFlip" type="checkbox">
           </label>
         </div>
 
-        <section class="scorecard" aria-label="Hole scores">
+        <section class="scorecard" aria-label="各洞成绩">
           <table>
             <thead>
               <tr>
                 <th>H</th>
-                <th>Par</th>
-                <th class="team-a-cell"><input id="playerA1" type="text" autocomplete="off" aria-label="Team A player 1"></th>
-                <th class="team-a-cell"><input id="playerA2" type="text" autocomplete="off" aria-label="Team A player 2"></th>
+                <th>标准杆</th>
+                <th class="team-a-cell"><input id="playerA1" type="text" autocomplete="off" aria-label="A队球员1"></th>
+                <th class="team-a-cell"><input id="playerA2" type="text" autocomplete="off" aria-label="A队球员2"></th>
                 <th class="team-a-cell calc-head">A#</th>
                 <th class="team-a-cell calc-head">A+/-</th>
-                <th class="team-b-cell"><input id="playerB1" type="text" autocomplete="off" aria-label="Team B player 1"></th>
-                <th class="team-b-cell"><input id="playerB2" type="text" autocomplete="off" aria-label="Team B player 2"></th>
+                <th class="team-b-cell"><input id="playerB1" type="text" autocomplete="off" aria-label="B队球员3"></th>
+                <th class="team-b-cell"><input id="playerB2" type="text" autocomplete="off" aria-label="B队球员4"></th>
                 <th class="team-b-cell calc-head">B#</th>
                 <th class="team-b-cell calc-head">B+/-</th>
               </tr>
@@ -81,7 +81,7 @@
             <tbody id="scoreRows"></tbody>
             <tfoot>
               <tr>
-                <th>Total</th>
+                <th>合计</th>
                 <th id="totalPar">72</th>
                 <th id="totalPlayerA1">0</th>
                 <th id="totalPlayerA2">0</th>
@@ -99,23 +99,23 @@
 
       <section class="view" id="coursesView">
         <div class="section-heading">
-          <h2>Courses</h2>
-          <button class="primary" id="addCourse" type="button">Add Course</button>
+          <h2>球场</h2>
+          <button class="primary" id="addCourse" type="button">添加球场</button>
         </div>
         <div class="course-list" id="courseList"></div>
       </section>
 
       <section class="view active" id="startView">
         <div class="section-heading">
-          <h2>Home</h2>
-          <button class="primary" id="newGame" type="button">New Game</button>
+          <h2>主页</h2>
+          <button class="primary" id="newGame" type="button">新比赛</button>
         </div>
         <section class="game-section">
-          <h3>Playing</h3>
+          <h3>进行中</h3>
           <div class="history-list" id="playingList"></div>
         </section>
         <section class="game-section">
-          <h3>History</h3>
+          <h3>历史记录</h3>
           <div class="history-list" id="historyList"></div>
         </section>
       </section>
@@ -126,35 +126,35 @@
     <form class="course-form" id="courseForm">
       <div class="modal-head">
         <div>
-          <p class="eyebrow">New Course</p>
-          <h2>Add Course</h2>
+          <p class="eyebrow">新球场</p>
+          <h2>添加球场</h2>
         </div>
-        <button class="icon-button" id="cancelCourse" type="button" aria-label="Close add course" title="Close">x</button>
+        <button class="icon-button" id="cancelCourse" type="button" aria-label="关闭添加球场窗口" title="关闭">x</button>
       </div>
 
       <label>
-        Course name
+        球场名称
         <input id="newCourseName" type="text" autocomplete="off" required>
       </label>
 
-      <div class="par-editor" aria-label="Course par strokes">
+      <div class="par-editor" aria-label="球场标准杆">
         <section>
-          <h3>Holes 1-9</h3>
+          <h3>第1-9洞</h3>
           <div class="par-list" id="frontNineList"></div>
-          <div class="nine-total">Out <strong id="frontNineTotal">36</strong></div>
+          <div class="nine-total">前九洞 <strong id="frontNineTotal">36</strong></div>
         </section>
         <section>
-          <h3>Holes 10-18</h3>
+          <h3>第10-18洞</h3>
           <div class="par-list" id="backNineList"></div>
-          <div class="nine-total">In <strong id="backNineTotal">36</strong></div>
+          <div class="nine-total">后九洞 <strong id="backNineTotal">36</strong></div>
         </section>
       </div>
 
-      <div class="course-total">Course total <strong id="courseParTotal">72</strong></div>
+      <div class="course-total">球场总标准杆 <strong id="courseParTotal">72</strong></div>
 
       <div class="action-row">
-        <button class="primary" type="submit">Save Course</button>
-        <button type="button" id="cancelCourseBottom">Cancel</button>
+        <button class="primary" type="submit">保存球场</button>
+        <button type="button" id="cancelCourseBottom">取消</button>
       </div>
     </form>
   </div>
@@ -163,32 +163,32 @@
     <form class="course-form game-form" id="gameForm">
       <div class="modal-head">
         <div>
-          <p class="eyebrow">Game Setup</p>
-          <h2>New Game</h2>
+          <p class="eyebrow">比赛设置</p>
+          <h2>新比赛</h2>
         </div>
-        <button class="icon-button" id="cancelGame" type="button" aria-label="Close new game" title="Close">x</button>
+        <button class="icon-button" id="cancelGame" type="button" aria-label="关闭新比赛窗口" title="关闭">x</button>
       </div>
 
       <div class="teams-grid">
         <section class="team-card team-a">
-          <h3>Team A</h3>
+          <h3>A队</h3>
           <label>
-            Player 1
+            球员1
             <input id="newPlayerA1" type="text" autocomplete="off" required>
           </label>
           <label>
-            Player 2
+            球员2
             <input id="newPlayerA2" type="text" autocomplete="off" required>
           </label>
         </section>
         <section class="team-card team-b">
-          <h3>Team B</h3>
+          <h3>B队</h3>
           <label>
-            Player 3
+            球员3
             <input id="newPlayerB1" type="text" autocomplete="off" required>
           </label>
           <label>
-            Player 4
+            球员4
             <input id="newPlayerB2" type="text" autocomplete="off" required>
           </label>
         </section>
@@ -196,22 +196,22 @@
 
       <div class="game-options">
         <label>
-          Course
+          球场
           <select id="newGameCourse"></select>
         </label>
         <label>
-          Edit code
+          编辑密码
           <input id="newGameCode" type="text" inputmode="numeric" pattern="[0-9]{2}" maxlength="2" placeholder="00" required>
         </label>
         <label class="toggle-row">
-          <span>Birdie flip</span>
+          <span>小鸟球翻转</span>
           <input id="newGameBirdieFlip" type="checkbox" checked>
         </label>
       </div>
 
       <div class="action-row">
-        <button class="primary" type="submit">Start Game</button>
-        <button type="button" id="cancelGameBottom">Cancel</button>
+        <button class="primary" type="submit">开始比赛</button>
+        <button type="button" id="cancelGameBottom">取消</button>
       </div>
     </form>
   </div>
@@ -220,23 +220,23 @@
     <div class="score-pad-sheet" role="dialog" aria-modal="true" aria-labelledby="scorePadPlayer">
       <div class="modal-head">
         <div>
-          <p class="eyebrow" id="scorePadHole">Hole 1 - Par 4</p>
-          <h2 id="scorePadPlayer">Player</h2>
+          <p class="eyebrow" id="scorePadHole">第1洞 - 标准杆4</p>
+          <h2 id="scorePadPlayer">球员</h2>
         </div>
-        <button class="icon-button" id="scorePadClose" type="button" aria-label="Close score entry" title="Close">x</button>
+        <button class="icon-button" id="scorePadClose" type="button" aria-label="关闭成绩输入" title="关闭">x</button>
       </div>
 
-      <div class="score-stepper" aria-label="Score entry">
-        <button id="scorePadMinus" type="button" aria-label="Decrease score">-</button>
+      <div class="score-stepper" aria-label="输入成绩">
+        <button id="scorePadMinus" type="button" aria-label="减少杆数">-</button>
         <div class="score-pad-value" id="scorePadInput" aria-live="polite">--</div>
-        <button id="scorePadPlus" type="button" aria-label="Increase score">+</button>
+        <button id="scorePadPlus" type="button" aria-label="增加杆数">+</button>
       </div>
 
-      <div class="score-quick" aria-label="Quick score choices">
-        <button type="button" data-score-offset="-2">Eagle</button>
-        <button type="button" data-score-offset="-1">Birdie</button>
-        <button type="button" data-score-offset="0">Par</button>
-        <button type="button" data-score-offset="1">Bogey</button>
+      <div class="score-quick" aria-label="快速选择成绩">
+        <button type="button" data-score-offset="-2">老鹰球</button>
+        <button type="button" data-score-offset="-1">小鸟球</button>
+        <button type="button" data-score-offset="0">标准杆</button>
+        <button type="button" data-score-offset="1">柏忌</button>
         <button type="button" data-score-offset="2">+2</button>
       </div>
     </div>
@@ -246,23 +246,23 @@
     <form class="course-form dialog-form" id="dialogForm">
       <div class="modal-head">
         <div>
-          <p class="eyebrow" id="dialogEyebrow">Action</p>
-          <h2 id="dialogTitle">Confirm</h2>
+          <p class="eyebrow" id="dialogEyebrow">操作</p>
+          <h2 id="dialogTitle">确认</h2>
         </div>
       </div>
       <p class="dialog-message" id="dialogMessage"></p>
       <label id="dialogInputWrap" hidden>
-        <span id="dialogInputLabel">Code</span>
+        <span id="dialogInputLabel">密码</span>
         <input id="dialogInput" type="text" inputmode="numeric" autocomplete="off">
       </label>
       <div class="action-row">
-        <button class="primary" id="dialogOk" type="submit">OK</button>
-        <button id="dialogCancel" type="button">Cancel</button>
+        <button class="primary" id="dialogOk" type="submit">确定</button>
+        <button id="dialogCancel" type="button">取消</button>
       </div>
     </form>
   </div>
 
-  <script src="./supabase-config.js?v=30"></script>
-  <script src="./app.js?v=30" defer></script>
+  <script src="./supabase-config.js?v=31"></script>
+  <script src="./app.js?v=31" defer></script>
 </body>
 </html>

@@ -1,12 +1,12 @@
 {
-  "name": "Vegas Golf Scorecard",
-  "short_name": "Vegas Golf",
+  "name": "拉斯维加斯高尔夫记分卡",
+  "short_name": "高尔夫记分卡",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "background_color": "#f6f4ef",
   "theme_color": "#1f6f5b",
-  "description": "A mobile Las Vegas rule golf scorecard.",
+  "description": "适用于手机的拉斯维加斯规则高尔夫记分卡。",
   "icons": [
     {
       "src": "./assets/icon.svg",

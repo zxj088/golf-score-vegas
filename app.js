@@ -42,8 +42,8 @@ let syncState = {
   ready: false,
   busy: false,
   ok: false,
-  label: 'Cloud sync Not ok',
-  title: 'Supabase is not connected.'
+  label: '云同步失败',
+  title: 'Supabase 未连接。'
 };
 
 const els = {
@@ -489,11 +489,11 @@ function setSyncState(next) {
 
 function renderSyncStatus() {
   if (!els.syncStatus || !els.editGame) return;
-  els.syncStatus.textContent = syncState.busy ? 'Syncing...' : syncState.label;
+  els.syncStatus.textContent = syncState.busy ? '正在同步...' : syncState.label;
   els.syncStatus.title = syncState.title;
   els.syncStatus.classList.toggle('sync-ok', Boolean(syncState.ok) && !syncState.busy);
   els.syncStatus.classList.toggle('sync-bad', !syncState.ok && !syncState.busy);
-  els.editGame.textContent = isEditing ? 'Finish' : 'Edit';
+  els.editGame.textContent = isEditing ? '完成' : '编辑';
   els.editGame.disabled = !currentGame();
 }
 
@@ -620,8 +620,8 @@ async function syncFromCloud(pushLocal = true, quiet = false) {
       ready: false,
       busy: false,
       ok: false,
-      label: 'Cloud sync Not ok',
-      title: 'Add your Supabase URL and anon key to supabase-config.js.'
+      label: '云同步失败',
+      title: '请在 supabase-config.js 中添加 Supabase URL 和匿名密钥。'
     });
     return;
   }
@@ -630,7 +630,7 @@ async function syncFromCloud(pushLocal = true, quiet = false) {
     setSyncState({
       ready: true,
       busy: true,
-      title: 'Sending and loading scorecard data.'
+      title: '正在发送并加载记分卡数据。'
     });
   }
 
@@ -657,7 +657,7 @@ async function syncFromCloud(pushLocal = true, quiet = false) {
       ready: true,
       busy: false,
       ok: true,
-      label: 'Cloud sync ok',
+      label: '云同步成功',
       title: `Supabase room: ${supabaseConfig().syncKey}`
     });
     render();
@@ -666,7 +666,7 @@ async function syncFromCloud(pushLocal = true, quiet = false) {
       ready: true,
       busy: false,
       ok: false,
-      label: 'Cloud sync Not ok',
+      label: '云同步失败',
       title: error.message
     });
   }
@@ -676,10 +676,10 @@ function scheduleAutoSync(round) {
   if (!round) return;
   window.clearTimeout(autoSyncTimer);
   if (!hasSupabaseConfig()) {
-    setSyncState({ ok: false, busy: false, label: 'Cloud sync Not ok', title: 'Supabase is not configured.' });
+    setSyncState({ ok: false, busy: false, label: '云同步失败', title: 'Supabase 尚未配置。' });
     return;
   }
-  setSyncState({ ready: true, busy: true, title: 'Saving scorecard changes.' });
+  setSyncState({ ready: true, busy: true, title: '正在保存记分卡更改。' });
   autoSyncTimer = window.setTimeout(async () => {
     try {
       if (isEditing && round.id === activeGameId) {
@@ -692,7 +692,7 @@ function scheduleAutoSync(round) {
         ready: true,
         busy: false,
         ok: true,
-        label: 'Cloud sync ok',
+        label: '云同步成功',
         title: `Saved ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
       });
     } catch (error) {
@@ -700,7 +700,7 @@ function scheduleAutoSync(round) {
         ready: true,
         busy: false,
         ok: false,
-        label: 'Cloud sync Not ok',
+        label: '云同步失败',
         title: error.message
       });
     }
@@ -728,8 +728,8 @@ function renderCourseParInputs(pars = currentCourse().pars) {
     const row = document.createElement('label');
     row.className = 'par-row';
     row.innerHTML = `
-      <span>Hole ${index + 1}</span>
-      <input class="course-par-input" type="number" min="1" max="7" inputmode="numeric" required aria-label="Hole ${index + 1} par">
+      <span>第${index + 1}洞</span>
+      <input class="course-par-input" type="number" min="1" max="7" inputmode="numeric" required aria-label="第${index + 1}洞标准杆">
     `;
     const input = row.querySelector('input');
     input.value = pars[index] || 4;
@@ -809,7 +809,7 @@ function updateScorePad() {
   const { holeIndex, scoreIndex } = activeScoreTarget;
   const par = currentCourse().pars[holeIndex] || 4;
   const value = state.scores[holeIndex][scoreIndex] || '';
-  els.scorePadHole.textContent = `Hole ${holeIndex + 1} - Par ${par}`;
+  els.scorePadHole.textContent = `第${holeIndex + 1}洞 - 标准杆${par}`;
   els.scorePadPlayer.textContent = scoreTargetLabel(activeScoreTarget);
   els.scorePadInput.textContent = value || '--';
   document.querySelectorAll('.score-quick button').forEach(button => {
@@ -963,8 +963,8 @@ async function acquireEditLock(round) {
     ready: true,
     busy: false,
     ok: true,
-    label: 'Cloud sync ok',
-    title: 'Edit lock acquired.'
+    label: '云同步成功',
+    title: '已取得编辑权限。'
   });
   return locked;
 }
@@ -984,8 +984,8 @@ async function ensureEditLockStillMine() {
       ready: true,
       busy: false,
       ok: true,
-      label: 'Cloud sync ok',
-      title: 'Another phone is now editing this game.'
+      label: '云同步成功',
+      title: '另一部手机正在编辑此比赛。'
     });
     return false;
   }
@@ -995,8 +995,8 @@ async function ensureEditLockStillMine() {
     ready: true,
     busy: false,
     ok: true,
-    label: 'Cloud sync ok',
-    title: 'Edit lock refreshed.'
+    label: '云同步成功',
+    title: '编辑权限已刷新。'
   });
   return true;
 }
@@ -1043,16 +1043,16 @@ function persistActiveGame(shouldSync = true) {
 }
 
 function openAppDialog({
-  eyebrow = 'Action',
-  title = 'Confirm',
+  eyebrow = '操作',
+  title = '确认',
   message = '',
   input = false,
-  inputLabel = 'Code',
+  inputLabel = '密码',
   inputMode = 'text',
   maxLength = '',
   pattern = '',
   okText = 'OK',
-  cancelText = 'Cancel'
+  cancelText = '取消'
 }) {
   return new Promise(resolve => {
     dialogResolver = resolve;
@@ -1083,51 +1083,51 @@ function closeAppDialog(value) {
 
 async function showMessage(title, message) {
   await openAppDialog({
-    eyebrow: 'Notice',
+    eyebrow: '提示',
     title,
     message,
-    okText: 'OK',
-    cancelText: 'Close'
+    okText: '确定',
+    cancelText: '关闭'
   });
 }
 
 async function confirmDialog(title, message) {
   return openAppDialog({
-    eyebrow: 'Confirm',
+    eyebrow: '确认',
     title,
     message,
-    okText: 'Yes',
-    cancelText: 'No'
+    okText: '是',
+    cancelText: '否'
   });
 }
 
 async function confirmCodeDialog(title, message, errorMessage = '') {
   return openAppDialog({
-    eyebrow: 'Edit Code',
+    eyebrow: '编辑密码',
     title,
     message: errorMessage || message,
     input: true,
-    inputLabel: 'Code',
+    inputLabel: '密码',
     inputMode: 'numeric',
     maxLength: '2',
     pattern: '[0-9]{2}',
-    okText: 'Yes',
-    cancelText: 'No'
+    okText: '是',
+    cancelText: '否'
   });
 }
 
 async function askCodeDialog(errorMessage = '') {
   return openAppDialog({
-    eyebrow: 'Edit Code',
-    title: "what's the code?",
-    message: errorMessage || 'Enter the 2 digit edit code for this game.',
+    eyebrow: '编辑密码',
+    title: '请输入密码',
+    message: errorMessage || '请输入此比赛的两位数编辑密码。',
     input: true,
-    inputLabel: 'Code',
+    inputLabel: '密码',
     inputMode: 'numeric',
     maxLength: '2',
     pattern: '[0-9]{2}',
-    okText: 'OK',
-    cancelText: 'Cancel'
+    okText: '确定',
+    cancelText: '取消'
   });
 }
 
@@ -1139,7 +1139,7 @@ async function verifyCodeForRound(round) {
     const answer = await askCodeDialog(errorMessage);
     if (answer === false) return false;
     if (codeMatchesRound(round, answer)) return true;
-    errorMessage = 'The edit code is not correct. Try again.';
+    errorMessage = '编辑密码不正确，请重试。';
   }
 }
 
@@ -1154,20 +1154,20 @@ async function confirmActionWithCode(round, title, message) {
     const answer = await confirmCodeDialog(title, message, errorMessage);
     if (answer === false) return false;
     if (codeMatchesRound(round, answer)) return true;
-    errorMessage = 'The edit code is not correct. Try again.';
+    errorMessage = '编辑密码不正确，请重试。';
   }
 }
 
 async function confirmEditWithCode(round) {
-  return confirmActionWithCode(round, 'Edit game', 'Enter code, then choose Yes to edit this game.');
+  return confirmActionWithCode(round, '编辑比赛', '输入密码，然后选择“是”以编辑此比赛。');
 }
 
 async function confirmFinishWithCode(round) {
-  return confirmActionWithCode(round, 'Finish game', 'Enter code, then choose Yes to finish this game.');
+  return confirmActionWithCode(round, '结束比赛', '输入密码，然后选择“是”以结束此比赛。');
 }
 
 async function confirmDeleteWithCode(round) {
-  return confirmActionWithCode(round, 'Delete game', 'Enter code, then choose Yes to delete this finished game.');
+  return confirmActionWithCode(round, '删除比赛', '输入密码，然后选择“是”以删除此已结束的比赛。');
 }
 
 async function verifyActiveCode() {
@@ -1179,7 +1179,7 @@ async function deleteHistoryGame(round) {
   setSyncState({
     ready: true,
     busy: true,
-    title: 'Deleting game from cloud.'
+    title: '正在从云端删除比赛。'
   });
   try {
     await deleteCloudRound(round);
@@ -1188,10 +1188,10 @@ async function deleteHistoryGame(round) {
       ready: true,
       busy: false,
       ok: false,
-      label: 'Cloud sync Not ok',
+      label: '云同步失败',
       title: error.message
     });
-    await showMessage('Delete failed', 'Could not delete this game from the cloud. Try again.');
+    await showMessage('删除失败', '无法从云端删除此比赛，请重试。');
     return;
   }
   markRoundDeleted(round);
@@ -1207,8 +1207,8 @@ async function deleteHistoryGame(round) {
     ready: true,
     busy: false,
     ok: true,
-    label: 'Cloud sync ok',
-    title: 'Deleted from cloud.'
+    label: '云同步成功',
+    title: '已从云端删除。'
   });
 }
 
@@ -1247,7 +1247,7 @@ function renderScoreStrip() {
   applySignedClass(els.teamATotal, total.a);
   applySignedClass(els.teamBTotal, total.b);
   els.holesComplete.textContent = `${total.complete}/18`;
-  els.coursePar.textContent = `Par ${parTotal}`;
+  els.coursePar.textContent = `标准杆 ${parTotal}`;
   els.totalPar.textContent = parTotal;
   els.playerTotals.forEach((cell, index) => {
     cell.textContent = total.players[index];
@@ -1268,12 +1268,12 @@ function renderHoles() {
     row.innerHTML = `
       <td>${index + 1}</td>
       <td>${course.pars[index]}</td>
-      <td class="team-a-score"><input class="score score-0" type="number" min="1" max="20" inputmode="numeric" aria-label="Hole ${index + 1} ${state.players[0]} score"></td>
-      <td class="team-a-score"><input class="score score-1" type="number" min="1" max="20" inputmode="numeric" aria-label="Hole ${index + 1} ${state.players[1]} score"></td>
+      <td class="team-a-score"><input class="score score-0" type="number" min="1" max="20" inputmode="numeric" aria-label="第${index + 1}洞 ${state.players[0]} 成绩"></td>
+      <td class="team-a-score"><input class="score score-1" type="number" min="1" max="20" inputmode="numeric" aria-label="第${index + 1}洞 ${state.players[1]} 成绩"></td>
       <td class="team-a-score vegas-number"></td>
       <td class="team-a-score hole-points"></td>
-      <td class="team-b-score"><input class="score score-2" type="number" min="1" max="20" inputmode="numeric" aria-label="Hole ${index + 1} ${state.players[2]} score"></td>
-      <td class="team-b-score"><input class="score score-3" type="number" min="1" max="20" inputmode="numeric" aria-label="Hole ${index + 1} ${state.players[3]} score"></td>
+      <td class="team-b-score"><input class="score score-2" type="number" min="1" max="20" inputmode="numeric" aria-label="第${index + 1}洞 ${state.players[2]} 成绩"></td>
+      <td class="team-b-score"><input class="score score-3" type="number" min="1" max="20" inputmode="numeric" aria-label="第${index + 1}洞 ${state.players[3]} 成绩"></td>
       <td class="team-b-score vegas-number"></td>
       <td class="team-b-score hole-points"></td>
     `;
@@ -1340,13 +1340,13 @@ function renderCourses() {
       <div class="small-actions"></div>
     `;
     row.querySelector('strong').textContent = course.name;
-    row.querySelector('span').textContent = `Par ${course.pars.reduce((a, b) => a + b, 0)} - ${isCustom ? 'Custom' : 'Preset'}`;
+    row.querySelector('span').textContent = `标准杆 ${course.pars.reduce((a, b) => a + b, 0)} - ${isCustom ? '自定义' : '预设'}`;
 
     if (isCustom) {
       const deleteButton = document.createElement('button');
       deleteButton.type = 'button';
       deleteButton.className = 'danger';
-      deleteButton.textContent = 'Delete';
+      deleteButton.textContent = '删除';
       deleteButton.addEventListener('click', async () => {
         customCourses = customCourses.filter(item => item.id !== course.id);
         saveCoursesLocal();
@@ -1357,7 +1357,7 @@ function renderCourses() {
           await deleteCloudCourse(course.id);
           await syncFromCloud(false);
         } catch (error) {
-          setSyncState({ ok: false, busy: false, label: 'Cloud sync Not ok', title: error.message });
+          setSyncState({ ok: false, busy: false, label: '云同步失败', title: error.message });
         }
       });
       row.querySelector('.small-actions').append(deleteButton);
@@ -1377,7 +1377,7 @@ function roundListDate(round) {
 function roundTeamsLine(round) {
   const players = Array.isArray(round.players) ? round.players : [];
   const [a1 = 'Player 1', a2 = 'Player 2', b1 = 'Player 3', b2 = 'Player 4'] = players;
-  return `Team A (${a1}+${a2}) vs. Team B (${b1}+${b2})`;
+  return `A队（${a1}+${a2}）对 B队（${b1}+${b2}）`;
 }
 
 function renderGameList(container, rounds, emptyText, status) {
@@ -1409,15 +1409,15 @@ function renderGameList(container, rounds, emptyText, status) {
     `;
     const total = round.totals || {};
     row.querySelector('.playing-icon').hidden = status !== 'playing';
-    row.querySelector('.game-main').textContent = `${round.courseName || 'Course'} | ${roundListDate(round)}`;
+    row.querySelector('.game-main').textContent = `${round.courseName || '球场'} | ${roundListDate(round)}`;
     row.querySelector('.game-teams').textContent = roundTeamsLine(round);
-    row.querySelector('.game-score').textContent = `Total score: A ${Number(total.a || 0)}, B ${Number(total.b || 0)}`;
+    row.querySelector('.game-score').textContent = `总分：A ${Number(total.a || 0)}，B ${Number(total.b || 0)}`;
     row.querySelector('.game-open').addEventListener('click', () => loadGame(round.id, false, true));
     if (status === 'history') {
       const deleteButton = document.createElement('button');
       deleteButton.type = 'button';
       deleteButton.className = 'danger';
-      deleteButton.textContent = 'Delete';
+      deleteButton.textContent = '删除';
       deleteButton.addEventListener('click', event => {
         event.stopPropagation();
         deleteHistoryGame(round);
@@ -1431,8 +1431,8 @@ function renderGameList(container, rounds, emptyText, status) {
 function renderStart() {
   const playing = savedRounds.filter(round => gameStatus(round) === 'playing');
   const history = savedRounds.filter(round => gameStatus(round) !== 'playing');
-  renderGameList(els.playingList, playing, 'No games currently playing', 'playing');
-  renderGameList(els.historyList, history, 'No finished games', 'history');
+  renderGameList(els.playingList, playing, '当前没有进行中的比赛', 'playing');
+  renderGameList(els.historyList, history, '暂无已结束的比赛', 'history');
 }
 
 function render() {
@@ -1488,8 +1488,8 @@ function addListeners() {
 
   els.shareButton.addEventListener('click', async () => {
     const shareData = {
-      title: 'Vegas Golf Scorecard',
-      text: 'Vegas Golf Scorecard',
+      title: '拉斯维加斯高尔夫记分卡',
+      text: '拉斯维加斯高尔夫记分卡',
       url: window.location.href.split('?')[0]
     };
     try {
@@ -1497,9 +1497,9 @@ function addListeners() {
         await navigator.share(shareData);
       } else if (navigator.clipboard) {
         await navigator.clipboard.writeText(shareData.url);
-        await showMessage('Link copied', 'The app link was copied to the clipboard.');
+        await showMessage('链接已复制', '应用链接已复制到剪贴板。');
       } else {
-        await showMessage('Share app', shareData.url);
+        await showMessage('分享应用', shareData.url);
       }
     } catch {}
   });
@@ -1509,7 +1509,7 @@ function addListeners() {
     if (!els.dialogInputWrap.hidden) {
       const value = els.dialogInput.value.trim();
       if (els.dialogInput.pattern && !new RegExp(`^${els.dialogInput.pattern}$`).test(value)) {
-        els.dialogInput.setCustomValidity('Enter a valid value.');
+        els.dialogInput.setCustomValidity('请输入有效值。');
         els.dialogInput.reportValidity();
         els.dialogInput.setCustomValidity('');
         return;
@@ -1582,7 +1582,7 @@ function addListeners() {
     if (!valid) {
       const invalidInput = courseParInputs().find(input => !Number.isInteger(Number(input.value)) || Number(input.value) <= 0 || Number(input.value) >= 8);
       const target = name ? invalidInput : els.newCourseName;
-      target.setCustomValidity(name ? 'Enter a par from 1 to 7.' : 'Enter a course name.');
+      target.setCustomValidity(name ? '请输入1至7之间的标准杆数。' : '请输入球场名称。');
       target.reportValidity();
       target.setCustomValidity('');
       return;
@@ -1605,7 +1605,7 @@ function addListeners() {
       await upsertCloudCourse(course);
       await syncFromCloud(false);
     } catch (error) {
-      setSyncState({ ok: false, busy: false, label: 'Cloud sync Not ok', title: error.message });
+      setSyncState({ ok: false, busy: false, label: '云同步失败', title: error.message });
     }
   });
 
@@ -1627,7 +1627,7 @@ function addListeners() {
     ];
     const code = els.newGameCode.value.trim();
     if (!/^\d{2}$/.test(code)) {
-      els.newGameCode.setCustomValidity('Enter a 2 digit code.');
+      els.newGameCode.setCustomValidity('请输入两位数密码。');
       els.newGameCode.reportValidity();
       els.newGameCode.setCustomValidity('');
       return;
@@ -1678,7 +1678,7 @@ function init() {
       ready: true,
       busy: false,
       ok: false,
-      label: 'Cloud sync Not ok',
+      label: '云同步失败',
       title: `Supabase room: ${supabaseConfig().syncKey}`
     });
   }
