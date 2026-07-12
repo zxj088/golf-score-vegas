@@ -755,10 +755,6 @@ input:disabled {
   background: var(--green);
 }
 
-.score-pad-actions {
-  grid-template-columns: 1fr 1fr 1fr;
-}
-
 .modal-head {
   display: flex;
   align-items: center;
@@ -785,7 +781,7 @@ input:disabled {
 
 .game-options {
   display: grid;
-  grid-template-columns: minmax(0, 1.4fr) minmax(88px, 0.7fr) minmax(88px, 0.7fr) minmax(110px, 0.8fr);
+  grid-template-columns: minmax(0, 1.4fr) minmax(88px, 0.7fr) minmax(110px, 0.8fr);
   gap: 8px;
 }
 

@@ -96,7 +96,6 @@ const els = {
   newPlayerB1: document.querySelector('#newPlayerB1'),
   newPlayerB2: document.querySelector('#newPlayerB2'),
   newGameCourse: document.querySelector('#newGameCourse'),
-  newGameTee: document.querySelector('#newGameTee'),
   newGameCode: document.querySelector('#newGameCode'),
   newGameBirdieFlip: document.querySelector('#newGameBirdieFlip'),
   playingList: document.querySelector('#playingList'),
@@ -118,10 +117,7 @@ const els = {
   scorePadClose: document.querySelector('#scorePadClose'),
   scorePadMinus: document.querySelector('#scorePadMinus'),
   scorePadPlus: document.querySelector('#scorePadPlus'),
-  scorePadInput: document.querySelector('#scorePadInput'),
-  scorePadPrev: document.querySelector('#scorePadPrev'),
-  scorePadNext: document.querySelector('#scorePadNext'),
-  scorePadDone: document.querySelector('#scorePadDone')
+  scorePadInput: document.querySelector('#scorePadInput')
 };
 
 function emptyScores() {
@@ -211,10 +207,6 @@ function gameStatus(round) {
   return round?.totals?.status === 'playing' ? 'playing' : 'history';
 }
 
-function gameTee(round) {
-  return round?.totals?.tee || 'yellow';
-}
-
 function gameCode(round) {
   return String(round?.totals?.editCode || '').trim();
 }
@@ -296,7 +288,6 @@ function normalizeRound(round) {
       complete: Number(baseTotals.complete || 0),
       players: Array.isArray(baseTotals.players) ? baseTotals.players : [0, 0, 0, 0],
       status: baseTotals.status === 'playing' ? 'playing' : 'history',
-      tee: baseTotals.tee || 'yellow',
       editCode: String(baseTotals.editCode || ''),
       editLock: baseTotals.editLock && typeof baseTotals.editLock === 'object' ? baseTotals.editLock : null
     }
@@ -777,7 +768,6 @@ function closeCourseModal() {
 function openGameModal() {
   els.gameForm.reset();
   renderNewGameCourses();
-  els.newGameTee.value = 'yellow';
   els.newGameBirdieFlip.checked = true;
   els.newPlayerA1.value = 'Player 1';
   els.newPlayerA2.value = 'Player 2';
@@ -838,15 +828,22 @@ function commitScorePadValue(value) {
   updateScorePad();
 }
 
-function moveScoreTarget(step) {
+function advanceScoreTargetOrClose() {
   if (!activeScoreTarget) return;
-  const flatIndex = activeScoreTarget.holeIndex * 4 + activeScoreTarget.scoreIndex;
-  const nextFlatIndex = Math.max(0, Math.min(71, flatIndex + step));
+  if (activeScoreTarget.scoreIndex >= 3) {
+    closeScorePad();
+    return;
+  }
   activeScoreTarget = {
-    holeIndex: Math.floor(nextFlatIndex / 4),
-    scoreIndex: nextFlatIndex % 4
+    ...activeScoreTarget,
+    scoreIndex: activeScoreTarget.scoreIndex + 1
   };
   updateScorePad();
+}
+
+function commitScorePadValueAndAdvance(value) {
+  commitScorePadValue(value);
+  advanceScoreTargetOrClose();
 }
 
 function openScorePad(holeIndex, scoreIndex) {
@@ -915,7 +912,6 @@ function roundFromState(existing = {}, statusOverride = null) {
   const previousTotals = existing.totals || {};
   const scoreTotals = totals();
   const status = statusOverride || previousTotals.status || 'playing';
-  const tee = previousTotals.tee || 'yellow';
   const editCode = previousTotals.editCode || '';
   const lock = previousTotals.editLock || null;
   const name = roundDisplayName(course);
@@ -934,7 +930,6 @@ function roundFromState(existing = {}, statusOverride = null) {
     totals: {
       ...scoreTotals,
       status,
-      tee,
       editCode,
       editLock: lock
     }
@@ -1243,13 +1238,12 @@ function renderScoreStrip() {
   const course = currentCourse();
   const total = totals();
   const parTotal = course.pars.reduce((a, b) => a + b, 0);
-  const tee = currentGame() ? gameTee(currentGame()) : 'yellow';
   els.teamATotal.textContent = total.a;
   els.teamBTotal.textContent = total.b;
   applySignedClass(els.teamATotal, total.a);
   applySignedClass(els.teamBTotal, total.b);
   els.holesComplete.textContent = `${total.complete}/18`;
-  els.coursePar.textContent = `Par ${parTotal} - ${tee}`;
+  els.coursePar.textContent = `Par ${parTotal}`;
   els.totalPar.textContent = parTotal;
   els.playerTotals.forEach((cell, index) => {
     cell.textContent = total.players[index];
@@ -1411,7 +1405,7 @@ function renderGameList(container, rounds, emptyText, status) {
     `;
     const total = round.totals || {};
     row.querySelector('.playing-icon').hidden = status !== 'playing';
-    row.querySelector('.game-main').textContent = `${round.courseName || 'Course'} | ${roundListDate(round)} | ${gameTee(round)}`;
+    row.querySelector('.game-main').textContent = `${round.courseName || 'Course'} | ${roundListDate(round)}`;
     row.querySelector('.game-teams').textContent = roundTeamsLine(round);
     row.querySelector('.game-score').textContent = `Total score: A ${Number(total.a || 0)}, B ${Number(total.b || 0)}`;
     row.querySelector('.game-open').addEventListener('click', () => loadGame(round.id, false, true));
@@ -1529,7 +1523,6 @@ function addListeners() {
   });
 
   els.scorePadClose.addEventListener('click', closeScorePad);
-  els.scorePadDone.addEventListener('click', closeScorePad);
   els.scorePad.addEventListener('click', event => {
     if (event.target === els.scorePad) closeScorePad();
   });
@@ -1545,11 +1538,9 @@ function addListeners() {
     button.addEventListener('click', () => {
       if (!activeScoreTarget) return;
       const par = currentCourse().pars[activeScoreTarget.holeIndex] || 4;
-      commitScorePadValue(par + Number(button.dataset.scoreOffset || 0));
+      commitScorePadValueAndAdvance(par + Number(button.dataset.scoreOffset || 0));
     });
   });
-  els.scorePadPrev.addEventListener('click', () => moveScoreTarget(-1));
-  els.scorePadNext.addEventListener('click', () => moveScoreTarget(1));
 
   els.courseSelect.addEventListener('change', () => {
     state.courseId = els.courseSelect.value;
@@ -1647,7 +1638,6 @@ function addListeners() {
     const game = replaceRound(roundFromState({
       totals: {
         status: 'playing',
-        tee: els.newGameTee.value,
         editCode: code
       }
     }, 'playing'));
