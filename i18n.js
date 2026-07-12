@@ -22,7 +22,7 @@
     'Views': '页面',
     'Local only': '仅保存在本机',
     'Edit': '编辑',
-    'Finish': '完成',
+    'Finish': '结束',
     'Course': '球场',
     'Birdie flip': '小鸟球翻转',
     'Add Course': '添加球场',
