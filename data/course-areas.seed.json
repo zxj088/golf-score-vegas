@@ -1,0 +1,98 @@
+[
+  {
+    "country": "Australia",
+    "regions": ["Australian Capital Territory", "New South Wales", "Northern Territory", "Queensland", "South Australia", "Tasmania", "Victoria", "Western Australia"]
+  },
+  {
+    "country": "Austria",
+    "regions": ["Burgenland", "Carinthia", "Lower Austria", "Salzburg", "Styria", "Tyrol", "Upper Austria", "Vienna", "Vorarlberg"]
+  },
+  {
+    "country": "Belgium",
+    "regions": ["Antwerp", "Brussels", "East Flanders", "Flemish Brabant", "Hainaut", "Liege", "Limburg", "Luxembourg", "Namur", "Walloon Brabant", "West Flanders"]
+  },
+  {
+    "country": "Canada",
+    "regions": ["Alberta", "British Columbia", "Manitoba", "New Brunswick", "Newfoundland and Labrador", "Nova Scotia", "Ontario", "Prince Edward Island", "Quebec", "Saskatchewan"]
+  },
+  {
+    "country": "China",
+    "regions": ["Beijing", "Chongqing", "Fujian", "Guangdong", "Hainan", "Jiangsu", "Shanghai", "Sichuan", "Yunnan", "Zhejiang"]
+  },
+  {
+    "country": "Czech Republic",
+    "regions": ["Central Bohemian Region", "Karlovy Vary Region", "Moravian-Silesian Region", "Prague", "South Bohemian Region", "South Moravian Region", "Usti nad Labem Region", "Vysocina Region"]
+  },
+  {
+    "country": "Denmark",
+    "regions": ["Capital Region", "Central Denmark Region", "North Denmark Region", "Region Zealand", "Southern Denmark"]
+  },
+  {
+    "country": "Finland",
+    "regions": ["Central Finland", "Lapland", "North Ostrobothnia", "Pirkanmaa", "Southwest Finland", "Uusimaa"]
+  },
+  {
+    "country": "France",
+    "regions": ["Auvergne-Rhone-Alpes", "Brittany", "Grand Est", "Hauts-de-France", "Ile-de-France", "New Aquitaine", "Normandy", "Occitanie", "Pays de la Loire", "Provence-Alpes-Cote d'Azur"]
+  },
+  {
+    "country": "Germany",
+    "regions": ["Baden-Wurttemberg", "Bavaria", "Berlin", "Brandenburg", "Hamburg", "Hesse", "Lower Saxony", "North Rhine-Westphalia", "Rhineland-Palatinate", "Saxony", "Schleswig-Holstein"]
+  },
+  {
+    "country": "Greece",
+    "regions": ["Attica", "Central Macedonia", "Crete", "Ionian Islands", "Peloponnese", "South Aegean"]
+  },
+  {
+    "country": "Ireland",
+    "regions": ["Connacht", "Dublin", "Leinster", "Munster", "Ulster"]
+  },
+  {
+    "country": "Italy",
+    "regions": ["Emilia-Romagna", "Lazio", "Liguria", "Lombardy", "Piedmont", "Sardinia", "Sicily", "Tuscany", "Veneto"]
+  },
+  {
+    "country": "Japan",
+    "regions": ["Chiba", "Hokkaido", "Kanagawa", "Kyoto", "Okinawa", "Osaka", "Saitama", "Tokyo"]
+  },
+  {
+    "country": "Netherlands",
+    "regions": ["Drenthe", "Flevoland", "Friesland", "Gelderland", "Groningen", "Limburg", "North Brabant", "North Holland", "Overijssel", "South Holland", "Utrecht", "Zeeland"]
+  },
+  {
+    "country": "Norway",
+    "regions": ["Agder", "Innlandet", "More og Romsdal", "Nordland", "Oslo", "Rogaland", "Troms og Finnmark", "Trondelag", "Vestfold og Telemark", "Vestland", "Viken"]
+  },
+  {
+    "country": "Poland",
+    "regions": ["Greater Poland", "Kuyavian-Pomeranian", "Lesser Poland", "Lower Silesian", "Masovian", "Pomeranian", "Silesian", "Warmian-Masurian", "West Pomeranian"]
+  },
+  {
+    "country": "Portugal",
+    "regions": ["Alentejo", "Algarve", "Azores", "Central Portugal", "Lisbon", "Madeira", "North Portugal"]
+  },
+  {
+    "country": "Spain",
+    "regions": ["Alicante", "Andalusia", "Aragon", "Asturias", "Balearic Islands", "Basque Country", "Canary Islands", "Cantabria", "Castile and Leon", "Castile-La Mancha", "Catalonia", "Extremadura", "Galicia", "La Rioja", "Madrid", "Malaga", "Mallorca", "Murcia", "Navarre", "Valencian Community"]
+  },
+  {
+    "country": "Sweden",
+    "regions": ["Dalarna County", "Gavleborg County", "Gotland County", "Halland County", "Jonkoping County", "Kalmar County", "Norrbotten County", "Orebro County", "Ostergotland County", "Skane County", "Sodermanland County", "Stockholm County", "Uppsala County", "Varmland County", "Vasterbotten County", "Vasternorrland County", "Vastmanland County", "Vastra Gotaland County"]
+  },
+  {
+    "country": "Switzerland",
+    "regions": ["Aargau", "Basel", "Bern", "Geneva", "Graubunden", "Lucerne", "Ticino", "Valais", "Vaud", "Zurich"]
+  },
+  {
+    "country": "Thailand",
+    "regions": ["Bangkok", "Chiang Mai", "Chon Buri", "Hua Hin", "Phuket"]
+  },
+  {
+    "country": "United Kingdom",
+    "regions": ["East Midlands", "East of England", "England", "London", "North East England", "North West England", "Northern Ireland", "Scotland", "South East England", "South West England", "Wales", "West Midlands", "Yorkshire and the Humber"]
+  },
+  {
+    "country": "United States",
+    "regions": ["Arizona", "California", "Florida", "Georgia", "Hawaii", "Nevada", "New York", "North Carolina", "South Carolina", "Texas"]
+  }
+]
