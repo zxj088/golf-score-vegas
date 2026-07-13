@@ -795,7 +795,7 @@ function updateCourseFormTotals() {
   els.courseParTotal.textContent = front + back;
 }
 
-function renderCourseParInputs(pars = currentCourse().pars, indexes = currentCourse().indexes) {
+function renderCourseParInputs(pars = currentCourse().pars, indexes = currentCourse().indexes, lockInitialIndexes = true) {
   els.frontNineList.innerHTML = '';
   els.backNineList.innerHTML = '';
 
@@ -816,10 +816,12 @@ function renderCourseParInputs(pars = currentCourse().pars, indexes = currentCou
     const [parInput, indexInput] = row.querySelectorAll('select');
     parInput.value = pars[index] || 4;
     indexInput.dataset.value = String(indexes[index] || 9);
+    indexInput.dataset.touched = lockInitialIndexes ? 'true' : '';
     parInput.addEventListener('input', updateCourseFormTotals);
     parInput.addEventListener('change', updateCourseFormTotals);
     indexInput.addEventListener('change', () => {
       indexInput.dataset.value = indexInput.value;
+      indexInput.dataset.touched = 'true';
       refreshCourseIndexOptions();
     });
     if (index < 9) {
@@ -835,11 +837,15 @@ function renderCourseParInputs(pars = currentCourse().pars, indexes = currentCou
 
 function refreshCourseIndexOptions() {
   const inputs = courseIndexInputs();
-  const selected = inputs.map(input => Number(input.dataset.value || input.value)).filter(Number.isInteger);
+  const selected = inputs
+    .filter(input => input.dataset.touched === 'true')
+    .map(input => Number(input.dataset.value || input.value))
+    .filter(Number.isInteger);
   inputs.forEach(input => {
     const current = Number(input.dataset.value || input.value || 9);
+    const isTouched = input.dataset.touched === 'true';
     const options = Array.from({ length: 18 }, (_, optionIndex) => optionIndex + 1)
-      .filter(value => value === current || !selected.includes(value));
+      .filter(value => (isTouched && value === current) || !selected.includes(value));
     input.innerHTML = options.map(value => `<option value="${value}">${value}</option>`).join('');
     input.value = String(options.includes(current) ? current : options[0] || 9);
     input.dataset.value = input.value;
@@ -860,7 +866,7 @@ function renderNewGameCourses() {
 function openCourseModal() {
   els.courseForm.reset();
   editingCourseId = '';
-  renderCourseParInputs(Array.from({ length: 18 }, () => 4), Array.from({ length: 18 }, () => 9));
+  renderCourseParInputs(Array.from({ length: 18 }, () => 4), Array.from({ length: 18 }, () => 9), false);
   document.querySelector('#courseModal h2').textContent = t('Add Course');
   els.courseForm.querySelector('button[type="submit"]').textContent = t('Save Course');
   els.newCourseCode.disabled = false;
