@@ -1129,7 +1129,18 @@ function renderCourseSearchResults(results) {
   if (!results.length) {
     const empty = document.createElement('div');
     empty.className = 'empty-state';
-    empty.textContent = t('No courses found.');
+    empty.innerHTML = `
+      <p></p>
+      <button type="button"></button>
+    `;
+    empty.querySelector('p').textContent = t('No courses found in GolfCourseAPI. You can add it manually.');
+    const addManual = empty.querySelector('button');
+    addManual.textContent = t('Add manually');
+    addManual.addEventListener('click', () => {
+      const name = els.courseSearchInput.value.trim();
+      closeCourseSearchModal();
+      openCourseModal(name);
+    });
     els.courseSearchResults.append(empty);
     return;
   }

@@ -137,6 +137,8 @@
     'Enter a course name or city to search within the selected country or region.': '请输入球场名称或城市，以在所选国家或地区内搜索。',
     'Choose a course to add.': '请选择要添加的球场。',
     'No courses found.': '没有找到球场。',
+    'No courses found in GolfCourseAPI. You can add it manually.': 'GolfCourseAPI 中没有找到此球场，你可以手动添加。',
+    'Add manually': '手动添加',
     'Course search failed. Try again.': '球场搜索失败，请重试。',
     'Loading course scorecard...': '正在读取球场记分卡...',
     'Could not read PAR and INDEX from this course.': '无法从此球场读取 PAR 和难度。',
