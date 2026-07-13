@@ -932,15 +932,17 @@ function renderNewGameCourses() {
 }
 
 function renderCourseSearchCountries() {
-  els.courseSearchCountry.innerHTML = COURSE_SEARCH_AREAS.map(area => `<option value="${area.country}">${area.country}</option>`).join('');
-  els.courseSearchCountry.value = COURSE_SEARCH_AREAS[0].country;
+  const countryOptions = [`<option value="">${t('All countries')}</option>`]
+    .concat(COURSE_SEARCH_AREAS.map(area => `<option value="${area.country}">${area.country}</option>`));
+  els.courseSearchCountry.innerHTML = countryOptions.join('');
+  els.courseSearchCountry.value = '';
   renderCourseSearchRegions();
 }
 
 function renderCourseSearchRegions() {
-  const area = COURSE_SEARCH_AREAS.find(item => item.country === els.courseSearchCountry.value) || COURSE_SEARCH_AREAS[0];
+  const area = COURSE_SEARCH_AREAS.find(item => item.country === els.courseSearchCountry.value);
   const options = [`<option value="">${t('All regions')}</option>`]
-    .concat(area.regions.map(region => `<option value="${region}">${region}</option>`));
+    .concat(area ? area.regions.map(region => `<option value="${region}">${region}</option>`) : []);
   els.courseSearchRegion.innerHTML = options.join('');
 }
 
@@ -1006,15 +1008,24 @@ function courseSearchId(result) {
 async function searchGolfCourses({ courseName, country, region }) {
   if (!hasGolfCourseApiConfig()) throw new Error('GolfCourseAPI key is missing');
   const config = golfCourseApiConfig();
-  const parts = [courseName, region, country].map(value => String(value || '').trim()).filter(Boolean);
-  const searchQuery = parts.join(' ') || country || 'golf';
-  const data = await golfCourseApiRequest(config.searchPath, { search_query: searchQuery });
-  const rows = Array.isArray(data) ? data : (Array.isArray(data?.courses) ? data.courses : []);
+  const name = String(courseName || '').trim();
+  const area = [region, country].map(value => String(value || '').trim()).filter(Boolean).join(' ');
+  const searches = [
+    name,
+    [name, area].filter(Boolean).join(' '),
+    area
+  ].filter(Boolean);
+  const queries = [...new Set(searches.length ? searches : ['golf'])];
   const unique = new Map();
-  rows.forEach(row => {
-    const key = String(courseSearchId(row) || courseSearchName(row));
-    if (!unique.has(key)) unique.set(key, row);
-  });
+  for (const searchQuery of queries) {
+    const data = await golfCourseApiRequest(config.searchPath, { search_query: searchQuery });
+    const rows = Array.isArray(data) ? data : (Array.isArray(data?.courses) ? data.courses : []);
+    rows.forEach(row => {
+      const key = String(courseSearchId(row) || courseSearchName(row));
+      if (!unique.has(key)) unique.set(key, row);
+    });
+    if (unique.size) break;
+  }
   return Array.from(unique.values()).slice(0, 8);
 }
 

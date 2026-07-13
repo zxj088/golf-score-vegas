@@ -48,6 +48,7 @@
     'Course name or city': '球场名称或城市',
     'Country': '国家',
     'Region': '地区',
+    'All countries': '所有国家',
     'All regions': '所有地区',
     'Edit code': '编辑密码',
     'Default mode': '默认模式',
