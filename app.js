@@ -88,6 +88,7 @@ const els = {
   courseForm: document.querySelector('#courseForm'),
   newCourseName: document.querySelector('#newCourseName'),
   newCourseCode: document.querySelector('#newCourseCode'),
+  courseModalEyebrow: document.querySelector('#courseModalEyebrow'),
   cancelCourse: document.querySelector('#cancelCourse'),
   cancelCourseBottom: document.querySelector('#cancelCourseBottom'),
   frontNineList: document.querySelector('#frontNineList'),
@@ -867,6 +868,7 @@ function openCourseModal() {
   els.courseForm.reset();
   editingCourseId = '';
   renderCourseParInputs(Array.from({ length: 18 }, () => 4), Array.from({ length: 18 }, () => 9), false);
+  els.courseModalEyebrow.textContent = t('New Course');
   document.querySelector('#courseModal h2').textContent = t('Add Course');
   els.courseForm.querySelector('button[type="submit"]').textContent = t('Save Course');
   els.newCourseCode.disabled = false;
@@ -882,6 +884,7 @@ function openEditCourseModal(course) {
   els.newCourseCode.value = normalized.editCode || '';
   els.newCourseCode.disabled = true;
   renderCourseParInputs(normalized.pars, normalized.indexes);
+  els.courseModalEyebrow.textContent = t('Edit Course');
   document.querySelector('#courseModal h2').textContent = t('Edit Course');
   els.courseForm.querySelector('button[type="submit"]').textContent = t('Save Changes');
   els.courseModal.hidden = false;
