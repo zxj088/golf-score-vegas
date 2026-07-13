@@ -34,6 +34,21 @@ const defaultCourses = [
   { id: 'riksten', name: 'Riksten', pars: [5,4,3,4,5,4,4,3,4,4,4,5,3,4,5,3,4,4] }
 ];
 
+const defaultCourseMetadata = {
+  'bro-hof-stadium': { country: 'Sweden', region: 'Stockholm County', club: 'Bro Hof Slott GC', course: 'Stadium Course', source: 'preset' },
+  'bro-hof-castle': { country: 'Sweden', region: 'Stockholm County', club: 'Bro Hof Slott GC', course: 'Castle Course', source: 'preset' },
+  'kungsangen-kings': { country: 'Sweden', region: 'Stockholm County', club: 'Kungsangen GC', course: 'Kings Course', source: 'preset' },
+  'kungsangen-queens': { country: 'Sweden', region: 'Stockholm County', club: 'Kungsangen GC', course: 'Queens Course', source: 'preset' },
+  'waxholm': { country: 'Sweden', region: 'Stockholm County', club: 'Waxholm Golf Club', course: 'Main Course', source: 'preset' },
+  'lindo-dal': { country: 'Sweden', region: 'Stockholm County', club: 'Lindo Golf Club', course: 'Dal Course', source: 'preset' },
+  'kyssinge': { country: 'Sweden', region: 'Stockholm County', club: 'Kyssinge Golf Club', course: 'Main Course', source: 'preset' },
+  'bodaholm': { country: 'Sweden', region: 'Stockholm County', club: 'Bodaholm Golf Club', course: 'Main Course', source: 'preset' },
+  'brollsta': { country: 'Sweden', region: 'Stockholm County', club: 'Brollsta Golf Club', course: 'Main Course', source: 'preset' },
+  'international': { country: 'Sweden', region: 'Stockholm County', club: 'International Golf Club', course: 'Main Course', source: 'preset' },
+  'lovsattrra': { country: 'Sweden', region: 'Stockholm County', club: 'Lovsattrra Golf Club', course: 'Main Course', source: 'preset' },
+  'riksten': { country: 'Sweden', region: 'Stockholm County', club: 'Riksten Golf Club', course: 'Main Course', source: 'preset' }
+};
+
 let activeGameId = '';
 let isEditing = false;
 let editingGameInfoId = '';
@@ -41,6 +56,7 @@ let editingCourseId = '';
 let autoSyncTimer = null;
 let dialogResolver = null;
 let activeScoreTarget = null;
+let courseSearchMode = 'shared';
 const clientId = getClientId();
 let state = {
   courseId: defaultCourses[0].id,
@@ -99,6 +115,7 @@ const els = {
   courseForm: document.querySelector('#courseForm'),
   courseSearchModal: document.querySelector('#courseSearchModal'),
   courseSearchForm: document.querySelector('#courseSearchForm'),
+  courseSearchModes: Array.from(document.querySelectorAll('[data-course-search-mode]')),
   courseSearchCountry: document.querySelector('#courseSearchCountry'),
   courseSearchRegion: document.querySelector('#courseSearchRegion'),
   courseSearchInput: document.querySelector('#courseSearchInput'),
@@ -200,6 +217,7 @@ function normalizeCourseIndexes(indexes) {
 }
 
 function normalizeCourse(course) {
+  const metadata = defaultCourseMetadata[course?.id] || {};
   const pars = Array.isArray(course?.pars) && course.pars.length === 18
     ? course.pars.map(par => Number(par) || 4)
     : Array.from({ length: 18 }, () => 4);
@@ -207,12 +225,21 @@ function normalizeCourse(course) {
     ...course,
     pars,
     indexes: normalizeCourseIndexes(course?.indexes),
-    editCode: String(course?.editCode || '')
+    editCode: String(course?.editCode || ''),
+    country: String(course?.country || metadata.country || ''),
+    region: String(course?.region || metadata.region || ''),
+    club: String(course?.club || metadata.club || ''),
+    course: String(course?.course || metadata.course || ''),
+    source: String(course?.source || metadata.source || '')
   };
 }
 
 function allCourses() {
-  return [...defaultCourses, ...customCourses].map(normalizeCourse);
+  const courses = new Map();
+  [...defaultCourses, ...customCourses].map(normalizeCourse).forEach(course => {
+    courses.set(course.id, { ...(courses.get(course.id) || {}), ...course });
+  });
+  return Array.from(courses.values());
 }
 
 function currentCourse() {
@@ -438,7 +465,12 @@ function courseToCloudRow(course) {
     pars: {
       values: course.pars,
       indexes: normalizeCourseIndexes(course.indexes),
-      editCode: String(course.editCode || '')
+      editCode: String(course.editCode || ''),
+      country: String(course.country || ''),
+      region: String(course.region || ''),
+      club: String(course.club || ''),
+      course: String(course.course || ''),
+      source: String(course.source || '')
     }
   };
 }
@@ -491,7 +523,12 @@ function cloudRowToCourse(row) {
     name: row.name,
     pars: Array.isArray(storedPars) ? storedPars : (Array.isArray(storedPars?.values) ? storedPars.values : []),
     indexes: Array.isArray(storedPars?.indexes) ? storedPars.indexes : undefined,
-    editCode: Array.isArray(storedPars) ? '' : String(storedPars?.editCode || '')
+    editCode: Array.isArray(storedPars) ? '' : String(storedPars?.editCode || ''),
+    country: Array.isArray(storedPars) ? '' : String(storedPars?.country || ''),
+    region: Array.isArray(storedPars) ? '' : String(storedPars?.region || ''),
+    club: Array.isArray(storedPars) ? '' : String(storedPars?.club || ''),
+    course: Array.isArray(storedPars) ? '' : String(storedPars?.course || ''),
+    source: Array.isArray(storedPars) ? '' : String(storedPars?.source || '')
   };
 }
 
@@ -946,6 +983,19 @@ function renderCourseSearchRegions() {
   els.courseSearchRegion.innerHTML = options.join('');
 }
 
+function setCourseSearchMode(mode) {
+  courseSearchMode = mode;
+  els.courseSearchModes.forEach(button => {
+    button.classList.toggle('active', button.dataset.courseSearchMode === mode);
+  });
+  const isManual = mode === 'manual';
+  els.courseSearchSubmit.textContent = t(isManual ? 'Add manually' : 'Search');
+  els.courseSearchStatus.textContent = t(mode === 'api'
+    ? 'Search courses in North America, then add one to your courses.'
+    : (isManual ? 'Enter a course name to add it manually.' : 'Search shared courses first.'));
+  els.courseSearchResults.innerHTML = '';
+}
+
 function openCourseModal(prefillName = '') {
   els.courseForm.reset();
   editingCourseId = '';
@@ -962,10 +1012,8 @@ function openCourseModal(prefillName = '') {
 function openCourseSearchModal() {
   els.courseSearchForm.reset();
   renderCourseSearchCountries();
+  setCourseSearchMode('shared');
   els.courseSearchResults.innerHTML = '';
-  els.courseSearchStatus.textContent = hasGolfCourseApiConfig()
-    ? t('Search the course API, then add one to your courses.')
-    : t('Add your GolfCourseAPI key to supabase-config.js before searching.');
   els.courseSearchSubmit.disabled = false;
   els.courseSearchModal.hidden = false;
   els.courseSearchInput.focus();
@@ -978,6 +1026,7 @@ function closeCourseSearchModal() {
 }
 
 function courseSearchName(result) {
+  if (result?.pars && result?.name) return result.name;
   const club = String(result?.club_name || result?.clubName || '').trim();
   const course = String(result?.course_name || result?.courseName || result?.name || '').trim();
   if (club && course && club !== course) return `${club} - ${course}`;
@@ -985,11 +1034,11 @@ function courseSearchName(result) {
 }
 
 function courseSearchClubName(result) {
-  return String(result?.club_name || result?.clubName || courseSearchName(result)).trim();
+  return String(result?.club_name || result?.clubName || result?.club || courseSearchName(result)).trim();
 }
 
 function courseSearchCourseName(result) {
-  return String(result?.course_name || result?.courseName || result?.name || courseSearchName(result)).trim();
+  return String(result?.course_name || result?.courseName || result?.course || result?.name || courseSearchName(result)).trim();
 }
 
 function courseSearchAddress(result) {
@@ -1005,13 +1054,35 @@ function courseSearchId(result) {
   return result?.id || result?.course_id || result?.courseId;
 }
 
+function isAppCourseResult(result) {
+  return Array.isArray(result?.pars) && Array.isArray(result?.indexes);
+}
+
+function textMatches(value, query) {
+  return String(value || '').toLowerCase().includes(String(query || '').trim().toLowerCase());
+}
+
 function courseMatchesArea(result, country, region) {
   const address = result?.location || result?.address || {};
   const countryText = String(address.country || result?.country || '').toLowerCase();
-  const regionText = String(address.state || address.region || address.province || address.city || address.county || '').toLowerCase();
+  const regionText = String(address.state || address.region || address.province || address.city || address.county || result?.region || '').toLowerCase();
   const expectedCountry = String(country || '').trim().toLowerCase();
   const expectedRegion = String(region || '').trim().toLowerCase();
   return (!expectedCountry || countryText.includes(expectedCountry)) && (!expectedRegion || regionText.includes(expectedRegion));
+}
+
+function sharedCourseSearchText(course) {
+  return [course.name, course.country, course.region, course.club, course.course].filter(Boolean).join(' ');
+}
+
+function searchSharedCourses({ courseName, country, region }) {
+  const query = String(courseName || '').trim().toLowerCase();
+  const results = allCourses()
+    .filter(course => !query || textMatches(sharedCourseSearchText(course), query))
+    .filter(course => courseMatchesArea(course, country, region))
+    .sort((a, b) => a.name.localeCompare(b.name))
+    .slice(0, 40);
+  return { results, filterFallback: false };
 }
 
 async function searchGolfCourses({ courseName, country, region }) {
@@ -1124,7 +1195,15 @@ function scorecardFromApiCourse(course) {
   return { pars, indexes };
 }
 
-function renderCourseSearchResults(results) {
+function useSharedCourse(course) {
+  state.courseId = course.id;
+  saveState();
+  closeCourseSearchModal();
+  render();
+  switchView('courses');
+}
+
+function renderCourseSearchResults(results, mode = courseSearchMode) {
   els.courseSearchResults.innerHTML = '';
   if (!results.length) {
     const empty = document.createElement('div');
@@ -1133,7 +1212,9 @@ function renderCourseSearchResults(results) {
       <p></p>
       <button type="button"></button>
     `;
-    empty.querySelector('p').textContent = t('No courses found in GolfCourseAPI. You can add it manually.');
+    empty.querySelector('p').textContent = t(mode === 'shared'
+      ? 'No shared courses found.'
+      : 'No courses found in GolfCourseAPI. You can add it manually.');
     const addManual = empty.querySelector('button');
     addManual.textContent = t('Add manually');
     addManual.addEventListener('click', () => {
@@ -1169,8 +1250,12 @@ function renderCourseSearchResults(results) {
     row.querySelector('strong').textContent = courseName;
     row.querySelector('span').textContent = address ? `${clubName} | ${address}` : clubName;
     const button = row.querySelector('button');
-    button.textContent = t('Add');
+    button.textContent = t(mode === 'shared' || isAppCourseResult(result) ? 'Use' : 'Add');
     button.addEventListener('click', async () => {
+      if (mode === 'shared' || isAppCourseResult(result)) {
+        useSharedCourse(normalizeCourse(result));
+        return;
+      }
       button.disabled = true;
       els.courseSearchStatus.textContent = t('Loading course scorecard...');
       const detail = await fetchGolfCourseDetail(result);
@@ -1890,7 +1975,8 @@ function renderCourses() {
   allCourses().forEach(course => {
     const row = document.createElement('div');
     row.className = 'course-row';
-    const isCustom = customCourses.some(item => item.id === course.id);
+    const isShared = course.source === 'shared';
+    const isCustom = customCourses.some(item => item.id === course.id && normalizeCourse(item).source !== 'shared');
     row.innerHTML = `
       <div>
         <strong></strong>
@@ -1901,7 +1987,7 @@ function renderCourses() {
     row.querySelector('strong').textContent = course.name;
     row.querySelector('span').textContent = t('Par {par} - {type}', {
       par: course.pars.reduce((a, b) => a + b, 0),
-      type: t(isCustom ? 'Custom' : 'Preset')
+      type: t(isShared ? 'Shared' : (isCustom ? 'Custom' : 'Preset'))
     });
 
     if (isCustom) {
@@ -2170,6 +2256,9 @@ function addListeners() {
 
   els.addCourse.addEventListener('click', openCourseModal);
   els.searchCourse.addEventListener('click', openCourseSearchModal);
+  els.courseSearchModes.forEach(button => {
+    button.addEventListener('click', () => setCourseSearchMode(button.dataset.courseSearchMode));
+  });
   els.courseSearchCountry.addEventListener('change', renderCourseSearchRegions);
   els.cancelCourseSearch.addEventListener('click', closeCourseSearchModal);
   els.cancelCourseSearchBottom.addEventListener('click', closeCourseSearchModal);
@@ -2181,6 +2270,17 @@ function addListeners() {
     const courseName = els.courseSearchInput.value.trim();
     const country = els.courseSearchCountry.value;
     const region = els.courseSearchRegion.value;
+    if (courseSearchMode === 'manual') {
+      closeCourseSearchModal();
+      openCourseModal(courseName);
+      return;
+    }
+    if (courseSearchMode === 'shared') {
+      const searchResult = searchSharedCourses({ courseName, country, region });
+      els.courseSearchStatus.textContent = searchResult.results.length ? t('Choose a course to add.') : t('No shared courses found.');
+      renderCourseSearchResults(searchResult.results, 'shared');
+      return;
+    }
     if (!courseName && (country || region)) {
       els.courseSearchStatus.textContent = t('Enter a course name or city to search within the selected country or region.');
       els.courseSearchResults.innerHTML = '';
@@ -2193,7 +2293,7 @@ function addListeners() {
       const searchResult = await searchGolfCourses({ courseName, country, region });
       const results = searchResult.results;
       els.courseSearchStatus.textContent = results.length ? t('Choose a course to add.') : t('No courses found.');
-      renderCourseSearchResults(results);
+      renderCourseSearchResults(results, 'api');
     } catch (error) {
       els.courseSearchStatus.textContent = hasGolfCourseApiConfig()
         ? t('Course search failed. Try again.')

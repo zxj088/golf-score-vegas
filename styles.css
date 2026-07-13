@@ -322,6 +322,31 @@ textarea {
   resize: vertical;
 }
 
+.search-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  margin: 10px 0 12px;
+  padding: 4px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #f4f1ea;
+}
+
+.search-tabs button {
+  min-height: 34px;
+  padding: 6px 8px;
+  border: 0;
+  box-shadow: none;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.search-tabs button.active {
+  color: #ffffff;
+  background: var(--ink);
+}
+
 .toggle-row {
   display: flex;
   align-items: center;

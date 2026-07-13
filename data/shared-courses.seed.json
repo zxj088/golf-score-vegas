@@ -1,0 +1,122 @@
+[
+  {
+    "id": "bro-hof-stadium",
+    "name": "Bro Hof Stadium",
+    "country": "Sweden",
+    "region": "Stockholm County",
+    "club": "Bro Hof Slott GC",
+    "course": "Stadium Course",
+    "pars": [5, 4, 4, 3, 4, 4, 3, 4, 5, 4, 3, 5, 5, 4, 5, 3, 3, 4],
+    "indexes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18]
+  },
+  {
+    "id": "bro-hof-castle",
+    "name": "Bro Hof Castle",
+    "country": "Sweden",
+    "region": "Stockholm County",
+    "club": "Bro Hof Slott GC",
+    "course": "Castle Course",
+    "pars": [5, 3, 4, 3, 5, 4, 3, 4, 5, 5, 3, 3, 5, 4, 5, 4, 3, 4],
+    "indexes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18]
+  },
+  {
+    "id": "kungsangen-kings",
+    "name": "Kungsangen Kings",
+    "country": "Sweden",
+    "region": "Stockholm County",
+    "club": "Kungsangen GC",
+    "course": "Kings Course",
+    "pars": [4, 4, 3, 4, 4, 4, 3, 5, 4, 4, 3, 4, 3, 5, 3, 4, 4, 5],
+    "indexes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18]
+  },
+  {
+    "id": "kungsangen-queens",
+    "name": "Kungsangen Queens",
+    "country": "Sweden",
+    "region": "Stockholm County",
+    "club": "Kungsangen GC",
+    "course": "Queens Course",
+    "pars": [4, 4, 3, 4, 3, 4, 4, 5, 4, 5, 3, 4, 5, 3, 4, 4, 4, 3],
+    "indexes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18]
+  },
+  {
+    "id": "waxholm",
+    "name": "Waxholm",
+    "country": "Sweden",
+    "region": "Stockholm County",
+    "club": "Waxholm Golf Club",
+    "course": "Main Course",
+    "pars": [4, 5, 3, 4, 4, 4, 4, 5, 4, 4, 3, 4, 4, 4, 5, 4, 5, 3],
+    "indexes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18]
+  },
+  {
+    "id": "lindo-dal",
+    "name": "Lindo Dal",
+    "country": "Sweden",
+    "region": "Stockholm County",
+    "club": "Lindo Golf Club",
+    "course": "Dal Course",
+    "pars": [4, 3, 4, 3, 4, 5, 4, 4, 5, 4, 3, 4, 4, 3, 4, 4, 3, 5],
+    "indexes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18]
+  },
+  {
+    "id": "kyssinge",
+    "name": "Kyssinge",
+    "country": "Sweden",
+    "region": "Stockholm County",
+    "club": "Kyssinge Golf Club",
+    "course": "Main Course",
+    "pars": [4, 5, 5, 4, 3, 4, 4, 3, 5, 4, 5, 4, 4, 5, 3, 4, 3, 5],
+    "indexes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18]
+  },
+  {
+    "id": "bodaholm",
+    "name": "Bodaholm",
+    "country": "Sweden",
+    "region": "Stockholm County",
+    "club": "Bodaholm Golf Club",
+    "course": "Main Course",
+    "pars": [4, 4, 3, 5, 4, 3, 4, 3, 5, 5, 4, 4, 4, 3, 4, 3, 4, 5],
+    "indexes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18]
+  },
+  {
+    "id": "brollsta",
+    "name": "Brollsta",
+    "country": "Sweden",
+    "region": "Stockholm County",
+    "club": "Brollsta Golf Club",
+    "course": "Main Course",
+    "pars": [4, 4, 4, 5, 4, 3, 4, 3, 5, 5, 3, 4, 3, 4, 4, 5, 4, 4],
+    "indexes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18]
+  },
+  {
+    "id": "international",
+    "name": "International",
+    "country": "Sweden",
+    "region": "Stockholm County",
+    "club": "International Golf Club",
+    "course": "Main Course",
+    "pars": [4, 5, 3, 4, 5, 3, 4, 4, 4, 4, 4, 3, 4, 5, 5, 4, 3, 4],
+    "indexes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18]
+  },
+  {
+    "id": "lovsattrra",
+    "name": "Lovsattrra",
+    "country": "Sweden",
+    "region": "Stockholm County",
+    "club": "Lovsattrra Golf Club",
+    "course": "Main Course",
+    "pars": [4, 4, 4, 5, 3, 4, 6, 3, 4, 5, 3, 4, 4, 4, 3, 5, 3, 4],
+    "indexes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18]
+  },
+  {
+    "id": "riksten",
+    "name": "Riksten",
+    "country": "Sweden",
+    "region": "Stockholm County",
+    "club": "Riksten Golf Club",
+    "course": "Main Course",
+    "pars": [5, 4, 3, 4, 5, 4, 4, 3, 4, 4, 4, 5, 3, 4, 5, 3, 4, 4],
+    "indexes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18]
+  }
+]
