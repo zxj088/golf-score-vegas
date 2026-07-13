@@ -10,6 +10,7 @@ const CLOUD_ROUND_LIMIT = 1000;
 const EDIT_LOCK_TTL_MS = 12000;
 const DEFAULT_COURSE_COUNTRY = 'Sweden';
 const DEFAULT_COURSE_REGION = 'Stockholm County';
+const OVERPASS_API_URL = 'https://overpass-api.de/api/interpreter';
 const COURSE_SEARCH_AREAS = [
     {
         "country":  "Australia",
@@ -1490,7 +1491,7 @@ function setCourseSearchMode(mode) {
   els.courseSearchSubmit.textContent = t(isManual ? 'Add manually' : 'Search');
   els.courseSearchStatus.textContent = t(mode === 'api'
     ? 'Search courses in North America, then add one to your courses.'
-    : (isManual ? 'Enter a course name to add it manually.' : 'Search online database first.'));
+    : (isManual ? 'Enter a course name to add it manually.' : 'Search OpenStreetMap / Overpass, then use a result to add a course.'));
   els.courseSearchResults.innerHTML = '';
 }
 
@@ -1566,6 +1567,14 @@ function textMatches(value, query) {
   return String(value || '').toLowerCase().includes(String(query || '').trim().toLowerCase());
 }
 
+function overpassString(value) {
+  return String(value || '').replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+}
+
+function overpassRegex(value) {
+  return overpassString(String(value || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+}
+
 function courseMatchesArea(result, country, region) {
   const address = result?.location || result?.address || {};
   const countryText = String(address.country || result?.country || '').toLowerCase();
@@ -1579,14 +1588,106 @@ function sharedCourseSearchText(course) {
   return [course.name, course.country, course.region, course.club, course.course].filter(Boolean).join(' ');
 }
 
-function searchSharedCourses({ courseName, country, region }) {
-  const query = String(courseName || '').trim().toLowerCase();
-  const results = allCourses()
-    .filter(course => !query || textMatches(sharedCourseSearchText(course), query))
-    .filter(course => courseMatchesArea(course, country, region))
-    .sort((a, b) => a.name.localeCompare(b.name))
+function osmElementName(element) {
+  const tags = element?.tags || {};
+  return tags.name || tags['name:en'] || tags.operator || tags.brand || t('Course');
+}
+
+function osmElementAddress(element, fallbackCountry, fallbackRegion) {
+  const tags = element?.tags || {};
+  return [
+    tags['addr:city'] || tags['addr:town'] || tags['addr:village'] || tags['addr:municipality'],
+    tags['addr:state'] || tags['addr:province'] || fallbackRegion,
+    tags['addr:country'] || fallbackCountry
+  ].filter(Boolean).join(', ');
+}
+
+function osmCourseResult(element, country, region) {
+  const tags = element?.tags || {};
+  const name = osmElementName(element);
+  return {
+    id: `osm-${element.type}-${element.id}`,
+    name,
+    club: tags.operator || tags.club || name,
+    course: name,
+    country: tags['addr:country'] || country || '',
+    region: tags['addr:state'] || tags['addr:province'] || region || '',
+    display_name: osmElementAddress(element, country, region),
+    location: {
+      city: tags['addr:city'] || tags['addr:town'] || tags['addr:village'] || '',
+      state: tags['addr:state'] || tags['addr:province'] || region || '',
+      country: tags['addr:country'] || country || '',
+      latitude: element.lat || element.center?.lat || '',
+      longitude: element.lon || element.center?.lon || ''
+    }
+  };
+}
+
+function overpassAreaQuery(country, region) {
+  const countryText = overpassString(country);
+  const regionText = overpassString(region);
+  if (!countryText) return '';
+  const countryArea = `(
+  area["boundary"="administrative"]["admin_level"="2"]["name"="${countryText}"];
+  area["boundary"="administrative"]["admin_level"="2"]["name:en"="${countryText}"];
+)->.countryArea;`;
+  if (!regionText) return `${countryArea}
+.countryArea->.searchArea;`;
+  return `${countryArea}
+(
+  area(area.countryArea)["boundary"="administrative"]["name"="${regionText}"];
+  area(area.countryArea)["boundary"="administrative"]["name:en"="${regionText}"];
+)->.searchArea;`;
+}
+
+function overpassGolfSelectors(scope, courseName) {
+  const areaScope = scope ? '(area.searchArea)' : '';
+  const nameFilter = courseName ? `["name"~"${overpassRegex(courseName)}","i"]` : '';
+  return `
+  nwr${areaScope}["leisure"="golf_course"]${nameFilter};
+  nwr${areaScope}["golf"="course"]${nameFilter};
+  nwr${areaScope}["sport"="golf"]["name"]${nameFilter};`;
+}
+
+function buildOverpassQuery({ courseName, country, region }) {
+  const hasArea = Boolean(country);
+  return `[out:json][timeout:25];
+${overpassAreaQuery(country, region)}
+(
+${overpassGolfSelectors(hasArea, courseName)}
+);
+out tags center 50;`;
+}
+
+async function overpassRequest(query) {
+  const response = await fetch(`${OVERPASS_API_URL}?data=${encodeURIComponent(query)}`);
+  if (!response.ok) {
+    const message = await response.text();
+    throw new Error(message || response.statusText);
+  }
+  return response.json();
+}
+
+async function searchOnlineCourses({ courseName, country, region }) {
+  const name = String(courseName || '').trim();
+  if (!name && !country) {
+    return { results: [], needsFilter: true };
+  }
+  let data = await overpassRequest(buildOverpassQuery({ courseName: name, country, region }));
+  let rows = Array.isArray(data?.elements) ? data.elements : [];
+  if (!rows.length && country && region) {
+    data = await overpassRequest(buildOverpassQuery({ courseName: name, country, region: '' }));
+    rows = Array.isArray(data?.elements) ? data.elements : [];
+  }
+  const unique = new Map();
+  rows.forEach(row => {
+    const result = osmCourseResult(row, country, region);
+    if (!unique.has(result.id)) unique.set(result.id, result);
+  });
+  const results = Array.from(unique.values())
+    .sort((a, b) => courseSearchName(a).localeCompare(courseSearchName(b)))
     .slice(0, 40);
-  return { results, filterFallback: false };
+  return { results, needsFilter: false };
 }
 
 async function searchGolfCourses({ courseName, country, region }) {
@@ -2829,9 +2930,23 @@ function addListeners() {
       return;
     }
     if (courseSearchMode === 'shared') {
-      const searchResult = searchSharedCourses({ courseName, country, region });
-      els.courseSearchStatus.textContent = searchResult.results.length ? t('Choose a course to add.') : t('No courses found in online database.');
-      renderCourseSearchResults(searchResult.results, 'shared');
+      els.courseSearchSubmit.disabled = true;
+      els.courseSearchStatus.textContent = t('Searching OpenStreetMap...');
+      els.courseSearchResults.innerHTML = '';
+      try {
+        const searchResult = await searchOnlineCourses({ courseName, country, region });
+        if (searchResult.needsFilter) {
+          els.courseSearchStatus.textContent = t('Enter a course name or select a country to search OpenStreetMap.');
+          renderCourseSearchResults([], 'shared');
+          return;
+        }
+        els.courseSearchStatus.textContent = searchResult.results.length ? t('Choose a course to add.') : t('No courses found in online database.');
+        renderCourseSearchResults(searchResult.results, 'shared');
+      } catch (error) {
+        els.courseSearchStatus.textContent = t('OpenStreetMap search failed. Try again.');
+      } finally {
+        els.courseSearchSubmit.disabled = false;
+      }
       return;
     }
     if (!courseName && (country || region)) {
