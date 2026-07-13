@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#1f6f5b">
   <title>Vegas Golf Scorecard</title>
   <link rel="manifest" href="./manifest.webmanifest">
-  <link rel="stylesheet" href="./styles.css?v=69">
+  <link rel="stylesheet" href="./styles.css?v=70">
 </head>
 <body>
   <div class="app-shell">
@@ -112,6 +112,16 @@
             <button class="primary" id="addCourse" type="button">Add Course</button>
           </div>
         </div>
+        <div class="course-list-filters">
+          <label>
+            Country
+            <select id="courseListCountry"></select>
+          </label>
+          <label>
+            Region
+            <select id="courseListRegion"></select>
+          </label>
+        </div>
         <div class="course-list" id="courseList"></div>
       </section>
 
@@ -197,7 +207,7 @@
       </div>
 
       <div class="search-tabs" aria-label="Course search source">
-        <button class="active" type="button" data-course-search-mode="shared">Shared</button>
+        <button class="active" type="button" data-course-search-mode="shared">Search online database</button>
         <button type="button" data-course-search-mode="api">Course in North America</button>
         <button type="button" data-course-search-mode="manual">Manual</button>
       </div>
@@ -366,8 +376,8 @@
     </form>
   </div>
 
-  <script src="./i18n.js?v=69" defer></script>
-  <script src="./supabase-config.js?v=69"></script>
-  <script src="./app.js?v=69" defer></script>
+  <script src="./i18n.js?v=70" defer></script>
+  <script src="./supabase-config.js?v=70"></script>
+  <script src="./app.js?v=70" defer></script>
 </body>
 </html>

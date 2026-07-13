@@ -455,6 +455,8 @@ const els = {
   tableTeamATotal: document.querySelector('#tableTeamATotal'),
   tableTeamBTotal: document.querySelector('#tableTeamBTotal'),
   editGame: document.querySelector('#editGame'),
+  courseListCountry: document.querySelector('#courseListCountry'),
+  courseListRegion: document.querySelector('#courseListRegion'),
   courseList: document.querySelector('#courseList'),
   addCourse: document.querySelector('#addCourse'),
   courseModal: document.querySelector('#courseModal'),
@@ -1419,6 +1421,21 @@ function setNewGameArea(country = DEFAULT_COURSE_COUNTRY, region = DEFAULT_COURS
   renderNewGameRegions(region);
 }
 
+function renderCourseListCountries(selected = '') {
+  renderAreaCountries(els.courseListCountry, selected, true);
+}
+
+function renderCourseListRegions(selected = '') {
+  renderAreaRegions(els.courseListCountry, els.courseListRegion, selected, true);
+}
+
+function ensureCourseListFilters() {
+  if (!els.courseListCountry.options.length) {
+    renderCourseListCountries('');
+    renderCourseListRegions('');
+  }
+}
+
 function setCourseFormArea(country = DEFAULT_COURSE_COUNTRY, region = DEFAULT_COURSE_REGION) {
   renderAreaCountries(els.newCourseCountry, country, false);
   renderAreaRegions(els.newCourseCountry, els.newCourseRegion, region, false);
@@ -1473,15 +1490,20 @@ function setCourseSearchMode(mode) {
   els.courseSearchSubmit.textContent = t(isManual ? 'Add manually' : 'Search');
   els.courseSearchStatus.textContent = t(mode === 'api'
     ? 'Search courses in North America, then add one to your courses.'
-    : (isManual ? 'Enter a course name to add it manually.' : 'Search shared courses first.'));
+    : (isManual ? 'Enter a course name to add it manually.' : 'Search online database first.'));
   els.courseSearchResults.innerHTML = '';
 }
 
-function openCourseModal(prefillName = '') {
+function openCourseModal(prefill = '') {
+  const options = typeof prefill === 'object' && prefill !== null ? prefill : { name: String(prefill || '') };
+  const prefillName = String(options.name || '');
   els.courseForm.reset();
   editingCourseId = '';
-  setCourseFormArea(DEFAULT_COURSE_COUNTRY, DEFAULT_COURSE_REGION);
-  renderCourseParInputs(Array.from({ length: 18 }, () => 4), Array.from({ length: 18 }, (_, index) => index + 1));
+  setCourseFormArea(options.country || DEFAULT_COURSE_COUNTRY, options.region || DEFAULT_COURSE_REGION);
+  renderCourseParInputs(
+    Array.isArray(options.pars) && options.pars.length === 18 ? options.pars : Array.from({ length: 18 }, () => 4),
+    Array.isArray(options.indexes) && options.indexes.length === 18 ? options.indexes : Array.from({ length: 18 }, (_, index) => index + 1)
+  );
   els.courseModalEyebrow.textContent = t('New Course');
   document.querySelector('#courseModal h2').textContent = t('Add Course');
   els.courseForm.querySelector('button[type="submit"]').textContent = t('Save Course');
@@ -1678,11 +1700,15 @@ function scorecardFromApiCourse(course) {
 }
 
 function useSharedCourse(course) {
-  state.courseId = course.id;
-  saveState();
+  const normalized = normalizeCourse(course);
   closeCourseSearchModal();
-  render();
-  switchView('courses');
+  openCourseModal({
+    name: normalized.name,
+    country: normalized.country || DEFAULT_COURSE_COUNTRY,
+    region: normalized.region || DEFAULT_COURSE_REGION,
+    pars: normalized.pars,
+    indexes: normalized.indexes
+  });
 }
 
 function renderCourseSearchResults(results, mode = courseSearchMode) {
@@ -1695,7 +1721,7 @@ function renderCourseSearchResults(results, mode = courseSearchMode) {
       <button type="button"></button>
     `;
     empty.querySelector('p').textContent = t(mode === 'shared'
-      ? 'No shared courses found.'
+      ? 'No courses found in online database.'
       : 'No courses found in GolfCourseAPI. You can add it manually.');
     const addManual = empty.querySelector('button');
     addManual.textContent = t('Add manually');
@@ -1748,15 +1774,21 @@ function renderCourseSearchResults(results, mode = courseSearchMode) {
         return;
       }
       closeCourseSearchModal();
-      openCourseModalFromApi(name, scorecard.pars, scorecard.indexes);
+      openCourseModalFromApi(name, scorecard.pars, scorecard.indexes, detail || result);
     });
     els.courseSearchResults.append(row);
   });
 }
 
-function openCourseModalFromApi(name, pars, indexes) {
-  openCourseModal(name);
-  renderCourseParInputs(pars, indexes);
+function openCourseModalFromApi(name, pars, indexes, result = {}) {
+  const address = result?.location || result?.address || {};
+  openCourseModal({
+    name,
+    country: address.country || result?.country || DEFAULT_COURSE_COUNTRY,
+    region: address.state || address.region || address.province || result?.region || DEFAULT_COURSE_REGION,
+    pars,
+    indexes
+  });
 }
 
 function openEditCourseModal(course) {
@@ -2467,8 +2499,12 @@ function renderHoles() {
 }
 
 function renderCourses() {
+  ensureCourseListFilters();
+  const country = els.courseListCountry.value;
+  const region = els.courseListRegion.value;
   els.courseList.innerHTML = '';
   allCourses()
+    .filter(course => courseMatchesAreaFilters(course, country, region))
     .slice()
     .sort((a, b) => [courseCountry(a), courseRegion(a), a.name].join('|').localeCompare([courseCountry(b), courseRegion(b), b.name].join('|')))
     .forEach(course => {
@@ -2493,7 +2529,7 @@ function renderCourses() {
       [courseCountry(course), courseRegion(course)].filter(Boolean).join(', ')
     ].filter(Boolean).join(' | ');
     row.querySelector('.course-par-badge').textContent = t('Par {value}', { value: course.pars.reduce((a, b) => a + b, 0) });
-    row.querySelector('.course-type-badge').textContent = t(isShared ? 'Shared' : (isCustom ? 'Custom' : 'Preset'));
+    row.querySelector('.course-type-badge').textContent = t(isCustom ? 'Custom' : 'Preset Course');
 
     if (isCustom) {
       const editButton = document.createElement('button');
@@ -2527,6 +2563,12 @@ function renderCourses() {
 
     els.courseList.append(row);
   });
+  if (!els.courseList.children.length) {
+    const empty = document.createElement('div');
+    empty.className = 'empty-state';
+    empty.textContent = t('No courses for selected filters');
+    els.courseList.append(empty);
+  }
 }
 
 function dateTimeInputValue(date) {
@@ -2760,6 +2802,11 @@ function addListeners() {
     });
   });
 
+  els.courseListCountry.addEventListener('change', () => {
+    renderCourseListRegions('');
+    renderCourses();
+  });
+  els.courseListRegion.addEventListener('change', renderCourses);
   els.addCourse.addEventListener('click', () => openCourseModal());
   els.searchCourse.addEventListener('click', openCourseSearchModal);
   els.courseSearchModes.forEach(button => {
@@ -2783,7 +2830,7 @@ function addListeners() {
     }
     if (courseSearchMode === 'shared') {
       const searchResult = searchSharedCourses({ courseName, country, region });
-      els.courseSearchStatus.textContent = searchResult.results.length ? t('Choose a course to add.') : t('No shared courses found.');
+      els.courseSearchStatus.textContent = searchResult.results.length ? t('Choose a course to add.') : t('No courses found in online database.');
       renderCourseSearchResults(searchResult.results, 'shared');
       return;
     }
