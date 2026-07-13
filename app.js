@@ -1019,7 +1019,9 @@ async function searchGolfCourses({ courseName, country, region }) {
   const config = golfCourseApiConfig();
   const name = String(courseName || '').trim();
   const resultLimit = country || region ? 20 : 30;
-  const searches = [name].filter(Boolean);
+  const searches = name
+    ? [name, `${name} golf`, `${name} golf course`]
+    : ['golf'];
   const queries = [...new Set(searches.length ? searches : ['golf'])];
   const unique = new Map();
   for (const searchQuery of queries) {
@@ -1034,8 +1036,8 @@ async function searchGolfCourses({ courseName, country, region }) {
   const results = Array.from(unique.values());
   const filtered = (country || region) ? results.filter(row => courseMatchesArea(row, country, region)) : results;
   return {
-    results: (filtered.length ? filtered : results).slice(0, resultLimit),
-    filterFallback: Boolean((country || region) && !filtered.length && results.length)
+    results: filtered.slice(0, resultLimit),
+    filterFallback: false
   };
 }
 
@@ -1093,8 +1095,20 @@ function findScorecardHoles(value, depth = 0) {
   return null;
 }
 
+function findPreferredTee(course) {
+  const root = course?.course || course;
+  const tees = root?.tees || {};
+  const candidates = []
+    .concat(Array.isArray(tees.male) ? tees.male : [])
+    .concat(Array.isArray(tees.female) ? tees.female : [])
+    .concat(Array.isArray(root?.tee_boxes) ? root.tee_boxes : [])
+    .concat(Array.isArray(root?.teeBoxes) ? root.teeBoxes : []);
+  return candidates.find(tee => Array.isArray(tee?.holes) && tee.holes.length >= 18);
+}
+
 function scorecardFromApiCourse(course) {
-  const holes = findScorecardHoles(course);
+  const preferredTee = findPreferredTee(course);
+  const holes = preferredTee?.holes || findScorecardHoles(course);
   if (!holes) return null;
   const ordered = holes
     .map((hole, index) => ({ hole, number: holeNumber(hole, index + 1) }))
@@ -2156,15 +2170,18 @@ function addListeners() {
     const courseName = els.courseSearchInput.value.trim();
     const country = els.courseSearchCountry.value;
     const region = els.courseSearchRegion.value;
+    if (!courseName && (country || region)) {
+      els.courseSearchStatus.textContent = t('Enter a course name or city to search within the selected country or region.');
+      els.courseSearchResults.innerHTML = '';
+      return;
+    }
     els.courseSearchSubmit.disabled = true;
     els.courseSearchStatus.textContent = t('Searching courses...');
     els.courseSearchResults.innerHTML = '';
     try {
       const searchResult = await searchGolfCourses({ courseName, country, region });
       const results = searchResult.results;
-      els.courseSearchStatus.textContent = results.length
-        ? t(searchResult.filterFallback ? 'No results matched the selected country or region. Showing all matches.' : 'Choose a course to add.')
-        : t('No courses found.');
+      els.courseSearchStatus.textContent = results.length ? t('Choose a course to add.') : t('No courses found.');
       renderCourseSearchResults(results);
     } catch (error) {
       els.courseSearchStatus.textContent = hasGolfCourseApiConfig()
