@@ -640,6 +640,10 @@ function mergeById(localItems, remoteItems) {
   return Array.from(merged.values());
 }
 
+function userEditableCourses() {
+  return customCourses.map(normalizeCourse).filter(course => course.source !== 'shared');
+}
+
 function mergeRounds(localRounds, remoteRounds) {
   const remoteVisible = remoteRounds.map(normalizeRound).filter(round => !isRoundDeleted(round));
   return mergeById(localRounds.map(normalizeRound), remoteVisible)
@@ -809,7 +813,7 @@ async function syncFromCloud(pushLocal = true, quiet = false) {
 
   try {
     await uploadLocalDeleteMarkers();
-    if (pushLocal) await Promise.all(customCourses.map(upsertCloudCourse));
+    if (pushLocal) await Promise.all(userEditableCourses().map(upsertCloudCourse));
 
     const [cloudCourses, cloudRounds] = await Promise.all([
       fetchCloudCourses(),
