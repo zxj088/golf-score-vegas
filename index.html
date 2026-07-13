@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#1f6f5b">
   <title>Vegas Golf Scorecard</title>
   <link rel="manifest" href="./manifest.webmanifest">
-  <link rel="stylesheet" href="./styles.css?v=46">
+  <link rel="stylesheet" href="./styles.css?v=47">
 </head>
 <body>
   <div class="app-shell">
@@ -166,9 +166,10 @@
       </div>
 
       <div class="course-total">Course total <strong id="courseParTotal">72</strong></div>
+      <p class="course-warning" id="courseIndexWarning" hidden>Difficulty values cannot repeat.</p>
 
       <div class="action-row">
-        <button class="primary" type="submit">Save Course</button>
+        <button class="primary" id="saveCourseButton" type="submit">Save Course</button>
         <button type="button" id="cancelCourseBottom">Cancel</button>
       </div>
     </form>
@@ -304,8 +305,8 @@
     </form>
   </div>
 
-  <script src="./i18n.js?v=46" defer></script>
-  <script src="./supabase-config.js?v=46"></script>
-  <script src="./app.js?v=46" defer></script>
+  <script src="./i18n.js?v=47" defer></script>
+  <script src="./supabase-config.js?v=47"></script>
+  <script src="./app.js?v=47" defer></script>
 </body>
 </html>

@@ -89,6 +89,8 @@ const els = {
   newCourseName: document.querySelector('#newCourseName'),
   newCourseCode: document.querySelector('#newCourseCode'),
   courseModalEyebrow: document.querySelector('#courseModalEyebrow'),
+  courseIndexWarning: document.querySelector('#courseIndexWarning'),
+  saveCourseButton: document.querySelector('#saveCourseButton'),
   cancelCourse: document.querySelector('#cancelCourse'),
   cancelCourseBottom: document.querySelector('#cancelCourseBottom'),
   frontNineList: document.querySelector('#frontNineList'),
@@ -796,9 +798,13 @@ function updateCourseFormTotals() {
   els.courseParTotal.textContent = front + back;
 }
 
-function renderCourseParInputs(pars = currentCourse().pars, indexes = currentCourse().indexes, lockInitialIndexes = true) {
+function renderCourseParInputs(pars = currentCourse().pars, indexes = currentCourse().indexes) {
   els.frontNineList.innerHTML = '';
   els.backNineList.innerHTML = '';
+  const indexOptions = Array.from({ length: 18 }, (_, optionIndex) => {
+    const value = optionIndex + 1;
+    return `<option value="${value}">${value}</option>`;
+  }).join('');
 
   Array.from({ length: 18 }, (_, index) => {
     const row = document.createElement('label');
@@ -812,19 +818,14 @@ function renderCourseParInputs(pars = currentCourse().pars, indexes = currentCou
       <span class="field-label">PAR</span>
       <span class="field-label">${t('Difficulty')}</span>
       <select class="course-par-input" required aria-label="${t('Hole {hole}', { hole: index + 1 })} ${t('Par')}">${parOptions}</select>
-      <select class="course-index-input" required aria-label="${t('Hole {hole}', { hole: index + 1 })} ${t('Index')}"></select>
+      <select class="course-index-input" required aria-label="${t('Hole {hole}', { hole: index + 1 })} ${t('Index')}">${indexOptions}</select>
     `;
     const [parInput, indexInput] = row.querySelectorAll('select');
     parInput.value = pars[index] || 4;
-    indexInput.dataset.value = String(indexes[index] || 9);
-    indexInput.dataset.touched = lockInitialIndexes ? 'true' : '';
+    indexInput.value = String(indexes[index] || 9);
     parInput.addEventListener('input', updateCourseFormTotals);
     parInput.addEventListener('change', updateCourseFormTotals);
-    indexInput.addEventListener('change', () => {
-      indexInput.dataset.value = indexInput.value;
-      indexInput.dataset.touched = 'true';
-      refreshCourseIndexOptions();
-    });
+    indexInput.addEventListener('change', updateCourseIndexValidation);
     if (index < 9) {
       els.frontNineList.append(row);
     } else {
@@ -832,25 +833,29 @@ function renderCourseParInputs(pars = currentCourse().pars, indexes = currentCou
     }
   });
 
-  refreshCourseIndexOptions();
   updateCourseFormTotals();
+  updateCourseIndexValidation();
 }
 
-function refreshCourseIndexOptions() {
+function updateCourseIndexValidation() {
   const inputs = courseIndexInputs();
-  const selected = inputs
-    .filter(input => input.dataset.touched === 'true')
-    .map(input => Number(input.dataset.value || input.value))
-    .filter(Number.isInteger);
+  const counts = inputs.reduce((map, input) => {
+    const value = Number(input.value);
+    if (Number.isInteger(value)) map.set(value, (map.get(value) || 0) + 1);
+    return map;
+  }, new Map());
+  const hasDuplicate = inputs.some(input => counts.get(Number(input.value)) > 1);
   inputs.forEach(input => {
-    const current = Number(input.dataset.value || input.value || 9);
-    const isTouched = input.dataset.touched === 'true';
-    const options = Array.from({ length: 18 }, (_, optionIndex) => optionIndex + 1)
-      .filter(value => (isTouched && value === current) || !selected.includes(value));
-    input.innerHTML = options.map(value => `<option value="${value}">${value}</option>`).join('');
-    input.value = String(options.includes(current) ? current : options[0] || 9);
-    input.dataset.value = input.value;
+    input.classList.toggle('duplicate-index', counts.get(Number(input.value)) > 1);
   });
+  if (els.courseIndexWarning) {
+    els.courseIndexWarning.hidden = !hasDuplicate;
+    els.courseIndexWarning.textContent = t('Difficulty values cannot repeat.');
+  }
+  if (els.saveCourseButton) {
+    els.saveCourseButton.disabled = hasDuplicate;
+  }
+  return !hasDuplicate;
 }
 
 function renderNewGameCourses() {
@@ -867,7 +872,7 @@ function renderNewGameCourses() {
 function openCourseModal() {
   els.courseForm.reset();
   editingCourseId = '';
-  renderCourseParInputs(Array.from({ length: 18 }, () => 4), Array.from({ length: 18 }, () => 9), false);
+  renderCourseParInputs(Array.from({ length: 18 }, () => 4), Array.from({ length: 18 }, (_, index) => index + 1));
   els.courseModalEyebrow.textContent = t('New Course');
   document.querySelector('#courseModal h2').textContent = t('Add Course');
   els.courseForm.querySelector('button[type="submit"]').textContent = t('Save Course');
@@ -896,6 +901,8 @@ function closeCourseModal() {
   els.courseForm.reset();
   editingCourseId = '';
   els.newCourseCode.disabled = false;
+  if (els.courseIndexWarning) els.courseIndexWarning.hidden = true;
+  if (els.saveCourseButton) els.saveCourseButton.disabled = false;
 }
 
 function openGameModal() {
@@ -1871,7 +1878,8 @@ function addListeners() {
     if (!valid) {
       const invalidInput = courseParInputs().find(input => !Number.isInteger(Number(input.value)) || Number(input.value) <= 0 || Number(input.value) > 10);
       const invalidIndexInput = courseIndexInputs().find(input => !Number.isInteger(Number(input.value)) || Number(input.value) < 1 || Number(input.value) > 18);
-      const target = !name ? els.newCourseName : (!/^\d{2}$/.test(editCode) ? els.newCourseCode : (invalidInput || invalidIndexInput || courseIndexInputs()[0]));
+      const duplicateIndexInput = courseIndexInputs().find(input => courseIndexInputs().filter(item => item.value === input.value).length > 1);
+      const target = !name ? els.newCourseName : (!/^\d{2}$/.test(editCode) ? els.newCourseCode : (invalidInput || invalidIndexInput || duplicateIndexInput || courseIndexInputs()[0]));
       target.setCustomValidity(t(!name ? 'Enter a course name.' : (!/^\d{2}$/.test(editCode) ? 'Enter a 2 digit code.' : (invalidInput ? 'Enter a par from 1 to 10.' : 'Enter unique index values from 1 to 18.'))));
       target.reportValidity();
       target.setCustomValidity('');
@@ -1885,6 +1893,7 @@ function addListeners() {
       saveCoursesLocal();
       closeCourseModal();
       render();
+      switchView('courses');
       try {
         await upsertCloudCourse(course);
         await syncFromCloud(false);
@@ -1907,6 +1916,7 @@ function addListeners() {
     saveState();
     closeCourseModal();
     render();
+    switchView('courses');
     try {
       await upsertCloudCourse(course);
       await syncFromCloud(false);

@@ -53,6 +53,7 @@
     'Out': '前九洞',
     'In': '后九洞',
     'Course total': '球场总标准杆',
+    'Difficulty values cannot repeat.': '难度不能重复。',
     'Save Course': '保存球场',
     'Save Changes': '保存修改',
     'Cancel': '取消',
