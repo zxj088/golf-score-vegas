@@ -374,6 +374,12 @@ textarea {
   margin-bottom: 10px;
 }
 
+.course-area-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
 .team-card,
 .course-row,
 .history-row,

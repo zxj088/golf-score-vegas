@@ -471,6 +471,8 @@ const els = {
   cancelCourseSearch: document.querySelector('#cancelCourseSearch'),
   cancelCourseSearchBottom: document.querySelector('#cancelCourseSearchBottom'),
   newCourseName: document.querySelector('#newCourseName'),
+  newCourseCountry: document.querySelector('#newCourseCountry'),
+  newCourseRegion: document.querySelector('#newCourseRegion'),
   newCourseCode: document.querySelector('#newCourseCode'),
   courseModalEyebrow: document.querySelector('#courseModalEyebrow'),
   courseIndexWarning: document.querySelector('#courseIndexWarning'),
@@ -1384,29 +1386,42 @@ function areaForCourse(course) {
   };
 }
 
-function renderNewGameCountries(selected = DEFAULT_COURSE_COUNTRY) {
-  els.newGameCountry.innerHTML = [`<option value="">${t('All countries')}</option>`].concat(COURSE_SEARCH_AREAS
+function renderAreaCountries(countrySelect, selected = DEFAULT_COURSE_COUNTRY, includeAll = false) {
+  countrySelect.innerHTML = (includeAll ? [`<option value="">${t('All countries')}</option>`] : []).concat(COURSE_SEARCH_AREAS
     .map(area => `<option value="${area.country}">${area.country}</option>`)
   ).join('');
-  els.newGameCountry.value = COURSE_SEARCH_AREAS.some(area => area.country === selected)
+  countrySelect.value = COURSE_SEARCH_AREAS.some(area => area.country === selected)
     ? selected
-    : '';
+    : (includeAll ? '' : DEFAULT_COURSE_COUNTRY);
+}
+
+function renderAreaRegions(countrySelect, regionSelect, selected = DEFAULT_COURSE_REGION, includeAll = false) {
+  const area = COURSE_SEARCH_AREAS.find(item => item.country === countrySelect.value) || COURSE_SEARCH_AREAS[0];
+  const regions = countrySelect.value ? (area?.regions || []) : [];
+  regionSelect.innerHTML = (includeAll ? [`<option value="">${t('All regions')}</option>`] : []).concat(regions
+    .map(region => `<option value="${region}">${region}</option>`)
+  ).join('');
+  regionSelect.value = regions.includes(selected)
+    ? selected
+    : (regions.includes(DEFAULT_COURSE_REGION) ? DEFAULT_COURSE_REGION : (includeAll ? '' : regions[0] || ''));
+}
+
+function renderNewGameCountries(selected = DEFAULT_COURSE_COUNTRY) {
+  renderAreaCountries(els.newGameCountry, selected, true);
 }
 
 function renderNewGameRegions(selected = DEFAULT_COURSE_REGION) {
-  const area = COURSE_SEARCH_AREAS.find(item => item.country === els.newGameCountry.value) || COURSE_SEARCH_AREAS[0];
-  const regions = els.newGameCountry.value ? (area?.regions || []) : [];
-  els.newGameRegion.innerHTML = [`<option value="">${t('All regions')}</option>`].concat(regions
-    .map(region => `<option value="${region}">${region}</option>`)
-  ).join('');
-  els.newGameRegion.value = regions.includes(selected)
-    ? selected
-    : (regions.includes(DEFAULT_COURSE_REGION) ? DEFAULT_COURSE_REGION : '');
+  renderAreaRegions(els.newGameCountry, els.newGameRegion, selected, true);
 }
 
 function setNewGameArea(country = DEFAULT_COURSE_COUNTRY, region = DEFAULT_COURSE_REGION) {
   renderNewGameCountries(country);
   renderNewGameRegions(region);
+}
+
+function setCourseFormArea(country = DEFAULT_COURSE_COUNTRY, region = DEFAULT_COURSE_REGION) {
+  renderAreaCountries(els.newCourseCountry, country, false);
+  renderAreaRegions(els.newCourseCountry, els.newCourseRegion, region, false);
 }
 
 function renderNewGameCourses(preferredCourseId = state.courseId) {
@@ -1465,6 +1480,7 @@ function setCourseSearchMode(mode) {
 function openCourseModal(prefillName = '') {
   els.courseForm.reset();
   editingCourseId = '';
+  setCourseFormArea(DEFAULT_COURSE_COUNTRY, DEFAULT_COURSE_REGION);
   renderCourseParInputs(Array.from({ length: 18 }, () => 4), Array.from({ length: 18 }, (_, index) => index + 1));
   els.courseModalEyebrow.textContent = t('New Course');
   document.querySelector('#courseModal h2').textContent = t('Add Course');
@@ -1748,6 +1764,8 @@ function openEditCourseModal(course) {
   editingCourseId = normalized.id;
   els.courseForm.reset();
   els.newCourseName.value = normalized.name;
+  const area = areaForCourse(normalized);
+  setCourseFormArea(area.country, area.region);
   els.newCourseCode.value = normalized.editCode || '';
   els.newCourseCode.disabled = true;
   renderCourseParInputs(normalized.pars, normalized.indexes);
@@ -1763,6 +1781,8 @@ function closeCourseModal() {
   els.courseForm.reset();
   editingCourseId = '';
   els.newCourseCode.disabled = false;
+  els.newCourseCountry.disabled = false;
+  els.newCourseRegion.disabled = false;
   if (els.courseIndexWarning) els.courseIndexWarning.hidden = true;
   if (els.saveCourseButton) els.saveCourseButton.disabled = false;
 }
@@ -2800,6 +2820,8 @@ function addListeners() {
     const name = els.newCourseName.value.trim();
     const existingCourse = editingCourseId ? customCourses.find(course => course.id === editingCourseId) : null;
     const editCode = editingCourseId ? String(existingCourse?.editCode || els.newCourseCode.value).trim() : els.newCourseCode.value.trim();
+    const country = els.newCourseCountry.value || DEFAULT_COURSE_COUNTRY;
+    const region = els.newCourseRegion.value || DEFAULT_COURSE_REGION;
     const pars = readCourseFormPars();
     const indexes = readCourseFormIndexes();
     const codeIsValid = editingCourseId || /^\d{2}$/.test(editCode);
@@ -2817,7 +2839,7 @@ function addListeners() {
     if (editingCourseId) {
       const existing = existingCourse;
       if (!existing) return;
-      const course = { ...existing, name, pars, indexes };
+      const course = { ...existing, name, country, region, pars, indexes };
       customCourses = customCourses.map(item => item.id === editingCourseId ? course : item);
       saveCoursesLocal();
       closeCourseModal();
@@ -2838,7 +2860,7 @@ function addListeners() {
       id = `${baseId}-${count}`;
       count += 1;
     }
-    const course = { id, name, pars, indexes, editCode };
+    const course = { id, name, country, region, pars, indexes, editCode };
     customCourses.push(course);
     saveCoursesLocal();
     state.courseId = id;
@@ -2852,6 +2874,10 @@ function addListeners() {
     } catch (error) {
       setSyncState({ ok: false, busy: false, label: t('Cloud sync Not ok'), title: error.message });
     }
+  });
+
+  els.newCourseCountry.addEventListener('change', () => {
+    renderAreaRegions(els.newCourseCountry, els.newCourseRegion, DEFAULT_COURSE_REGION, false);
   });
 
   els.newGame.addEventListener('click', openGameModal);
