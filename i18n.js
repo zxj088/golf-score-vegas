@@ -3,6 +3,9 @@
   const zh = {
     'Vegas Golf Scorecard': '拉斯维加斯高尔夫记分卡',
     'Las Vegas Rule': '拉斯维加斯规则',
+    'Las Vegas Rules': '拉斯维加斯规则',
+    'Show Las Vegas rules': '查看拉斯维加斯规则',
+    'The core of the Las Vegas golf rule is: combine the strokes into a two digit number, then compare the two numbers.\n\nTeams: 4 players split into 2 teams.\n\nScoring: put the lower stroke count first as the tens digit. For example, Team A scores 4 and 5 = 45; Team B scores 5 and 7 = 57. Team B loses 12 points (57 - 45).\n\nUnder Par Flip: if any player makes birdie or eagle, the losing team must reverse its number from high to low, such as 57 becoming 75. The lost points jump quickly. If both teams have a player under par, no flip is used.': '高尔夫“拉斯”规则核心就是“杆数拼成两位数，比大小算差额”。\n\n组队：4人分为两队。\n\n算分：同队两人的杆数从小到大拼成两位数，少的为十位数。例如：A队打4杆和5杆=45；B队打5杆和7杆=57。B队输12分（57 - 45）。\n\n低于标准杆翻转：若有人抓鸟或抓鹰，输的那队杆数必须“从大到小”反转排列，如57变75，输分瞬间暴涨，俗称炸了。但如果两队都有人打出低于标准杆，则不翻转计分。',
     'Golf Scorecard': '高尔夫记分卡',
     'Share': '分享',
     'Share app': '分享应用',

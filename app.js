@@ -18,6 +18,12 @@ const OVERPASS_API_URLS = [
 ];
 const OVERPASS_TIMEOUT_MS = 7000;
 const NOMINATIM_API_URL = 'https://nominatim.openstreetmap.org/search';
+const LAS_VEGAS_RULES_TEXT = [
+  'The core of the Las Vegas golf rule is: combine the strokes into a two digit number, then compare the two numbers.',
+  'Teams: 4 players split into 2 teams.',
+  'Scoring: put the lower stroke count first as the tens digit. For example, Team A scores 4 and 5 = 45; Team B scores 5 and 7 = 57. Team B loses 12 points (57 - 45).',
+  'Under Par Flip: if any player makes birdie or eagle, the losing team must reverse its number from high to low, such as 57 becoming 75. The lost points jump quickly. If both teams have a player under par, no flip is used.'
+].join('\n\n');
 const COURSE_SEARCH_AREAS = [
     {
         "country":  "Australia",
@@ -435,6 +441,7 @@ let syncState = {
 const els = {
   scoreStrip: document.querySelector('#scoreStrip'),
   syncBar: document.querySelector('#syncBar'),
+  rulesButton: document.querySelector('#rulesButton'),
   languageButton: document.querySelector('#languageButton'),
   shareButton: document.querySelector('#shareButton'),
   courseSelect: document.querySelector('#courseSelect'),
@@ -2957,6 +2964,10 @@ function addListeners() {
         await showMessage(t('Share app'), shareData.url);
       }
     } catch {}
+  });
+
+  els.rulesButton.addEventListener('click', () => {
+    showMessage(t('Las Vegas Rules'), t(LAS_VEGAS_RULES_TEXT));
   });
 
   els.dialogForm.addEventListener('submit', event => {

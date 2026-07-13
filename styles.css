@@ -86,6 +86,31 @@ button.primary {
   font-weight: 800;
 }
 
+.brand-line {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.brand-line .eyebrow {
+  margin-bottom: 0;
+}
+
+.rules-button {
+  display: inline-grid;
+  width: 26px;
+  min-height: 26px;
+  place-items: center;
+  border-color: rgba(31, 111, 91, 0.28);
+  border-radius: 50%;
+  padding: 0;
+  color: var(--green);
+  background: rgba(255, 253, 248, 0.92);
+  font-size: 15px;
+  line-height: 1;
+}
+
 .eyebrow {
   margin: 0 0 3px;
   color: var(--green);
@@ -852,6 +877,7 @@ input:disabled {
   margin: 0;
   color: var(--ink);
   line-height: 1.35;
+  white-space: pre-line;
 }
 
 .score-pad[hidden] {
