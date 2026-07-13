@@ -10,7 +10,14 @@ const CLOUD_ROUND_LIMIT = 1000;
 const EDIT_LOCK_TTL_MS = 12000;
 const DEFAULT_COURSE_COUNTRY = 'Sweden';
 const DEFAULT_COURSE_REGION = 'Stockholm County';
-const OVERPASS_API_URL = 'https://overpass-api.de/api/interpreter';
+const OVERPASS_API_URLS = [
+  'https://overpass-api.de/api/interpreter',
+  'https://lz4.overpass-api.de/api/interpreter',
+  'https://z.overpass-api.de/api/interpreter',
+  'https://overpass.kumi.systems/api/interpreter'
+];
+const OVERPASS_TIMEOUT_MS = 7000;
+const NOMINATIM_API_URL = 'https://nominatim.openstreetmap.org/search';
 const COURSE_SEARCH_AREAS = [
     {
         "country":  "Australia",
@@ -1471,8 +1478,13 @@ function renderCourseSearchCountries() {
   const countryOptions = [`<option value="">${t('All countries')}</option>`]
     .concat(COURSE_SEARCH_AREAS.map(area => `<option value="${area.country}">${area.country}</option>`));
   els.courseSearchCountry.innerHTML = countryOptions.join('');
-  els.courseSearchCountry.value = '';
+  els.courseSearchCountry.value = COURSE_SEARCH_AREAS.some(area => area.country === DEFAULT_COURSE_COUNTRY)
+    ? DEFAULT_COURSE_COUNTRY
+    : '';
   renderCourseSearchRegions();
+  if (els.courseSearchCountry.value === DEFAULT_COURSE_COUNTRY) {
+    els.courseSearchRegion.value = DEFAULT_COURSE_REGION;
+  }
 }
 
 function renderCourseSearchRegions() {
@@ -1623,6 +1635,66 @@ function osmCourseResult(element, country, region) {
   };
 }
 
+function nominatimCourseResult(row, country, region) {
+  const address = row?.address || {};
+  const name = row?.namedetails?.name || row?.name || String(row?.display_name || '').split(',')[0] || t('Course');
+  return {
+    id: `nominatim-${row?.osm_type || 'place'}-${row?.osm_id || name}`,
+    name,
+    club: name,
+    course: name,
+    country: address.country || country || '',
+    region: address.state || address.region || address.county || region || '',
+    display_name: row?.display_name || [address.city || address.town || address.village, address.state || region, address.country || country].filter(Boolean).join(', '),
+    location: {
+      city: address.city || address.town || address.village || address.municipality || '',
+      state: address.state || address.region || address.county || region || '',
+      country: address.country || country || '',
+      latitude: row?.lat || '',
+      longitude: row?.lon || ''
+    }
+  };
+}
+
+function isNominatimGolfCourse(row) {
+  const category = String(row?.category || row?.class || '').toLowerCase();
+  const type = String(row?.type || '').toLowerCase();
+  return category === 'leisure' && type === 'golf_course';
+}
+
+async function searchNominatimCourses({ courseName, country, region }) {
+  const name = String(courseName || '').trim();
+  if (!name) return [];
+  const queries = [
+    [name, 'Golf Club', region, country],
+    [name, 'golf course', region, country],
+    [name, region, country]
+  ]
+    .map(parts => parts.filter(Boolean).join(' '))
+    .filter((query, index, list) => query && list.indexOf(query) === index);
+  const unique = new Map();
+  for (const query of queries) {
+    const params = new URLSearchParams({
+      format: 'jsonv2',
+      addressdetails: '1',
+      namedetails: '1',
+      limit: '10',
+      q: query
+    });
+    const response = await fetch(`${NOMINATIM_API_URL}?${params.toString()}`);
+    if (!response.ok) continue;
+    const rows = await response.json();
+    rows
+      .filter(isNominatimGolfCourse)
+      .map(row => nominatimCourseResult(row, country, region))
+      .forEach(result => {
+        if (!unique.has(result.id)) unique.set(result.id, result);
+      });
+    if (unique.size) break;
+  }
+  return Array.from(unique.values());
+}
+
 function overpassAreaQuery(country, region) {
   const countryText = overpassString(country);
   const regionText = overpassString(region);
@@ -1642,11 +1714,30 @@ function overpassAreaQuery(country, region) {
 
 function overpassGolfSelectors(scope, courseName) {
   const areaScope = scope ? '(area.searchArea)' : '';
-  const nameFilter = courseName ? `["name"~"${overpassRegex(courseName)}","i"]` : '';
+  const searchRegex = courseName ? overpassRegex(courseName) : '';
+  const courseFilters = courseName
+    ? [
+        `["name"~"${searchRegex}",i]`,
+        `["name:en"~"${searchRegex}",i]`,
+        `["alt_name"~"${searchRegex}",i]`,
+        `["addr:city"~"${searchRegex}",i]`,
+        `["addr:town"~"${searchRegex}",i]`,
+        `["addr:village"~"${searchRegex}",i]`
+      ]
+    : [''];
+  const lines = [];
+  courseFilters.forEach(filter => {
+    lines.push(`  nwr["leisure"="golf_course"]${filter}${areaScope};`);
+    lines.push(`  nwr["golf"="course"]${filter}${areaScope};`);
+  });
+  if (courseName) {
+    lines.push(`  nwr["sport"="golf"]["name"~"${searchRegex}",i]${areaScope};`);
+    lines.push(`  nwr["sport"="golf"]["name:en"~"${searchRegex}",i]${areaScope};`);
+  } else {
+    lines.push(`  nwr["sport"="golf"]["name"]${areaScope};`);
+  }
   return `
-  nwr${areaScope}["leisure"="golf_course"]${nameFilter};
-  nwr${areaScope}["golf"="course"]${nameFilter};
-  nwr${areaScope}["sport"="golf"]["name"]${nameFilter};`;
+${lines.join('\n')}`;
 }
 
 function buildOverpassQuery({ courseName, country, region }) {
@@ -1659,13 +1750,35 @@ ${overpassGolfSelectors(hasArea, courseName)}
 out tags center 50;`;
 }
 
-async function overpassRequest(query) {
-  const response = await fetch(`${OVERPASS_API_URL}?data=${encodeURIComponent(query)}`);
-  if (!response.ok) {
-    const message = await response.text();
-    throw new Error(message || response.statusText);
+async function fetchOverpassEndpoint(url, query) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), OVERPASS_TIMEOUT_MS);
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      body: new URLSearchParams({ data: query }),
+      signal: controller.signal
+    });
+    if (!response.ok) {
+      const message = await response.text();
+      throw new Error(message || response.statusText);
+    }
+    return response.json();
+  } finally {
+    clearTimeout(timer);
   }
-  return response.json();
+}
+
+async function overpassRequest(query) {
+  let lastError = null;
+  for (const url of OVERPASS_API_URLS) {
+    try {
+      return await fetchOverpassEndpoint(url, query);
+    } catch (error) {
+      lastError = error;
+    }
+  }
+  throw lastError || new Error('OpenStreetMap search failed');
 }
 
 async function searchOnlineCourses({ courseName, country, region }) {
@@ -1673,10 +1786,25 @@ async function searchOnlineCourses({ courseName, country, region }) {
   if (!name && !country) {
     return { results: [], needsFilter: true };
   }
+  if (name) {
+    const nominatimResults = await searchNominatimCourses({ courseName: name, country, region });
+    if (nominatimResults.length) {
+      return {
+        results: nominatimResults
+          .sort((a, b) => courseSearchName(a).localeCompare(courseSearchName(b)))
+          .slice(0, 40),
+        needsFilter: false
+      };
+    }
+  }
   let data = await overpassRequest(buildOverpassQuery({ courseName: name, country, region }));
   let rows = Array.isArray(data?.elements) ? data.elements : [];
   if (!rows.length && country && region) {
     data = await overpassRequest(buildOverpassQuery({ courseName: name, country, region: '' }));
+    rows = Array.isArray(data?.elements) ? data.elements : [];
+  }
+  if (!rows.length && name && country) {
+    data = await overpassRequest(buildOverpassQuery({ courseName: name, country: '', region: '' }));
     rows = Array.isArray(data?.elements) ? data.elements : [];
   }
   const unique = new Map();
