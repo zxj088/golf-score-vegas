@@ -1010,6 +1010,7 @@ async function searchGolfCourses({ courseName, country, region }) {
   const config = golfCourseApiConfig();
   const name = String(courseName || '').trim();
   const area = [region, country].map(value => String(value || '').trim()).filter(Boolean).join(' ');
+  const resultLimit = country || region ? 20 : 30;
   const searches = [
     name,
     [name, area].filter(Boolean).join(' '),
@@ -1024,9 +1025,9 @@ async function searchGolfCourses({ courseName, country, region }) {
       const key = String(courseSearchId(row) || courseSearchName(row));
       if (!unique.has(key)) unique.set(key, row);
     });
-    if (unique.size) break;
+    if (unique.size >= resultLimit || (unique.size && name)) break;
   }
-  return Array.from(unique.values()).slice(0, 8);
+  return Array.from(unique.values()).slice(0, resultLimit);
 }
 
 async function fetchGolfCourseDetail(result) {
