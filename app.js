@@ -1871,22 +1871,24 @@ function addListeners() {
   els.courseForm.addEventListener('submit', async event => {
     event.preventDefault();
     const name = els.newCourseName.value.trim();
-    const editCode = els.newCourseCode.value.trim();
+    const existingCourse = editingCourseId ? customCourses.find(course => course.id === editingCourseId) : null;
+    const editCode = editingCourseId ? String(existingCourse?.editCode || els.newCourseCode.value).trim() : els.newCourseCode.value.trim();
     const pars = readCourseFormPars();
     const indexes = readCourseFormIndexes();
-    const valid = name && /^\d{2}$/.test(editCode) && pars.length === 18 && pars.every(par => Number.isInteger(par) && par > 0 && par <= 10) && indexesAreValid(indexes);
+    const codeIsValid = editingCourseId || /^\d{2}$/.test(editCode);
+    const valid = name && codeIsValid && pars.length === 18 && pars.every(par => Number.isInteger(par) && par > 0 && par <= 10) && indexesAreValid(indexes);
     if (!valid) {
       const invalidInput = courseParInputs().find(input => !Number.isInteger(Number(input.value)) || Number(input.value) <= 0 || Number(input.value) > 10);
       const invalidIndexInput = courseIndexInputs().find(input => !Number.isInteger(Number(input.value)) || Number(input.value) < 1 || Number(input.value) > 18);
       const duplicateIndexInput = courseIndexInputs().find(input => courseIndexInputs().filter(item => item.value === input.value).length > 1);
-      const target = !name ? els.newCourseName : (!/^\d{2}$/.test(editCode) ? els.newCourseCode : (invalidInput || invalidIndexInput || duplicateIndexInput || courseIndexInputs()[0]));
-      target.setCustomValidity(t(!name ? 'Enter a course name.' : (!/^\d{2}$/.test(editCode) ? 'Enter a 2 digit code.' : (invalidInput ? 'Enter a par from 1 to 10.' : 'Enter unique index values from 1 to 18.'))));
+      const target = !name ? els.newCourseName : (!codeIsValid ? els.newCourseCode : (invalidInput || invalidIndexInput || duplicateIndexInput || courseIndexInputs()[0]));
+      target.setCustomValidity(t(!name ? 'Enter a course name.' : (!codeIsValid ? 'Enter a 2 digit code.' : (invalidInput ? 'Enter a par from 1 to 10.' : 'Enter unique index values from 1 to 18.'))));
       target.reportValidity();
       target.setCustomValidity('');
       return;
     }
     if (editingCourseId) {
-      const existing = customCourses.find(course => course.id === editingCourseId);
+      const existing = existingCourse;
       if (!existing) return;
       const course = { ...existing, name, pars, indexes };
       customCourses = customCourses.map(item => item.id === editingCourseId ? course : item);
