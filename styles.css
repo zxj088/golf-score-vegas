@@ -532,40 +532,38 @@ textarea {
 }
 
 .scorecard th:nth-child(1),
-.scorecard td:nth-child(1),
-.scorecard th:nth-child(2),
-.scorecard td:nth-child(2) {
-  width: 5%;
+.scorecard td:nth-child(1) {
+  width: 7%;
   font-weight: 800;
 }
 
-.scorecard th:nth-child(3),
-.scorecard td:nth-child(3) {
+.scorecard th:nth-child(2),
+.scorecard td:nth-child(2) {
   width: 6%;
 }
 
+.scorecard th:nth-child(3),
 .scorecard th:nth-child(4),
-.scorecard th:nth-child(5),
+.scorecard th:nth-child(7),
 .scorecard th:nth-child(8),
-.scorecard th:nth-child(9),
+.scorecard td:nth-child(3),
 .scorecard td:nth-child(4),
-.scorecard td:nth-child(5),
-.scorecard td:nth-child(8),
-.scorecard td:nth-child(9) {
+.scorecard td:nth-child(7),
+.scorecard td:nth-child(8) {
   width: 10.5%;
+}
+
+.scorecard th:nth-child(5),
+.scorecard th:nth-child(9),
+.scorecard td:nth-child(5),
+.scorecard td:nth-child(9) {
+  width: 10%;
 }
 
 .scorecard th:nth-child(6),
 .scorecard th:nth-child(10),
 .scorecard td:nth-child(6),
 .scorecard td:nth-child(10) {
-  width: 9.5%;
-}
-
-.scorecard th:nth-child(7),
-.scorecard th:nth-child(11),
-.scorecard td:nth-child(7),
-.scorecard td:nth-child(11) {
   width: 9%;
 }
 
@@ -840,6 +838,7 @@ input:disabled {
 .par-row {
   display: grid;
   grid-template-columns: 1fr 48px 48px;
+  grid-template-rows: auto auto;
   align-items: center;
   gap: 6px;
   min-height: 34px;
@@ -849,31 +848,32 @@ input:disabled {
   background: #ffffff;
 }
 
-.par-row span {
+.par-row .hole-label {
+  grid-row: 1 / span 2;
   color: var(--ink);
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 500;
 }
 
-.par-row::before {
-  content: "Par";
+.par-row .field-label {
+  color: var(--ink);
+  font-size: 10px;
+  font-weight: 900;
+  text-align: center;
+}
+
+.par-row .field-label:nth-of-type(2) {
   grid-column: 2;
   grid-row: 1;
-  align-self: start;
-  color: var(--muted);
-  font-size: 8px;
 }
 
-.par-row::after {
-  content: "I";
+.par-row .field-label:nth-of-type(3) {
   grid-column: 3;
   grid-row: 1;
-  align-self: start;
-  color: var(--muted);
-  font-size: 8px;
 }
 
-.par-row input {
+.par-row select {
+  grid-row: 2;
   min-height: 26px;
   border-radius: 5px;
   padding: 2px;
@@ -1006,11 +1006,11 @@ input:disabled {
     padding: 3px 4px;
   }
 
-  .par-row span {
+  .par-row .hole-label {
     font-size: 11px;
   }
 
-  .par-row input {
+  .par-row select {
     min-height: 24px;
     font-size: 12px;
   }

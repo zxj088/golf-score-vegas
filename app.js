@@ -802,15 +802,26 @@ function renderCourseParInputs(pars = currentCourse().pars, indexes = currentCou
   Array.from({ length: 18 }, (_, index) => {
     const row = document.createElement('label');
     row.className = 'par-row';
+    const parOptions = Array.from({ length: 10 }, (_, optionIndex) => {
+      const value = optionIndex + 1;
+      return `<option value="${value}">${value}</option>`;
+    }).join('');
+    const indexOptions = Array.from({ length: 18 }, (_, optionIndex) => {
+      const value = optionIndex + 1;
+      return `<option value="${value}">${value}</option>`;
+    }).join('');
     row.innerHTML = `
-      <span>${t('Hole {hole}', { hole: index + 1 })}</span>
-      <input class="course-par-input" type="number" min="1" max="7" inputmode="numeric" required aria-label="${t('Hole {hole}', { hole: index + 1 })} ${t('Par')}">
-      <input class="course-index-input" type="number" min="1" max="18" inputmode="numeric" required aria-label="${t('Hole {hole}', { hole: index + 1 })} ${t('Index')}">
+      <span class="hole-label">${t('Hole {hole}', { hole: index + 1 })}</span>
+      <span class="field-label">PAR</span>
+      <span class="field-label">${t('Difficulty')}</span>
+      <select class="course-par-input" required aria-label="${t('Hole {hole}', { hole: index + 1 })} ${t('Par')}">${parOptions}</select>
+      <select class="course-index-input" required aria-label="${t('Hole {hole}', { hole: index + 1 })} ${t('Index')}">${indexOptions}</select>
     `;
-    const [parInput, indexInput] = row.querySelectorAll('input');
+    const [parInput, indexInput] = row.querySelectorAll('select');
     parInput.value = pars[index] || 4;
-    indexInput.value = indexes[index] || index + 1;
+    indexInput.value = indexes[index] || 9;
     parInput.addEventListener('input', updateCourseFormTotals);
+    parInput.addEventListener('change', updateCourseFormTotals);
     if (index < 9) {
       els.frontNineList.append(row);
     } else {
@@ -835,7 +846,7 @@ function renderNewGameCourses() {
 function openCourseModal() {
   els.courseForm.reset();
   editingCourseId = '';
-  renderCourseParInputs();
+  renderCourseParInputs(Array.from({ length: 18 }, () => 4), Array.from({ length: 18 }, () => 9));
   document.querySelector('#courseModal h2').textContent = t('Add Course');
   els.courseForm.querySelector('button[type="submit"]').textContent = t('Save Course');
   els.newCourseCode.disabled = false;
@@ -1477,8 +1488,7 @@ function renderHoles() {
     const result = scoreHole(scores, course.pars[index], index);
     const holeValues = holeGrossAndNet(scores, index);
     row.innerHTML = `
-      <td>${index + 1}</td>
-      <td>${course.indexes[index] || index + 1}</td>
+      <td>${index + 1}/${course.indexes[index] || index + 1}</td>
       <td>${course.pars[index]}</td>
       <td class="team-a-score"><button class="score score-0" type="button" aria-label="${t('Hole {hole} {player} score', { hole: index + 1, player: state.players[0] })}"></button></td>
       <td class="team-a-score"><button class="score score-1" type="button" aria-label="${t('Hole {hole} {player} score', { hole: index + 1, player: state.players[1] })}"></button></td>
@@ -1515,19 +1525,19 @@ function renderHoles() {
     });
 
     if (result) {
-      const aPointCell = row.children[6];
-      const bPointCell = row.children[10];
-      row.children[5].textContent = `${result.aNumber.value}${result.aNumber.flipped ? '*' : ''}`;
-      row.children[9].textContent = `${result.bNumber.value}${result.bNumber.flipped ? '*' : ''}`;
+      const aPointCell = row.children[5];
+      const bPointCell = row.children[9];
+      row.children[4].textContent = `${result.aNumber.value}${result.aNumber.flipped ? '*' : ''}`;
+      row.children[8].textContent = `${result.bNumber.value}${result.bNumber.flipped ? '*' : ''}`;
       aPointCell.textContent = result.delta;
       bPointCell.textContent = -result.delta;
       applySignedClass(aPointCell, result.delta);
       applySignedClass(bPointCell, -result.delta);
     } else {
-      row.children[5].textContent = '--';
-      row.children[6].textContent = '0';
-      row.children[9].textContent = '--';
-      row.children[10].textContent = '0';
+      row.children[4].textContent = '--';
+      row.children[5].textContent = '0';
+      row.children[8].textContent = '--';
+      row.children[9].textContent = '0';
     }
 
     els.scoreRows.append(row);
@@ -1647,7 +1657,7 @@ function renderGameList(container, rounds, emptyText, status) {
       const editInfoButton = document.createElement('button');
       editInfoButton.type = 'button';
       editInfoButton.className = 'danger';
-      editInfoButton.textContent = t('Edit Info');
+      editInfoButton.textContent = t('Modify');
       editInfoButton.addEventListener('click', async event => {
         event.stopPropagation();
         if (!(await verifyCodeForRound(round))) return;
@@ -1834,12 +1844,12 @@ function addListeners() {
     const editCode = els.newCourseCode.value.trim();
     const pars = readCourseFormPars();
     const indexes = readCourseFormIndexes();
-    const valid = name && /^\d{2}$/.test(editCode) && pars.length === 18 && pars.every(par => Number.isInteger(par) && par > 0 && par < 8) && indexesAreValid(indexes);
+    const valid = name && /^\d{2}$/.test(editCode) && pars.length === 18 && pars.every(par => Number.isInteger(par) && par > 0 && par <= 10) && indexesAreValid(indexes);
     if (!valid) {
-      const invalidInput = courseParInputs().find(input => !Number.isInteger(Number(input.value)) || Number(input.value) <= 0 || Number(input.value) >= 8);
+      const invalidInput = courseParInputs().find(input => !Number.isInteger(Number(input.value)) || Number(input.value) <= 0 || Number(input.value) > 10);
       const invalidIndexInput = courseIndexInputs().find(input => !Number.isInteger(Number(input.value)) || Number(input.value) < 1 || Number(input.value) > 18);
       const target = !name ? els.newCourseName : (!/^\d{2}$/.test(editCode) ? els.newCourseCode : (invalidInput || invalidIndexInput || courseIndexInputs()[0]));
-      target.setCustomValidity(t(!name ? 'Enter a course name.' : (!/^\d{2}$/.test(editCode) ? 'Enter a 2 digit code.' : (invalidInput ? 'Enter a par from 1 to 7.' : 'Enter unique index values from 1 to 18.'))));
+      target.setCustomValidity(t(!name ? 'Enter a course name.' : (!/^\d{2}$/.test(editCode) ? 'Enter a 2 digit code.' : (invalidInput ? 'Enter a par from 1 to 10.' : 'Enter unique index values from 1 to 18.'))));
       target.reportValidity();
       target.setCustomValidity('');
       return;
