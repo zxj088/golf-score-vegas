@@ -995,10 +995,10 @@ function courseSearchId(result) {
   return result?.id || result?.course_id || result?.courseId;
 }
 
-async function searchGolfCourses({ query, country, region }) {
+async function searchGolfCourses({ courseName, country, region }) {
   if (!hasGolfCourseApiConfig()) throw new Error('GolfCourseAPI key is missing');
   const config = golfCourseApiConfig();
-  const parts = [query, region, country].map(value => String(value || '').trim()).filter(Boolean);
+  const parts = [courseName, region, country].map(value => String(value || '').trim()).filter(Boolean);
   const searchQuery = parts.join(' ') || country || 'golf';
   const data = await golfCourseApiRequest(config.searchPath, { search_query: searchQuery });
   const rows = Array.isArray(data) ? data : (Array.isArray(data?.courses) ? data.courses : []);
@@ -2113,14 +2113,14 @@ function addListeners() {
   });
   els.courseSearchForm.addEventListener('submit', async event => {
     event.preventDefault();
-    const query = els.courseSearchInput.value.trim();
+    const courseName = els.courseSearchInput.value.trim();
     const country = els.courseSearchCountry.value;
     const region = els.courseSearchRegion.value;
     els.courseSearchSubmit.disabled = true;
     els.courseSearchStatus.textContent = t('Searching courses...');
     els.courseSearchResults.innerHTML = '';
     try {
-      const results = await searchGolfCourses({ query, country, region });
+      const results = await searchGolfCourses({ courseName, country, region });
       els.courseSearchStatus.textContent = results.length ? t('Choose a course to add.') : t('No courses found.');
       renderCourseSearchResults(results);
     } catch (error) {

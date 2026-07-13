@@ -25,6 +25,11 @@ Deno.serve(async request => {
   }
 
   sourceUrl.searchParams.delete('path');
+  const legacyQuery = sourceUrl.searchParams.get('query');
+  if (path === '/search' && legacyQuery && !sourceUrl.searchParams.has('search_query')) {
+    sourceUrl.searchParams.set('search_query', legacyQuery);
+    sourceUrl.searchParams.delete('query');
+  }
   const target = new URL(`https://api.golfcourseapi.com/v1${path}`);
   sourceUrl.searchParams.forEach((value, key) => target.searchParams.set(key, value));
 
