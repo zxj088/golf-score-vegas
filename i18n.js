@@ -116,6 +116,7 @@
     'Enter code, then choose Yes to finish this game.': '输入密码，然后选择“是”以结束此比赛。',
     'Save game changes': '保存比赛修改',
     'Enter code, then choose Yes to save these changes.': '输入密码，然后选择“是”以保存这些修改。',
+    'Changing course will recalculate Par, Index and scores. Enter code, then choose Yes to save these changes.': '更换球场会重新计算标准杆、难度和比分。输入密码，然后选择“是”以保存这些修改。',
     'Delete game': '删除比赛',
     'Enter code, then choose Yes to delete this finished game.': '输入密码，然后选择“是”以删除此已结束的比赛。',
     'Delete course': '删除球场',

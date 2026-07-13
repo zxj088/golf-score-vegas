@@ -1795,8 +1795,11 @@ async function confirmDeleteWithCode(round) {
   return confirmActionWithCode(round, t('Delete game'), t('Enter code, then choose Yes to delete this finished game.'));
 }
 
-async function confirmSaveGameInfoWithCode(round) {
-  return confirmActionWithCode(round, t('Save game changes'), t('Enter code, then choose Yes to save these changes.'));
+async function confirmSaveGameInfoWithCode(round, courseChanged = false) {
+  const message = courseChanged
+    ? t('Changing course will recalculate Par, Index and scores. Enter code, then choose Yes to save these changes.')
+    : t('Enter code, then choose Yes to save these changes.');
+  return confirmActionWithCode(round, t('Save game changes'), message);
 }
 
 async function confirmCourseActionWithCode(course, title, message) {
@@ -2419,11 +2422,8 @@ function addListeners() {
     if (editingGameInfoId) {
       const existing = savedRounds.find(round => round.id === editingGameInfoId);
       if (!existing) return;
-      if (existing.courseId !== course.id) {
-        const ok = await confirmDialog(t('Change course'), t('Changing course will recalculate Par, Index and scores. Continue?'));
-        if (!ok) return;
-      }
-      if (!(await confirmSaveGameInfoWithCode(existing))) return;
+      const courseChanged = existing.courseId !== course.id;
+      if (!(await confirmSaveGameInfoWithCode(existing, courseChanged))) return;
       activeGameId = existing.id;
       state = {
         ...state,
