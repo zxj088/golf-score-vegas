@@ -1622,8 +1622,8 @@ function osmCourseResult(element, country, region) {
     name,
     club: tags.operator || tags.club || name,
     course: name,
-    country: tags['addr:country'] || country || '',
-    region: tags['addr:state'] || tags['addr:province'] || region || '',
+    country: country || tags['addr:country'] || '',
+    region: region || tags['addr:state'] || tags['addr:province'] || '',
     display_name: osmElementAddress(element, country, region),
     location: {
       city: tags['addr:city'] || tags['addr:town'] || tags['addr:village'] || '',
@@ -1643,8 +1643,8 @@ function nominatimCourseResult(row, country, region) {
     name,
     club: name,
     course: name,
-    country: address.country || country || '',
-    region: address.state || address.region || address.county || region || '',
+    country: country || address.country || '',
+    region: region || address.state || address.region || address.county || '',
     display_name: row?.display_name || [address.city || address.town || address.village, address.state || region, address.country || country].filter(Boolean).join(', '),
     location: {
       city: address.city || address.town || address.village || address.municipality || '',
@@ -1664,12 +1664,11 @@ function isNominatimGolfCourse(row) {
 
 async function searchNominatimCourses({ courseName, country, region }) {
   const name = String(courseName || '').trim();
-  if (!name) return [];
-  const queries = [
-    [name, 'Golf Club', region, country],
-    [name, 'golf course', region, country],
-    [name, region, country]
-  ]
+  const baseTerms = name
+    ? [[name, 'Golf Club'], [name, 'golf course'], [name]]
+    : [['golf course'], ['golf club']];
+  const queries = baseTerms
+    .map(parts => parts.concat([region, country]))
     .map(parts => parts.filter(Boolean).join(' '))
     .filter((query, index, list) => query && list.indexOf(query) === index);
   const unique = new Map();
@@ -1786,7 +1785,7 @@ async function searchOnlineCourses({ courseName, country, region }) {
   if (!name && !country) {
     return { results: [], needsFilter: true };
   }
-  if (name) {
+  if (name || country) {
     const nominatimResults = await searchNominatimCourses({ courseName: name, country, region });
     if (nominatimResults.length) {
       return {
