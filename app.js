@@ -25,6 +25,8 @@ const defaultCourses = [
 
 let activeGameId = '';
 let isEditing = false;
+let editingGameInfoId = '';
+let editingCourseId = '';
 let autoSyncTimer = null;
 let dialogResolver = null;
 let activeScoreTarget = null;
@@ -32,7 +34,9 @@ const clientId = getClientId();
 let state = {
   courseId: defaultCourses[0].id,
   players: ['Player 1', 'Player 2', 'Player 3', 'Player 4'],
-  birdieFlip: true,
+  handicaps: [0, 0, 0, 0],
+  scoreMode: 'gross',
+  underParFlip: true,
   scores: emptyScores()
 };
 
@@ -54,6 +58,7 @@ const els = {
   shareButton: document.querySelector('#shareButton'),
   courseSelect: document.querySelector('#courseSelect'),
   birdieFlip: document.querySelector('#birdieFlip'),
+  scoreMode: document.querySelector('#scoreMode'),
   players: [
     document.querySelector('#playerA1'),
     document.querySelector('#playerA2'),
@@ -99,10 +104,16 @@ const els = {
   newPlayerA2: document.querySelector('#newPlayerA2'),
   newPlayerB1: document.querySelector('#newPlayerB1'),
   newPlayerB2: document.querySelector('#newPlayerB2'),
+  newHandicapA1: document.querySelector('#newHandicapA1'),
+  newHandicapA2: document.querySelector('#newHandicapA2'),
+  newHandicapB1: document.querySelector('#newHandicapB1'),
+  newHandicapB2: document.querySelector('#newHandicapB2'),
   newGameCourse: document.querySelector('#newGameCourse'),
   newGameCode: document.querySelector('#newGameCode'),
   newGameTeeTime: document.querySelector('#newGameTeeTime'),
   newGameBirdieFlip: document.querySelector('#newGameBirdieFlip'),
+  newGameScoreMode: document.querySelector('#newGameScoreMode'),
+  searchCourse: document.querySelector('#searchCourse'),
   playingList: document.querySelector('#playingList'),
   historyList: document.querySelector('#historyList'),
   syncStatus: document.querySelector('#syncStatus'),
@@ -145,8 +156,39 @@ function normalizeScores(scores) {
   });
 }
 
+function normalizeHandicaps(values) {
+  const source = Array.isArray(values) ? values : [];
+  return Array.from({ length: 4 }, (_, index) => {
+    const value = Number(source[index] ?? 0);
+    return Number.isFinite(value) ? Math.max(0, Math.min(54, Math.round(value))) : 0;
+  });
+}
+
+function normalizeCourseIndexes(indexes) {
+  const source = Array.isArray(indexes) ? indexes : [];
+  const values = Array.from({ length: 18 }, (_, index) => {
+    const value = Number(source[index] ?? index + 1);
+    return Number.isInteger(value) && value >= 1 && value <= 18 ? value : index + 1;
+  });
+  const seen = new Set();
+  if (values.every(value => !seen.has(value) && seen.add(value))) return values;
+  return Array.from({ length: 18 }, (_, index) => index + 1);
+}
+
+function normalizeCourse(course) {
+  const pars = Array.isArray(course?.pars) && course.pars.length === 18
+    ? course.pars.map(par => Number(par) || 4)
+    : Array.from({ length: 18 }, () => 4);
+  return {
+    ...course,
+    pars,
+    indexes: normalizeCourseIndexes(course?.indexes),
+    editCode: String(course?.editCode || '')
+  };
+}
+
 function allCourses() {
-  return [...defaultCourses, ...customCourses];
+  return [...defaultCourses, ...customCourses].map(normalizeCourse);
 }
 
 function currentCourse() {
@@ -272,10 +314,13 @@ function normalizeRound(round) {
   const players = Array.isArray(round.players) && round.players.length === 4
     ? round.players
     : ['Player 1', 'Player 2', 'Player 3', 'Player 4'];
+  const handicaps = normalizeHandicaps(round.handicaps || baseTotals.handicaps);
   const courseId = round.courseId || defaultCourses[0].id;
   const course = allCourses().find(item => item.id === courseId) || defaultCourses[0];
   const courseName = round.courseName || course.name || 'Unknown Course';
   const name = round.name || roundDisplayName({ name: courseName }, players);
+  const scoreMode = round.scoreMode === 'net' || baseTotals.scoreMode === 'net' ? 'net' : 'gross';
+  const underParFlip = 'underParFlip' in round ? Boolean(round.underParFlip) : Boolean(round.birdieFlip);
   return {
     id: round.id || `round-${savedAt}`,
     savedAt,
@@ -284,17 +329,25 @@ function normalizeRound(round) {
     courseId,
     courseName,
     pars: Array.isArray(round.pars) && round.pars.length === 18 ? round.pars : course.pars,
+    indexes: normalizeCourseIndexes(round.indexes || course.indexes),
     players,
-    birdieFlip: Boolean(round.birdieFlip),
+    handicaps,
+    scoreMode,
+    underParFlip,
+    birdieFlip: underParFlip,
     scores: normalizeScores(round.scores),
     totals: {
       a: Number(baseTotals.a || 0),
       b: Number(baseTotals.b || 0),
       complete: Number(baseTotals.complete || 0),
       players: Array.isArray(baseTotals.players) ? baseTotals.players : [0, 0, 0, 0],
+      playersGross: Array.isArray(baseTotals.playersGross) ? baseTotals.playersGross : null,
+      playersNet: Array.isArray(baseTotals.playersNet) ? baseTotals.playersNet : null,
       status: baseTotals.status === 'playing' ? 'playing' : 'history',
       editCode: String(baseTotals.editCode || ''),
       teeTime: String(baseTotals.teeTime || ''),
+      handicaps,
+      scoreMode,
       editLock: baseTotals.editLock && typeof baseTotals.editLock === 'object' ? baseTotals.editLock : null
     }
   };
@@ -360,6 +413,7 @@ function courseToCloudRow(course) {
     name: course.name,
     pars: {
       values: course.pars,
+      indexes: normalizeCourseIndexes(course.indexes),
       editCode: String(course.editCode || '')
     }
   };
@@ -371,6 +425,7 @@ function cloudRowToCourse(row) {
     id: row.course_id,
     name: row.name,
     pars: Array.isArray(storedPars) ? storedPars : (Array.isArray(storedPars?.values) ? storedPars.values : []),
+    indexes: Array.isArray(storedPars?.indexes) ? storedPars.indexes : undefined,
     editCode: Array.isArray(storedPars) ? '' : String(storedPars?.editCode || '')
   };
 }
@@ -385,7 +440,10 @@ function roundToCloudRow(round) {
     file_name: normalized.fileName,
     course_id: normalized.courseId,
     course_name: normalized.courseName,
-    pars: normalized.pars,
+    pars: {
+      values: normalized.pars,
+      indexes: normalized.indexes
+    },
     players: normalized.players,
     birdie_flip: normalized.birdieFlip,
     scores: normalized.scores,
@@ -405,7 +463,10 @@ function deleteInfoToCloudRow(info) {
     file_name: '',
     course_id: defaultCourses[0].id,
     course_name: 'Deleted',
-    pars: defaultCourses[0].pars,
+    pars: {
+      values: defaultCourses[0].pars,
+      indexes: normalizeCourseIndexes()
+    },
     players: ['Deleted', 'Deleted', 'Deleted', 'Deleted'],
     birdie_flip: true,
     scores: emptyScores(),
@@ -461,7 +522,8 @@ function cloudRowToRound(row) {
     fileName: row.file_name,
     courseId: row.course_id,
     courseName: row.course_name,
-    pars: row.pars,
+    pars: Array.isArray(row.pars) ? row.pars : row.pars?.values,
+    indexes: Array.isArray(row.pars?.indexes) ? row.pars.indexes : undefined,
     players: row.players,
     birdieFlip: row.birdie_flip,
     scores: row.scores,
@@ -720,6 +782,10 @@ function courseParInputs() {
   return Array.from(document.querySelectorAll('.course-par-input'));
 }
 
+function courseIndexInputs() {
+  return Array.from(document.querySelectorAll('.course-index-input'));
+}
+
 function updateCourseFormTotals() {
   const values = courseParInputs().map(input => Number(input.value) || 0);
   const front = values.slice(0, 9).reduce((sum, par) => sum + par, 0);
@@ -729,7 +795,7 @@ function updateCourseFormTotals() {
   els.courseParTotal.textContent = front + back;
 }
 
-function renderCourseParInputs(pars = currentCourse().pars) {
+function renderCourseParInputs(pars = currentCourse().pars, indexes = currentCourse().indexes) {
   els.frontNineList.innerHTML = '';
   els.backNineList.innerHTML = '';
 
@@ -739,10 +805,12 @@ function renderCourseParInputs(pars = currentCourse().pars) {
     row.innerHTML = `
       <span>${t('Hole {hole}', { hole: index + 1 })}</span>
       <input class="course-par-input" type="number" min="1" max="7" inputmode="numeric" required aria-label="${t('Hole {hole}', { hole: index + 1 })} ${t('Par')}">
+      <input class="course-index-input" type="number" min="1" max="18" inputmode="numeric" required aria-label="${t('Hole {hole}', { hole: index + 1 })} ${t('Index')}">
     `;
-    const input = row.querySelector('input');
-    input.value = pars[index] || 4;
-    input.addEventListener('input', updateCourseFormTotals);
+    const [parInput, indexInput] = row.querySelectorAll('input');
+    parInput.value = pars[index] || 4;
+    indexInput.value = indexes[index] || index + 1;
+    parInput.addEventListener('input', updateCourseFormTotals);
     if (index < 9) {
       els.frontNineList.append(row);
     } else {
@@ -766,7 +834,25 @@ function renderNewGameCourses() {
 
 function openCourseModal() {
   els.courseForm.reset();
+  editingCourseId = '';
   renderCourseParInputs();
+  document.querySelector('#courseModal h2').textContent = t('Add Course');
+  els.courseForm.querySelector('button[type="submit"]').textContent = t('Save Course');
+  els.newCourseCode.disabled = false;
+  els.courseModal.hidden = false;
+  els.newCourseName.focus();
+}
+
+function openEditCourseModal(course) {
+  const normalized = normalizeCourse(course);
+  editingCourseId = normalized.id;
+  els.courseForm.reset();
+  els.newCourseName.value = normalized.name;
+  els.newCourseCode.value = normalized.editCode || '';
+  els.newCourseCode.disabled = true;
+  renderCourseParInputs(normalized.pars, normalized.indexes);
+  document.querySelector('#courseModal h2').textContent = t('Edit Course');
+  els.courseForm.querySelector('button[type="submit"]').textContent = t('Save Changes');
   els.courseModal.hidden = false;
   els.newCourseName.focus();
 }
@@ -774,17 +860,51 @@ function openCourseModal() {
 function closeCourseModal() {
   els.courseModal.hidden = true;
   els.courseForm.reset();
+  editingCourseId = '';
+  els.newCourseCode.disabled = false;
 }
 
 function openGameModal() {
   els.gameForm.reset();
+  editingGameInfoId = '';
   renderNewGameCourses();
   els.newGameBirdieFlip.checked = true;
+  els.newGameScoreMode.value = 'gross';
   els.newGameTeeTime.value = dateTimeInputValue(new Date());
   els.newPlayerA1.value = 'Player 1';
   els.newPlayerA2.value = 'Player 2';
   els.newPlayerB1.value = 'Player 3';
   els.newPlayerB2.value = 'Player 4';
+  [els.newHandicapA1, els.newHandicapA2, els.newHandicapB1, els.newHandicapB2].forEach(input => {
+    input.value = '0';
+  });
+  els.newGameCode.disabled = false;
+  document.querySelector('#gameModal h2').textContent = t('New Game');
+  els.gameForm.querySelector('button[type="submit"]').textContent = t('Start Game');
+  els.gameModal.hidden = false;
+  els.newPlayerA1.focus();
+}
+
+function openEditGameInfoModal(round) {
+  const normalized = normalizeRound(round);
+  editingGameInfoId = normalized.id;
+  els.gameForm.reset();
+  renderNewGameCourses();
+  els.newGameCourse.value = normalized.courseId;
+  els.newGameBirdieFlip.checked = normalized.underParFlip;
+  els.newGameScoreMode.value = normalized.scoreMode;
+  els.newGameTeeTime.value = normalized.totals.teeTime || dateTimeInputValue(new Date(normalized.savedAt));
+  els.newPlayerA1.value = normalized.players[0];
+  els.newPlayerA2.value = normalized.players[1];
+  els.newPlayerB1.value = normalized.players[2];
+  els.newPlayerB2.value = normalized.players[3];
+  [els.newHandicapA1, els.newHandicapA2, els.newHandicapB1, els.newHandicapB2].forEach((input, index) => {
+    input.value = normalized.handicaps[index] || 0;
+  });
+  els.newGameCode.value = normalized.totals.editCode || '';
+  els.newGameCode.disabled = true;
+  document.querySelector('#gameModal h2').textContent = t('Edit Info');
+  els.gameForm.querySelector('button[type="submit"]').textContent = t('Save Changes');
   els.gameModal.hidden = false;
   els.newPlayerA1.focus();
 }
@@ -792,10 +912,25 @@ function openGameModal() {
 function closeGameModal() {
   els.gameModal.hidden = true;
   els.gameForm.reset();
+  editingGameInfoId = '';
+  els.newGameCode.disabled = false;
 }
 
 function readCourseFormPars() {
   return courseParInputs().map(input => Number(input.value));
+}
+
+function readCourseFormIndexes() {
+  return courseIndexInputs().map(input => Number(input.value));
+}
+
+function indexesAreValid(indexes) {
+  const seen = new Set();
+  return indexes.length === 18 && indexes.every(value => {
+    const valid = Number.isInteger(value) && value >= 1 && value <= 18 && !seen.has(value);
+    seen.add(value);
+    return valid;
+  });
 }
 
 function parseScore(value) {
@@ -874,23 +1009,45 @@ function closeScorePad() {
 function teamNumber(scores, par, shouldFlip) {
   const low = Math.min(...scores);
   const high = Math.max(...scores);
-  const flipped = shouldFlip && low >= par;
+  const flipped = Boolean(shouldFlip);
   return {
     value: flipped ? high * 10 + low : low * 10 + high,
     flipped
   };
 }
 
-function scoreHole(scores, par) {
-  const values = scores.map(parseScore);
-  if (values.some(value => value === null)) return null;
+function handicapStrokes(handicap, holeIndexValue) {
+  const value = Math.max(0, Math.round(Number(handicap) || 0));
+  const index = Math.max(1, Math.min(18, Math.round(Number(holeIndexValue) || 18)));
+  const base = Math.floor(value / 18);
+  const extra = value % 18;
+  return base + (index <= extra ? 1 : 0);
+}
 
-  const teamA = [values[0], values[1]];
-  const teamB = [values[2], values[3]];
-  const aBirdie = Math.min(...teamA) < par;
-  const bBirdie = Math.min(...teamB) < par;
-  const flipA = state.birdieFlip && bBirdie && !aBirdie;
-  const flipB = state.birdieFlip && aBirdie && !bBirdie;
+function holeGrossAndNet(scores, holeIndex) {
+  const course = currentCourse();
+  const indexValue = course.indexes[holeIndex] || holeIndex + 1;
+  const gross = scores.map(parseScore);
+  const net = gross.map((score, scoreIndex) => {
+    if (score === null) return null;
+    return Math.max(1, score - handicapStrokes(state.handicaps?.[scoreIndex], indexValue));
+  });
+  return { gross, net, indexValue };
+}
+
+function scoreHole(scores, par, holeIndex) {
+  const { gross, net } = holeGrossAndNet(scores, holeIndex);
+  if (gross.some(value => value === null)) return null;
+
+  const activeValues = state.scoreMode === 'net' ? net : gross;
+  const teamA = [activeValues[0], activeValues[1]];
+  const teamB = [activeValues[2], activeValues[3]];
+  const grossTeamA = [gross[0], gross[1]];
+  const grossTeamB = [gross[2], gross[3]];
+  const aUnderPar = Math.min(...grossTeamA) < par;
+  const bUnderPar = Math.min(...grossTeamB) < par;
+  const flipA = state.underParFlip && bUnderPar && !aUnderPar;
+  const flipB = state.underParFlip && aUnderPar && !bUnderPar;
   const aNumber = teamNumber(teamA, par, flipA);
   const bNumber = teamNumber(teamB, par, flipB);
   const delta = bNumber.value - aNumber.value;
@@ -899,24 +1056,29 @@ function scoreHole(scores, par) {
     aNumber,
     bNumber,
     delta,
-    aBirdie,
-    bBirdie
+    gross,
+    net,
+    aUnderPar,
+    bUnderPar
   };
 }
 
 function totals() {
   const course = currentCourse();
   return state.scores.reduce((sum, scores, index) => {
+    const { gross, net } = holeGrossAndNet(scores, index);
     scores.forEach((score, scoreIndex) => {
-      sum.players[scoreIndex] += parseScore(score) || 0;
+      sum.playersGross[scoreIndex] += gross[scoreIndex] || 0;
+      sum.playersNet[scoreIndex] += net[scoreIndex] || 0;
     });
-    const result = scoreHole(scores, course.pars[index]);
+    sum.players = state.scoreMode === 'net' ? sum.playersNet : sum.playersGross;
+    const result = scoreHole(scores, course.pars[index], index);
     if (!result) return sum;
     sum.a += result.delta;
     sum.b -= result.delta;
     sum.complete += 1;
     return sum;
-  }, { a: 0, b: 0, complete: 0, players: [0, 0, 0, 0] });
+  }, { a: 0, b: 0, complete: 0, players: [0, 0, 0, 0], playersGross: [0, 0, 0, 0], playersNet: [0, 0, 0, 0] });
 }
 
 function roundFromState(existing = {}, statusOverride = null) {
@@ -937,14 +1099,20 @@ function roundFromState(existing = {}, statusOverride = null) {
     courseId: course.id,
     courseName: course.name,
     pars: course.pars,
+    indexes: course.indexes,
     players: [...state.players],
-    birdieFlip: state.birdieFlip,
+    handicaps: normalizeHandicaps(state.handicaps),
+    scoreMode: state.scoreMode === 'net' ? 'net' : 'gross',
+    underParFlip: state.underParFlip,
+    birdieFlip: state.underParFlip,
     scores: state.scores.map(row => [...row]),
     totals: {
       ...scoreTotals,
       status,
       editCode,
       teeTime,
+      handicaps: normalizeHandicaps(state.handicaps),
+      scoreMode: state.scoreMode === 'net' ? 'net' : 'gross',
       editLock: lock
     }
   });
@@ -1019,7 +1187,8 @@ function ensureCourseFromRound(round) {
   customCourses.push({
     id: round.courseId,
     name: round.courseName,
-    pars: round.pars
+    pars: round.pars,
+    indexes: round.indexes
   });
   saveCoursesLocal();
 }
@@ -1029,7 +1198,10 @@ function applyGameToState(round) {
   state = {
     courseId: round.courseId,
     players: [...round.players],
-    birdieFlip: round.birdieFlip,
+    handicaps: normalizeHandicaps(round.handicaps),
+    scoreMode: round.scoreMode === 'net' ? 'net' : 'gross',
+    underParFlip: round.underParFlip,
+    birdieFlip: round.underParFlip,
     scores: normalizeScores(round.scores)
   };
 }
@@ -1182,18 +1354,26 @@ async function confirmDeleteWithCode(round) {
   return confirmActionWithCode(round, t('Delete game'), t('Enter code, then choose Yes to delete this finished game.'));
 }
 
-async function confirmDeleteCourseWithCode(course) {
+async function confirmCourseActionWithCode(course, title, message) {
   let errorMessage = '';
   while (true) {
     const answer = await confirmCodeDialog(
-      t('Delete course'),
-      t('Enter the course edit code, then choose Yes to delete this course.'),
+      title,
+      message,
       errorMessage
     );
     if (answer === false) return false;
     if (answer === '59' || (/^\d{2}$/.test(course.editCode || '') && answer === course.editCode)) return true;
     errorMessage = t('The edit code is not correct. Try again.');
   }
+}
+
+function confirmDeleteCourseWithCode(course) {
+  return confirmCourseActionWithCode(course, t('Delete course'), t('Enter the course edit code, then choose Yes to delete this course.'));
+}
+
+function confirmEditCourseWithCode(course) {
+  return confirmCourseActionWithCode(course, t('Edit Course'), t('Enter the course edit code, then choose Yes to edit this course.'));
 }
 
 async function verifyActiveCode() {
@@ -1254,8 +1434,9 @@ function renderCourseSelect() {
 function renderInputs() {
   els.courseSelect.value = state.courseId;
   els.courseSelect.disabled = true;
-  els.birdieFlip.checked = state.birdieFlip;
+  els.birdieFlip.checked = state.underParFlip;
   els.birdieFlip.disabled = true;
+  els.scoreMode.value = state.scoreMode === 'net' ? 'net' : 'gross';
   els.players.forEach((input, index) => {
     input.value = state.players[index];
     input.readOnly = true;
@@ -1277,7 +1458,9 @@ function renderScoreStrip() {
   els.coursePar.textContent = formatTeeTime(game?.totals?.teeTime, game?.savedAt);
   els.totalPar.textContent = parTotal;
   els.playerTotals.forEach((cell, index) => {
-    cell.textContent = total.players[index];
+    cell.textContent = state.scoreMode === 'net'
+      ? `${total.playersGross[index]}/${total.playersNet[index]}`
+      : total.playersGross[index];
   });
   els.tableTeamATotal.textContent = total.a;
   els.tableTeamBTotal.textContent = total.b;
@@ -1291,26 +1474,30 @@ function renderHoles() {
 
   state.scores.forEach((scores, index) => {
     const row = document.createElement('tr');
-    const result = scoreHole(scores, course.pars[index]);
+    const result = scoreHole(scores, course.pars[index], index);
+    const holeValues = holeGrossAndNet(scores, index);
     row.innerHTML = `
       <td>${index + 1}</td>
+      <td>${course.indexes[index] || index + 1}</td>
       <td>${course.pars[index]}</td>
-      <td class="team-a-score"><input class="score score-0" type="number" min="1" max="20" inputmode="numeric" aria-label="${t('Hole {hole} {player} score', { hole: index + 1, player: state.players[0] })}"></td>
-      <td class="team-a-score"><input class="score score-1" type="number" min="1" max="20" inputmode="numeric" aria-label="${t('Hole {hole} {player} score', { hole: index + 1, player: state.players[1] })}"></td>
+      <td class="team-a-score"><button class="score score-0" type="button" aria-label="${t('Hole {hole} {player} score', { hole: index + 1, player: state.players[0] })}"></button></td>
+      <td class="team-a-score"><button class="score score-1" type="button" aria-label="${t('Hole {hole} {player} score', { hole: index + 1, player: state.players[1] })}"></button></td>
       <td class="team-a-score vegas-number"></td>
       <td class="team-a-score hole-points"></td>
-      <td class="team-b-score"><input class="score score-2" type="number" min="1" max="20" inputmode="numeric" aria-label="${t('Hole {hole} {player} score', { hole: index + 1, player: state.players[2] })}"></td>
-      <td class="team-b-score"><input class="score score-3" type="number" min="1" max="20" inputmode="numeric" aria-label="${t('Hole {hole} {player} score', { hole: index + 1, player: state.players[3] })}"></td>
+      <td class="team-b-score"><button class="score score-2" type="button" aria-label="${t('Hole {hole} {player} score', { hole: index + 1, player: state.players[2] })}"></button></td>
+      <td class="team-b-score"><button class="score score-3" type="button" aria-label="${t('Hole {hole} {player} score', { hole: index + 1, player: state.players[3] })}"></button></td>
       <td class="team-b-score vegas-number"></td>
       <td class="team-b-score hole-points"></td>
     `;
 
     [0, 1, 2, 3].forEach(scoreIndex => {
       const input = row.querySelector(`.score-${scoreIndex}`);
-      input.value = scores[scoreIndex];
+      const grossValue = scores[scoreIndex] || '';
+      const netValue = holeValues.net[scoreIndex];
+      input.innerHTML = grossValue
+        ? `<span>${grossValue}</span>${state.scoreMode === 'net' && netValue ? `<small>${t('Net')} ${netValue}</small>` : ''}`
+        : '<span>--</span>';
       input.disabled = !isEditing;
-      input.readOnly = true;
-      input.autocomplete = 'off';
       input.addEventListener('pointerdown', event => {
         if (!isEditing) return;
         event.preventDefault();
@@ -1325,28 +1512,22 @@ function renderHoles() {
         event.preventDefault();
         openScorePad(index, scoreIndex);
       });
-      input.addEventListener('change', () => {
-        if (!isEditing) return;
-        state.scores[index][scoreIndex] = input.value;
-        persistActiveGame(true);
-        render();
-      });
     });
 
     if (result) {
-      const aPointCell = row.children[5];
-      const bPointCell = row.children[9];
-      row.children[4].textContent = `${result.aNumber.value}${result.aNumber.flipped ? '*' : ''}`;
-      row.children[8].textContent = `${result.bNumber.value}${result.bNumber.flipped ? '*' : ''}`;
+      const aPointCell = row.children[6];
+      const bPointCell = row.children[10];
+      row.children[5].textContent = `${result.aNumber.value}${result.aNumber.flipped ? '*' : ''}`;
+      row.children[9].textContent = `${result.bNumber.value}${result.bNumber.flipped ? '*' : ''}`;
       aPointCell.textContent = result.delta;
       bPointCell.textContent = -result.delta;
       applySignedClass(aPointCell, result.delta);
       applySignedClass(bPointCell, -result.delta);
     } else {
-      row.children[4].textContent = '--';
-      row.children[5].textContent = '0';
-      row.children[8].textContent = '--';
-      row.children[9].textContent = '0';
+      row.children[5].textContent = '--';
+      row.children[6].textContent = '0';
+      row.children[9].textContent = '--';
+      row.children[10].textContent = '0';
     }
 
     els.scoreRows.append(row);
@@ -1373,6 +1554,13 @@ function renderCourses() {
     });
 
     if (isCustom) {
+      const editButton = document.createElement('button');
+      editButton.type = 'button';
+      editButton.textContent = t('Edit');
+      editButton.addEventListener('click', async () => {
+        if (!(await confirmEditCourseWithCode(course))) return;
+        openEditCourseModal(course);
+      });
       const deleteButton = document.createElement('button');
       deleteButton.type = 'button';
       deleteButton.className = 'danger';
@@ -1391,7 +1579,7 @@ function renderCourses() {
           setSyncState({ ok: false, busy: false, label: t('Cloud sync Not ok'), title: error.message });
         }
       });
-      row.querySelector('.small-actions').append(deleteButton);
+      row.querySelector('.small-actions').append(editButton, deleteButton);
     }
 
     els.courseList.append(row);
@@ -1455,6 +1643,18 @@ function renderGameList(container, rounds, emptyText, status) {
     row.querySelector('.game-teams').textContent = roundTeamsLine(round);
     row.querySelector('.game-score').textContent = t('Total score: A {a}, B {b}', { a: Number(total.a || 0), b: Number(total.b || 0) });
     row.querySelector('.game-open').addEventListener('click', () => loadGame(round.id, false, true));
+    if (status === 'playing') {
+      const editInfoButton = document.createElement('button');
+      editInfoButton.type = 'button';
+      editInfoButton.className = 'danger';
+      editInfoButton.textContent = t('Edit Info');
+      editInfoButton.addEventListener('click', async event => {
+        event.stopPropagation();
+        if (!(await verifyCodeForRound(round))) return;
+        openEditGameInfoModal(round);
+      });
+      row.querySelector('.small-actions').append(editInfoButton);
+    }
     if (status === 'history') {
       const deleteButton = document.createElement('button');
       deleteButton.type = 'button';
@@ -1595,7 +1795,16 @@ function addListeners() {
   });
 
   els.birdieFlip.addEventListener('change', () => {
-    state.birdieFlip = els.birdieFlip.checked;
+    state.underParFlip = els.birdieFlip.checked;
+    state.birdieFlip = state.underParFlip;
+    persistActiveGame(true);
+    saveState();
+    render();
+  });
+
+  els.scoreMode.addEventListener('change', () => {
+    state.scoreMode = els.scoreMode.value === 'net' ? 'net' : 'gross';
+    persistActiveGame(true);
     saveState();
     render();
   });
@@ -1609,6 +1818,9 @@ function addListeners() {
   });
 
   els.addCourse.addEventListener('click', openCourseModal);
+  els.searchCourse.addEventListener('click', () => {
+    showMessage(t('Search Course'), t('Global course search needs a GolfCourseAPI key before it can be enabled.'));
+  });
   els.cancelCourse.addEventListener('click', closeCourseModal);
   els.cancelCourseBottom.addEventListener('click', closeCourseModal);
 
@@ -1621,13 +1833,31 @@ function addListeners() {
     const name = els.newCourseName.value.trim();
     const editCode = els.newCourseCode.value.trim();
     const pars = readCourseFormPars();
-    const valid = name && /^\d{2}$/.test(editCode) && pars.length === 18 && pars.every(par => Number.isInteger(par) && par > 0 && par < 8);
+    const indexes = readCourseFormIndexes();
+    const valid = name && /^\d{2}$/.test(editCode) && pars.length === 18 && pars.every(par => Number.isInteger(par) && par > 0 && par < 8) && indexesAreValid(indexes);
     if (!valid) {
       const invalidInput = courseParInputs().find(input => !Number.isInteger(Number(input.value)) || Number(input.value) <= 0 || Number(input.value) >= 8);
-      const target = !name ? els.newCourseName : (!/^\d{2}$/.test(editCode) ? els.newCourseCode : invalidInput);
-      target.setCustomValidity(t(!name ? 'Enter a course name.' : (!/^\d{2}$/.test(editCode) ? 'Enter a 2 digit code.' : 'Enter a par from 1 to 7.')));
+      const invalidIndexInput = courseIndexInputs().find(input => !Number.isInteger(Number(input.value)) || Number(input.value) < 1 || Number(input.value) > 18);
+      const target = !name ? els.newCourseName : (!/^\d{2}$/.test(editCode) ? els.newCourseCode : (invalidInput || invalidIndexInput || courseIndexInputs()[0]));
+      target.setCustomValidity(t(!name ? 'Enter a course name.' : (!/^\d{2}$/.test(editCode) ? 'Enter a 2 digit code.' : (invalidInput ? 'Enter a par from 1 to 7.' : 'Enter unique index values from 1 to 18.'))));
       target.reportValidity();
       target.setCustomValidity('');
+      return;
+    }
+    if (editingCourseId) {
+      const existing = customCourses.find(course => course.id === editingCourseId);
+      if (!existing) return;
+      const course = { ...existing, name, pars, indexes };
+      customCourses = customCourses.map(item => item.id === editingCourseId ? course : item);
+      saveCoursesLocal();
+      closeCourseModal();
+      render();
+      try {
+        await upsertCloudCourse(course);
+        await syncFromCloud(false);
+      } catch (error) {
+        setSyncState({ ok: false, busy: false, label: t('Cloud sync Not ok'), title: error.message });
+      }
       return;
     }
     const baseId = slugify(name);
@@ -1637,7 +1867,7 @@ function addListeners() {
       id = `${baseId}-${count}`;
       count += 1;
     }
-    const course = { id, name, pars, editCode };
+    const course = { id, name, pars, indexes, editCode };
     customCourses.push(course);
     saveCoursesLocal();
     state.courseId = id;
@@ -1660,7 +1890,7 @@ function addListeners() {
     if (event.target === els.gameModal) closeGameModal();
   });
 
-  els.gameForm.addEventListener('submit', event => {
+  els.gameForm.addEventListener('submit', async event => {
     event.preventDefault();
     const players = [
       els.newPlayerA1.value.trim() || 'Player 1',
@@ -1668,8 +1898,14 @@ function addListeners() {
       els.newPlayerB1.value.trim() || 'Player 3',
       els.newPlayerB2.value.trim() || 'Player 4'
     ];
+    const handicaps = normalizeHandicaps([
+      els.newHandicapA1.value,
+      els.newHandicapA2.value,
+      els.newHandicapB1.value,
+      els.newHandicapB2.value
+    ]);
     const code = els.newGameCode.value.trim();
-    if (!/^\d{2}$/.test(code)) {
+    if (!editingGameInfoId && !/^\d{2}$/.test(code)) {
       els.newGameCode.setCustomValidity(t('Enter a 2 digit code.'));
       els.newGameCode.reportValidity();
       els.newGameCode.setCustomValidity('');
@@ -1677,10 +1913,43 @@ function addListeners() {
     }
     const course = allCourses().find(item => item.id === els.newGameCourse.value) || allCourses()[0];
     const teeTime = els.newGameTeeTime.value;
-    state = {
+    const nextState = {
       courseId: course.id,
       players,
-      birdieFlip: els.newGameBirdieFlip.checked,
+      handicaps,
+      scoreMode: els.newGameScoreMode.value === 'net' ? 'net' : 'gross',
+      underParFlip: els.newGameBirdieFlip.checked,
+      birdieFlip: els.newGameBirdieFlip.checked
+    };
+
+    if (editingGameInfoId) {
+      const existing = savedRounds.find(round => round.id === editingGameInfoId);
+      if (!existing) return;
+      if (existing.courseId !== course.id) {
+        const ok = await confirmDialog(t('Change course'), t('Changing course will recalculate Par, Index and scores. Continue?'));
+        if (!ok) return;
+      }
+      activeGameId = existing.id;
+      state = {
+        ...state,
+        ...nextState,
+        scores: normalizeScores(existing.scores)
+      };
+      const updated = replaceRound(roundFromState({
+        ...existing,
+        totals: {
+          ...existing.totals,
+          teeTime
+        }
+      }, gameStatus(existing)));
+      closeGameModal();
+      render();
+      scheduleAutoSync(updated);
+      return;
+    }
+
+    state = {
+      ...nextState,
       scores: emptyScores()
     };
     const game = replaceRound(roundFromState({
@@ -1714,6 +1983,10 @@ function init() {
   if (!Array.isArray(state.players) || state.players.length !== 4) {
     state.players = ['Player 1', 'Player 2', 'Player 3', 'Player 4'];
   }
+  state.handicaps = normalizeHandicaps(state.handicaps);
+  state.scoreMode = state.scoreMode === 'net' ? 'net' : 'gross';
+  state.underParFlip = 'underParFlip' in state ? Boolean(state.underParFlip) : Boolean(state.birdieFlip);
+  state.birdieFlip = state.underParFlip;
   chooseInitialGame();
   if (activeGameId) loadGame(activeGameId, false, false);
   if (cloudReady) {
