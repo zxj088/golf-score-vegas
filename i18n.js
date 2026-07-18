@@ -107,7 +107,7 @@
     'Score Entry': '输入成绩',
     'Game': '比赛',
     'HCP {value}': '差点 {value}',
-    'Difficulty {value}': '难度 {value}',
+    'Index {value}': '难度 {value}',
     'Gross scoring': '实际杆计分',
     'Net scoring': '净杆计分',
     'Previous hole': '上一洞',

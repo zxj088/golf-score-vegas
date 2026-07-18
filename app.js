@@ -2256,7 +2256,7 @@ function renderPlayEntry() {
   els.playEntryCourse.textContent = course.name || t('Course');
   els.playHolePar.textContent = t('Par {value}', { value: par });
   els.playHoleNumber.textContent = t('Hole {hole}', { hole: activePlayHoleIndex + 1 });
-  els.playHoleIndex.textContent = t('Difficulty {value}', { value: indexValue });
+  els.playHoleIndex.textContent = t('Index {value}', { value: indexValue });
   els.playHolePrev.disabled = activePlayHoleIndex <= 0;
   els.playHoleNext.disabled = activePlayHoleIndex >= 17;
   els.playPlayerRows.innerHTML = '';
@@ -3146,6 +3146,7 @@ function addListeners() {
       if (!activeScoreTarget) return;
       if (button.dataset.scoreClear) {
         clearScorePadValue();
+        advanceScoreTargetOrClose();
         return;
       }
       const par = currentCourse().pars[activeScoreTarget.holeIndex] || 4;

@@ -67,7 +67,7 @@ button.primary {
 .app-shell {
   width: min(980px, 100%);
   margin: 0 auto;
-  padding: max(8px, env(safe-area-inset-top)) 8px max(18px, env(safe-area-inset-bottom));
+  padding: max(8px, env(safe-area-inset-top)) 8px calc(78px + env(safe-area-inset-bottom));
 }
 
 .topbar {
@@ -248,27 +248,46 @@ h3 {
 }
 
 .tabs {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 18;
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 6px;
-  margin-bottom: 8px;
-  padding: 3px;
-  border: 1px solid var(--line);
-  border-color: transparent;
-  border-radius: 12px;
+  gap: 0;
+  width: min(980px, 100%);
+  margin: 0 auto;
+  padding: 6px 8px calc(6px + env(safe-area-inset-bottom));
+  border: 0;
+  border-top: 1px solid rgba(28, 35, 31, 0.1);
+  border-radius: 16px 16px 0 0;
   background: #ffffff;
-  box-shadow: 0 5px 18px rgba(28, 35, 31, 0.08);
+  box-shadow: 0 -8px 24px rgba(28, 35, 31, 0.12);
 }
 
 .tab {
-  min-height: 32px;
+  display: grid;
+  min-height: 54px;
+  place-items: center;
+  gap: 2px;
   border: 0;
+  border-radius: 12px;
+  padding: 3px 2px;
+  color: var(--muted);
   background: transparent;
+  font-size: 11px;
+  font-weight: 800;
 }
 
 .tab.active {
-  color: #ffffff;
-  background: var(--green);
+  color: var(--green-strong);
+  background: transparent;
+}
+
+.tab-icon {
+  font-size: 22px;
+  line-height: 1;
 }
 
 .sync-bar {
