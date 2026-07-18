@@ -295,8 +295,22 @@ h3 {
 }
 
 .tab-icon-home {
-  font-size: 22px;
-  transform: scale(1.08);
+  position: relative;
+  width: 22px;
+  height: 22px;
+  color: currentColor;
+  transform: translateY(1px);
+}
+
+.tab-icon-home::before {
+  content: "";
+  position: absolute;
+  left: 3px;
+  top: 1px;
+  width: 16px;
+  height: 16px;
+  background: currentColor;
+  clip-path: polygon(50% 0, 100% 43%, 88% 43%, 88% 100%, 12% 100%, 12% 43%, 0 43%);
 }
 
 .tab span:not(.tab-icon) {
@@ -486,33 +500,6 @@ h3 {
   box-shadow: 0 8px 18px rgba(28, 35, 31, 0.07);
 }
 
-.play-player-row.has-previous-score {
-  grid-template-columns: 48px minmax(0, 1fr) 56px 76px;
-}
-
-.previous-score {
-  display: grid;
-  place-items: center;
-  min-height: 54px;
-  border-right: 1px solid var(--line);
-  padding-right: 8px;
-  color: var(--muted);
-  text-align: center;
-}
-
-.previous-score span {
-  font-size: 10px;
-  font-weight: 700;
-  line-height: 1;
-}
-
-.previous-score strong {
-  margin-top: 4px;
-  color: var(--ink);
-  font-size: 20px;
-  line-height: 1;
-}
-
 .play-player-row.team-a {
   border-color: rgba(31, 111, 91, 0.22);
 }
@@ -541,10 +528,35 @@ h3 {
 }
 
 .play-score-meta {
+  display: grid;
+  place-items: center;
   color: var(--ink);
   font-size: 26px;
   font-weight: 800;
   text-align: center;
+}
+
+.play-score-meta.previous-hole-score {
+  gap: 3px;
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1;
+}
+
+.play-score-meta.previous-hole-score small,
+.play-score-meta.previous-hole-score strong {
+  display: block;
+}
+
+.play-score-meta.previous-hole-score small {
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.play-score-meta.previous-hole-score strong {
+  color: var(--ink);
+  font-size: 20px;
+  line-height: 1;
 }
 
 .play-score-button {
@@ -832,8 +844,8 @@ textarea {
 }
 
 .score-mode-line {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: 46px minmax(0, 1fr) minmax(0, 1fr);
   align-items: center;
   gap: 5px;
 }
@@ -842,11 +854,23 @@ textarea {
 .team-result {
   display: inline-flex;
   align-items: center;
+  min-width: 0;
   min-height: 22px;
   border: 1px solid var(--line);
   border-radius: 999px;
   padding: 2px 7px;
   background: #f4f7f5;
+}
+
+.mode-chip {
+  justify-content: center;
+  padding-inline: 4px;
+}
+
+.team-result {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .team-result.winner {
@@ -1504,25 +1528,16 @@ button:disabled {
     padding: 8px;
   }
 
-  .play-player-row.has-previous-score {
-    grid-template-columns: 42px minmax(0, 1fr) 46px 64px;
-  }
-
-  .previous-score {
-    min-height: 48px;
-    padding-right: 6px;
-  }
-
-  .previous-score strong {
-    font-size: 18px;
-  }
-
   .play-player-copy strong {
     font-size: 16px;
   }
 
   .play-score-meta {
     font-size: 22px;
+  }
+
+  .play-score-meta.previous-hole-score strong {
+    font-size: 18px;
   }
 
   .play-score-button {

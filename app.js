@@ -2260,6 +2260,11 @@ function previousHoleScoreText(scoreIndex) {
   return previousScore === null ? '--' : String(previousScore);
 }
 
+function previousHoleScoreHtml(scoreIndex) {
+  if (activePlayHoleIndex <= 0) return '<span>--</span>';
+  return `<small>${escapeHtml(t('Previous'))}</small><strong>${escapeHtml(previousHoleScoreText(scoreIndex))}</strong>`;
+}
+
 function renderPlayEntry() {
   if (!els.playPlayerRows) return;
   const course = currentCourse();
@@ -2293,12 +2298,7 @@ function renderPlayEntry() {
     const netValue = holeValues.net[scoreIndex];
     const row = document.createElement('div');
     row.className = `play-player-row ${scoreIndex < 2 ? 'team-a' : 'team-b'}`;
-    row.classList.toggle('has-previous-score', activePlayHoleIndex > 0);
     row.innerHTML = `
-      <div class="previous-score" ${activePlayHoleIndex <= 0 ? 'hidden' : ''}>
-        <span></span>
-        <strong></strong>
-      </div>
       <div class="play-player-copy">
         <strong></strong>
         <span></span>
@@ -2306,12 +2306,11 @@ function renderPlayEntry() {
       <div class="play-score-meta"></div>
       <button class="play-score-button" type="button"></button>
     `;
-    row.querySelector('.previous-score span').textContent = t('Previous');
-    row.querySelector('.previous-score strong').textContent = previousHoleScoreText(scoreIndex);
     row.querySelector('.play-player-copy strong').textContent = player || t('Player');
     row.querySelector('.play-player-copy span').textContent = t('HCP {value}', { value: state.handicaps?.[scoreIndex] || 0 });
     const meta = row.querySelector('.play-score-meta');
-    meta.textContent = scoreRelativeText(grossValue, par);
+    meta.classList.toggle('previous-hole-score', activePlayHoleIndex > 0);
+    meta.innerHTML = activePlayHoleIndex > 0 ? previousHoleScoreHtml(scoreIndex) : scoreRelativeText(grossValue, par);
     const button = row.querySelector('.play-score-button');
     button.innerHTML = grossValue
       ? `<span>${grossValue}</span>${state.scoreMode === 'net' && netValue ? `<small>${t('Net')} ${netValue}</small>` : ''}`
@@ -3038,8 +3037,8 @@ function roundScoreSummaryHtml(round) {
   const players = Array.isArray(round.players) ? round.players : [];
   const [a1 = 'Player 1', a2 = 'Player 2', b1 = 'Player 3', b2 = 'Player 4'] = players;
   const modes = [
-    { id: 'gross', label: t('Gross scoring') },
-    { id: 'net', label: t('Net scoring') }
+    { id: 'gross', label: t('Gross') },
+    { id: 'net', label: t('Net') }
   ];
   return `
     ${modes.map(mode => {
