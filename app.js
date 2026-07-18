@@ -419,6 +419,8 @@ let activePlayHoleIndex = 0;
 let playHoleTouchStartX = null;
 let installPromptEvent = null;
 let courseSearchMode = 'shared';
+let previousHistoryTimeFilter = 'last-7-days';
+let historyRange = { from: '', to: '' };
 const clientId = getClientId();
 let state = {
   courseId: defaultCourses[0].id,
@@ -540,6 +542,11 @@ const els = {
   historyList: document.querySelector('#historyList'),
   historyTimeFilter: document.querySelector('#historyTimeFilter'),
   historyCourseFilter: document.querySelector('#historyCourseFilter'),
+  historyRangeModal: document.querySelector('#historyRangeModal'),
+  historyRangeForm: document.querySelector('#historyRangeForm'),
+  historyRangeFrom: document.querySelector('#historyRangeFrom'),
+  historyRangeTo: document.querySelector('#historyRangeTo'),
+  historyRangeCancel: document.querySelector('#historyRangeCancel'),
   syncStatus: document.querySelector('#syncStatus'),
   appDialog: document.querySelector('#appDialog'),
   dialogForm: document.querySelector('#dialogForm'),
@@ -3017,24 +3024,31 @@ function startOfDay(date) {
   return new Date(date.getFullYear(), date.getMonth(), date.getDate());
 }
 
+function dateInputValue(date) {
+  const pad = value => String(value).padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+}
+
+function addDays(date, days) {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate() + days);
+}
+
 function historyTimeRange(value) {
   const now = new Date();
   const today = startOfDay(now);
   switch (value) {
-    case 'this-week': {
-      const day = today.getDay() || 7;
-      return { start: new Date(today.getFullYear(), today.getMonth(), today.getDate() - day + 1), end: null };
+    case 'last-7-days':
+      return { start: addDays(today, -6), end: addDays(today, 1) };
+    case 'last-30-days':
+      return { start: addDays(today, -29), end: addDays(today, 1) };
+    case 'time-between': {
+      const from = historyRange.from ? new Date(`${historyRange.from}T00:00`) : null;
+      const to = historyRange.to ? new Date(`${historyRange.to}T00:00`) : null;
+      return {
+        start: from && !Number.isNaN(from.getTime()) ? from : null,
+        end: to && !Number.isNaN(to.getTime()) ? addDays(to, 1) : null
+      };
     }
-    case 'this-month':
-      return { start: new Date(now.getFullYear(), now.getMonth(), 1), end: null };
-    case 'last-3-months':
-      return { start: new Date(now.getFullYear(), now.getMonth() - 3, now.getDate()), end: null };
-    case 'this-year':
-      return { start: new Date(now.getFullYear(), 0, 1), end: null };
-    case 'last-year':
-      return { start: new Date(now.getFullYear() - 1, 0, 1), end: new Date(now.getFullYear(), 0, 1) };
-    case 'last-3-years':
-      return { start: new Date(now.getFullYear() - 3, now.getMonth(), now.getDate()), end: null };
     default:
       return { start: null, end: null };
   }
@@ -3084,6 +3098,32 @@ function filteredHistoryRounds(historyRounds) {
     const courseMatches = courseValue === 'all' || historyCourseKey(round) === courseValue;
     return courseMatches && roundMatchesHistoryTime(round, timeValue);
   });
+}
+
+function defaultHistoryRange() {
+  const today = startOfDay(new Date());
+  return {
+    from: historyRange.from || dateInputValue(addDays(today, -6)),
+    to: historyRange.to || dateInputValue(today)
+  };
+}
+
+function openHistoryRangeModal() {
+  const range = defaultHistoryRange();
+  els.historyRangeFrom.value = range.from;
+  els.historyRangeTo.value = range.to;
+  els.historyRangeModal.hidden = false;
+  els.historyRangeFrom.focus();
+}
+
+function closeHistoryRangeModal() {
+  els.historyRangeModal.hidden = true;
+}
+
+function cancelHistoryRangeModal() {
+  closeHistoryRangeModal();
+  els.historyTimeFilter.value = previousHistoryTimeFilter;
+  renderStart();
 }
 
 function roundTeamsLine(round) {
@@ -3279,8 +3319,34 @@ function addListeners() {
   });
 
   els.appTitle.addEventListener('click', promptInstallApp);
-  els.historyTimeFilter.addEventListener('change', renderStart);
+  els.historyTimeFilter.addEventListener('change', () => {
+    if (els.historyTimeFilter.value === 'time-between') {
+      openHistoryRangeModal();
+      return;
+    }
+    previousHistoryTimeFilter = els.historyTimeFilter.value;
+    renderStart();
+  });
   els.historyCourseFilter.addEventListener('change', renderStart);
+  els.historyRangeForm.addEventListener('submit', event => {
+    event.preventDefault();
+    const from = els.historyRangeFrom.value;
+    const to = els.historyRangeTo.value;
+    if (!from || !to || new Date(`${from}T00:00`) > new Date(`${to}T00:00`)) {
+      els.historyRangeTo.setCustomValidity(t('Choose a valid date range.'));
+      els.historyRangeTo.reportValidity();
+      els.historyRangeTo.setCustomValidity('');
+      return;
+    }
+    historyRange = { from, to };
+    previousHistoryTimeFilter = 'time-between';
+    closeHistoryRangeModal();
+    renderStart();
+  });
+  els.historyRangeCancel.addEventListener('click', cancelHistoryRangeModal);
+  els.historyRangeModal.addEventListener('click', event => {
+    if (event.target === els.historyRangeModal) cancelHistoryRangeModal();
+  });
 
   els.editGame.addEventListener('click', async () => {
     if (!currentGame()) return;
