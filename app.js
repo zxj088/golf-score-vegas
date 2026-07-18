@@ -417,7 +417,6 @@ let dialogResolver = null;
 let activeScoreTarget = null;
 let activePlayHoleIndex = 0;
 let playHoleTouchStartX = null;
-let installPromptEvent = null;
 let courseSearchMode = 'shared';
 const clientId = getClientId();
 let state = {
@@ -2808,14 +2807,6 @@ async function showRulesDialog() {
 }
 
 async function promptInstallApp() {
-  const answer = await confirmDialog(t('Add to phone desktop'), t('Do you want to add this app to your phone desktop?'));
-  if (!answer) return;
-  if (installPromptEvent) {
-    installPromptEvent.prompt();
-    await installPromptEvent.userChoice.catch(() => null);
-    installPromptEvent = null;
-    return;
-  }
   await showMessage(t('Add to phone desktop'), t('Use your browser menu and choose Add to Home Screen.'));
 }
 
@@ -3183,11 +3174,6 @@ function switchView(name) {
 }
 
 function addListeners() {
-  window.addEventListener('beforeinstallprompt', event => {
-    event.preventDefault();
-    installPromptEvent = event;
-  });
-
   document.querySelectorAll('.tab').forEach(tab => {
     tab.addEventListener('click', () => switchView(tab.dataset.view));
   });
@@ -3627,7 +3613,8 @@ function init() {
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js')
+    navigator.serviceWorker.getRegistrations()
+      .then(registrations => Promise.all(registrations.map(registration => registration.unregister())))
       .catch(() => {});
   });
 }
