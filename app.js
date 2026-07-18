@@ -2199,13 +2199,9 @@ function advanceScoreTargetOrClose({ allowNextHole = false } = {}) {
   if (!activeScoreTarget) return;
   if (activeScoreTarget.scoreIndex >= 3) {
     if (allowNextHole && activeScoreTarget.holeIndex < 17) {
-      activeScoreTarget = {
-        holeIndex: activeScoreTarget.holeIndex + 1,
-        scoreIndex: 0
-      };
-      activePlayHoleIndex = activeScoreTarget.holeIndex;
+      activePlayHoleIndex = activeScoreTarget.holeIndex + 1;
       renderPlayEntry();
-      updateScorePad();
+      closeScorePad();
       return;
     }
     closeScorePad();
