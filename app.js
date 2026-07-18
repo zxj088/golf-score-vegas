@@ -1090,7 +1090,7 @@ function setSyncState(next) {
 
 function renderSyncStatus() {
   if (!els.syncStatus || !els.editGame) return;
-  els.syncStatus.textContent = syncState.busy ? t('Syncing...') : syncState.label;
+  els.syncStatus.textContent = syncState.busy ? t('sync...') : (syncState.ok ? t('sync') : syncState.label);
   els.syncStatus.title = syncState.title;
   els.syncStatus.classList.toggle('sync-ok', Boolean(syncState.ok) && !syncState.busy);
   els.syncStatus.classList.toggle('sync-bad', !syncState.ok && !syncState.busy);

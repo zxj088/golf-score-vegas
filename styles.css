@@ -325,15 +325,16 @@ h3 {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  min-height: 32px;
+  min-height: 30px;
   margin: 0;
-  padding: 4px 8px;
+  padding: 3px 6px;
   border: 1px solid var(--line);
   border-radius: 8px;
   color: var(--muted);
   background: rgba(255, 253, 248, 0.72);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
+  white-space: nowrap;
 }
 
 .sync-bar[hidden] {
@@ -353,8 +354,7 @@ h3 {
 
 .leaderboard-tools {
   display: grid;
-  grid-template-columns: minmax(86px, 0.32fr) minmax(0, 1fr);
-  gap: 6px;
+  grid-template-columns: 1fr;
   margin-bottom: 7px;
 }
 
@@ -388,7 +388,28 @@ h3 {
 }
 
 .leaderboard-tools .control-panel {
+  grid-template-columns: minmax(0, 1fr) 58px 76px 48px;
+  align-items: end;
+  gap: 6px;
   margin-bottom: 0;
+}
+
+.leaderboard-tools .control-panel > label {
+  gap: 0;
+}
+
+.leaderboard-tools .control-panel > label:not(.toggle-row) {
+  font-size: 0;
+}
+
+.leaderboard-tools .mode-control {
+  margin-right: 8px;
+}
+
+.leaderboard-tools .toggle-row {
+  min-height: 30px;
+  padding: 0 7px;
+  font-size: 11px;
 }
 
 .play-entry {
@@ -1517,7 +1538,12 @@ button:disabled {
   }
 
   .leaderboard-tools .control-panel {
-    grid-template-columns: minmax(0, 1fr) 82px 70px;
+    grid-template-columns: minmax(0, 1fr) 54px 68px 44px;
+    gap: 5px;
+  }
+
+  .leaderboard-tools .mode-control {
+    margin-right: 6px;
   }
 
   .play-entry-head {

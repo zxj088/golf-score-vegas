@@ -111,6 +111,8 @@
     'Edit Code': '编辑密码',
     'Cloud sync Not ok': '云同步失败',
     'Cloud sync ok': '云同步成功',
+    'sync': '同步',
+    'sync...': '同步...',
     'Syncing...': '正在同步...',
     'Delete': '删除',
     'Custom': '自定义',
