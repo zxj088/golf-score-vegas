@@ -3264,11 +3264,11 @@ function addListeners() {
   });
   els.scorePadMinus.addEventListener('click', () => {
     const current = parseScore(els.scorePadInput.textContent) || currentCourse().pars[activeScoreTarget?.holeIndex || 0] || 4;
-    commitScorePadValue(current - 1);
+    commitScorePadValueAndAdvance(current - 1);
   });
   els.scorePadPlus.addEventListener('click', () => {
     const current = parseScore(els.scorePadInput.textContent) || currentCourse().pars[activeScoreTarget?.holeIndex || 0] || 4;
-    commitScorePadValue(current + 1);
+    commitScorePadValueAndAdvance(current + 1);
   });
   els.playHolePrev.addEventListener('click', () => setActivePlayHole(activePlayHoleIndex - 1));
   els.playHoleNext.addEventListener('click', () => setActivePlayHole(activePlayHoleIndex + 1));
@@ -3588,7 +3588,7 @@ function init() {
   state.underParFlip = 'underParFlip' in state ? Boolean(state.underParFlip) : Boolean(state.birdieFlip);
   state.birdieFlip = state.underParFlip;
   chooseInitialGame();
-  if (activeGameId) loadGame(activeGameId, false, false);
+  if (activeGameId) loadGame(activeGameId, shouldResumeEditing, false);
   isEditing = shouldResumeEditing;
   if (cloudReady) {
     setSyncState({
