@@ -326,6 +326,7 @@ h3 {
   justify-content: center;
   gap: 8px;
   min-height: 30px;
+  height: 30px;
   margin: 0;
   padding: 3px 6px;
   border: 1px solid var(--line);
@@ -389,12 +390,14 @@ h3 {
 
 .leaderboard-tools .control-panel {
   grid-template-columns: minmax(0, 1fr) 58px 76px 48px;
-  align-items: end;
+  align-items: center;
   gap: 6px;
   margin-bottom: 0;
 }
 
 .leaderboard-tools .control-panel > label {
+  display: block;
+  min-height: 0;
   gap: 0;
 }
 
@@ -402,14 +405,29 @@ h3 {
   font-size: 0;
 }
 
+.leaderboard-tools select {
+  width: 100%;
+  min-height: 30px;
+  height: 30px;
+  padding: 2px 8px;
+  font-size: 12px;
+}
+
 .leaderboard-tools .mode-control {
   margin-right: 8px;
 }
 
-.leaderboard-tools .toggle-row {
+.leaderboard-tools .control-panel > .toggle-row {
+  align-self: auto;
   min-height: 30px;
+  height: 30px;
   padding: 0 7px;
   font-size: 11px;
+}
+
+.leaderboard-tools .toggle-row input {
+  width: 16px;
+  min-height: 16px;
 }
 
 .play-entry {
