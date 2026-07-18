@@ -415,6 +415,7 @@ let editingCourseId = '';
 let autoSyncTimer = null;
 let dialogResolver = null;
 let activeScoreTarget = null;
+let activePlayHoleIndex = 0;
 let courseSearchMode = 'shared';
 const clientId = getClientId();
 let state = {
@@ -441,6 +442,15 @@ let syncState = {
 const els = {
   scoreStrip: document.querySelector('#scoreStrip'),
   syncBar: document.querySelector('#syncBar'),
+  playEntryMode: document.querySelector('#playEntryMode'),
+  playEntryTitle: document.querySelector('#playEntryTitle'),
+  playEntryCourse: document.querySelector('#playEntryCourse'),
+  playHolePrev: document.querySelector('#playHolePrev'),
+  playHoleNext: document.querySelector('#playHoleNext'),
+  playHolePar: document.querySelector('#playHolePar'),
+  playHoleNumber: document.querySelector('#playHoleNumber'),
+  playHoleIndex: document.querySelector('#playHoleIndex'),
+  playPlayerRows: document.querySelector('#playPlayerRows'),
   rulesButton: document.querySelector('#rulesButton'),
   languageButton: document.querySelector('#languageButton'),
   shareButton: document.querySelector('#shareButton'),
@@ -2165,6 +2175,7 @@ function commitScorePadValue(value) {
   renderScoreStrip();
   renderStart();
   renderHoles();
+  renderPlayEntry();
   updateScorePad();
 }
 
@@ -2197,6 +2208,78 @@ function closeScorePad() {
   if (!els.scorePad) return;
   els.scorePad.hidden = true;
   activeScoreTarget = null;
+}
+
+function firstIncompleteHole() {
+  const index = state.scores.findIndex(row => row.some(value => !parseScore(value)));
+  return index >= 0 ? index : 17;
+}
+
+function setActivePlayHole(index) {
+  activePlayHoleIndex = Math.max(0, Math.min(17, Number(index) || 0));
+  renderPlayEntry();
+}
+
+function scoreRelativeText(score, par) {
+  const parsed = parseScore(score);
+  if (parsed === null) return '--';
+  const value = parsed - par;
+  return value > 0 ? `+${value}` : String(value);
+}
+
+function renderPlayEntry() {
+  if (!els.playPlayerRows) return;
+  const course = currentCourse();
+  const game = currentGame();
+  activePlayHoleIndex = Math.max(0, Math.min(17, activePlayHoleIndex));
+  const par = course.pars[activePlayHoleIndex] || 4;
+  const indexValue = course.indexes[activePlayHoleIndex] || activePlayHoleIndex + 1;
+  const scores = state.scores[activePlayHoleIndex] || ['', '', '', ''];
+  const holeValues = holeGrossAndNet(scores, activePlayHoleIndex);
+
+  els.playEntryMode.textContent = t('Score Entry');
+  els.playEntryTitle.textContent = game ? roundListDate(game) : t('No games currently playing');
+  els.playEntryCourse.textContent = course.name || t('Course');
+  els.playHolePar.textContent = t('Par {value}', { value: par });
+  els.playHoleNumber.textContent = t('Hole {hole}', { hole: activePlayHoleIndex + 1 });
+  els.playHoleIndex.textContent = t('HCP {value}', { value: indexValue });
+  els.playHolePrev.disabled = activePlayHoleIndex <= 0;
+  els.playHoleNext.disabled = activePlayHoleIndex >= 17;
+  els.playPlayerRows.innerHTML = '';
+
+  if (!game) {
+    const empty = document.createElement('div');
+    empty.className = 'empty-state';
+    empty.textContent = t('No games currently playing');
+    els.playPlayerRows.append(empty);
+    return;
+  }
+
+  state.players.forEach((player, scoreIndex) => {
+    const grossValue = scores[scoreIndex] || '';
+    const netValue = holeValues.net[scoreIndex];
+    const row = document.createElement('div');
+    row.className = `play-player-row ${scoreIndex < 2 ? 'team-a' : 'team-b'}`;
+    row.innerHTML = `
+      <div class="play-player-copy">
+        <strong></strong>
+        <span></span>
+      </div>
+      <div class="play-score-meta"></div>
+      <button class="play-score-button" type="button"></button>
+    `;
+    row.querySelector('strong').textContent = player || t('Player');
+    row.querySelector('span').textContent = t('HCP {value}', { value: state.handicaps?.[scoreIndex] || 0 });
+    const meta = row.querySelector('.play-score-meta');
+    meta.textContent = scoreRelativeText(grossValue, par);
+    const button = row.querySelector('.play-score-button');
+    button.innerHTML = grossValue
+      ? `<span>${grossValue}</span>${state.scoreMode === 'net' && netValue ? `<small>${t('Net')} ${netValue}</small>` : ''}`
+      : '<span>--</span>';
+    button.disabled = !isEditing;
+    button.addEventListener('click', () => openScorePad(activePlayHoleIndex, scoreIndex));
+    els.playPlayerRows.append(row);
+  });
 }
 
 function teamNumber(scores, par, shouldFlip) {
@@ -2405,6 +2488,7 @@ function loadGame(gameId, editable = false, goToPlay = true) {
   activeGameId = round.id;
   isEditing = editable;
   applyGameToState(round);
+  activePlayHoleIndex = firstIncompleteHole();
   saveState();
   render();
   if (goToPlay) switchView('play');
@@ -2878,7 +2962,10 @@ function renderGameList(container, rounds, emptyText, status) {
     row.querySelector('.game-main').textContent = `${round.courseName || t('Course')} | ${roundListDate(round)}`;
     row.querySelector('.game-teams').textContent = roundTeamsLine(round);
     row.querySelector('.game-score').textContent = t('Total score: A {a}, B {b}', { a: Number(total.a || 0), b: Number(total.b || 0) });
-    row.querySelector('.game-open').addEventListener('click', () => loadGame(round.id, false, true));
+    row.querySelector('.game-open').addEventListener('click', () => {
+      loadGame(round.id, false, false);
+      switchView(status === 'playing' ? 'play' : 'leaderboard');
+    });
     if (status === 'playing') {
       const editInfoButton = document.createElement('button');
       editInfoButton.type = 'button';
@@ -2919,6 +3006,7 @@ function render() {
   renderInputs();
   renderScoreStrip();
   renderHoles();
+  renderPlayEntry();
   renderCourses();
   renderStart();
   renderSyncStatus();
@@ -2932,11 +3020,12 @@ function switchView(name) {
     view.classList.toggle('active', view.id === `${name}View`);
   });
   if (els.scoreStrip) {
-    els.scoreStrip.hidden = name !== 'play';
+    els.scoreStrip.hidden = name !== 'leaderboard';
   }
   if (els.syncBar) {
-    els.syncBar.hidden = name !== 'play';
+    els.syncBar.hidden = name !== 'leaderboard';
   }
+  if (name === 'play') renderPlayEntry();
 }
 
 function addListeners() {
@@ -3020,6 +3109,8 @@ function addListeners() {
     const current = parseScore(els.scorePadInput.textContent) || currentCourse().pars[activeScoreTarget?.holeIndex || 0] || 4;
     commitScorePadValue(current + 1);
   });
+  els.playHolePrev.addEventListener('click', () => setActivePlayHole(activePlayHoleIndex - 1));
+  els.playHoleNext.addEventListener('click', () => setActivePlayHole(activePlayHoleIndex + 1));
   document.querySelectorAll('.score-quick button').forEach(button => {
     button.addEventListener('click', () => {
       if (!activeScoreTarget) return;
@@ -3284,6 +3375,7 @@ function addListeners() {
     }, 'playing'));
     activeGameId = game.id;
     isEditing = true;
+    activePlayHoleIndex = 0;
     saveState();
     closeGameModal();
     render();

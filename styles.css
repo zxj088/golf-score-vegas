@@ -246,7 +246,7 @@ h3 {
 
 .tabs {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 6px;
   margin-bottom: 8px;
   padding: 3px;
@@ -269,11 +269,11 @@ h3 {
 .sync-bar {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
   gap: 8px;
-  min-height: 34px;
-  margin: -2px 0 8px;
-  padding: 5px 8px;
+  min-height: 32px;
+  margin: 0;
+  padding: 4px 8px;
   border: 1px solid var(--line);
   border-radius: 8px;
   color: var(--muted);
@@ -295,6 +295,13 @@ h3 {
 .sync-bar button:disabled {
   cursor: wait;
   opacity: 0.65;
+}
+
+.leaderboard-tools {
+  display: grid;
+  grid-template-columns: minmax(86px, 0.32fr) minmax(0, 1fr);
+  gap: 6px;
+  margin-bottom: 7px;
 }
 
 .sync-ok {
@@ -324,6 +331,160 @@ h3 {
   grid-template-columns: minmax(0, 1fr) minmax(110px, 0.34fr) minmax(86px, 0.26fr);
   gap: 6px;
   margin-bottom: 7px;
+}
+
+.leaderboard-tools .control-panel {
+  margin-bottom: 0;
+}
+
+.play-entry {
+  display: grid;
+  gap: 10px;
+}
+
+.play-entry-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px;
+  background: var(--panel);
+  box-shadow: var(--shadow);
+}
+
+.play-entry-head h2 {
+  font-size: 18px;
+}
+
+.play-entry-head span {
+  display: block;
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.play-entry-head button {
+  min-width: 76px;
+  color: var(--green);
+  font-weight: 800;
+}
+
+.play-hole-strip {
+  display: grid;
+  grid-template-columns: 44px 1fr 44px;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid rgba(31, 111, 91, 0.22);
+  border-radius: 8px;
+  padding: 8px;
+  color: #ffffff;
+  background: var(--green);
+}
+
+.play-hole-strip button {
+  min-height: 42px;
+  border: 0;
+  color: #ffffff;
+  background: rgba(0, 0, 0, 0.14);
+  font-size: 34px;
+  line-height: 1;
+}
+
+.play-hole-strip button:disabled {
+  opacity: 0.35;
+}
+
+.play-hole-strip div {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 8px;
+  text-align: center;
+}
+
+.play-hole-strip strong {
+  font-size: 22px;
+}
+
+.play-hole-strip span {
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.play-player-list {
+  display: grid;
+  gap: 8px;
+}
+
+.play-player-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 56px 76px;
+  align-items: center;
+  gap: 8px;
+  min-height: 86px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px;
+  background: var(--panel);
+  box-shadow: 0 8px 18px rgba(28, 35, 31, 0.07);
+}
+
+.play-player-row.team-a {
+  border-color: rgba(31, 111, 91, 0.22);
+}
+
+.play-player-row.team-b {
+  border-color: rgba(201, 137, 42, 0.28);
+}
+
+.play-player-copy strong,
+.play-player-copy span {
+  display: block;
+}
+
+.play-player-copy strong {
+  overflow: hidden;
+  font-size: 18px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.play-player-copy span {
+  margin-top: 5px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.play-score-meta {
+  color: var(--ink);
+  font-size: 26px;
+  font-weight: 800;
+  text-align: center;
+}
+
+.play-score-button {
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  min-height: 64px;
+  border: 0;
+  border-radius: 50%;
+  color: #ffffff;
+  background: #22b66f;
+  font-size: 26px;
+  font-weight: 900;
+}
+
+.play-score-button small {
+  display: block;
+  margin-top: -4px;
+  font-size: 10px;
+  font-weight: 800;
 }
 
 label {
@@ -1146,6 +1307,56 @@ button:disabled {
 
   .control-panel {
     grid-template-columns: minmax(0, 1fr) 86px 72px;
+  }
+
+  .leaderboard-tools {
+    grid-template-columns: 1fr;
+  }
+
+  .leaderboard-tools .control-panel {
+    grid-template-columns: minmax(0, 1fr) 82px 70px;
+  }
+
+  .play-entry-head {
+    padding: 8px;
+  }
+
+  .play-hole-strip {
+    grid-template-columns: 38px 1fr 38px;
+    gap: 6px;
+  }
+
+  .play-hole-strip div {
+    gap: 5px;
+  }
+
+  .play-hole-strip strong {
+    font-size: 20px;
+  }
+
+  .play-hole-strip span {
+    font-size: 12px;
+  }
+
+  .play-player-row {
+    grid-template-columns: minmax(0, 1fr) 46px 64px;
+    min-height: 76px;
+    padding: 8px;
+  }
+
+  .play-player-copy strong {
+    font-size: 16px;
+  }
+
+  .play-score-meta {
+    font-size: 22px;
+  }
+
+  .play-score-button {
+    width: 58px;
+    height: 58px;
+    min-height: 58px;
+    font-size: 24px;
   }
 
   .scorecard table {
