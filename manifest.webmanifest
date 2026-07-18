@@ -1,7 +1,8 @@
 {
   "name": "Vegas Golf Scorecard",
   "short_name": "Vegas Golf",
-  "start_url": "./",
+  "id": "/golf-score-vegas/",
+  "start_url": "./?source=pwa",
   "scope": "./",
   "display": "standalone",
   "background_color": "#f6f4ef",
