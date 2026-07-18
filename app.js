@@ -417,6 +417,7 @@ let dialogResolver = null;
 let activeScoreTarget = null;
 let activePlayHoleIndex = 0;
 let playHoleTouchStartX = null;
+let installPromptEvent = null;
 let courseSearchMode = 'shared';
 const clientId = getClientId();
 let state = {
@@ -443,6 +444,7 @@ let syncState = {
 const els = {
   scoreStrip: document.querySelector('#scoreStrip'),
   syncBar: document.querySelector('#syncBar'),
+  appTitle: document.querySelector('#appTitle'),
   playEntryMode: document.querySelector('#playEntryMode'),
   playEntryTitle: document.querySelector('#playEntryTitle'),
   playEntryCourse: document.querySelector('#playEntryCourse'),
@@ -2193,9 +2195,19 @@ function clearScorePadValue() {
   updateScorePad();
 }
 
-function advanceScoreTargetOrClose() {
+function advanceScoreTargetOrClose({ allowNextHole = false } = {}) {
   if (!activeScoreTarget) return;
   if (activeScoreTarget.scoreIndex >= 3) {
+    if (allowNextHole && activeScoreTarget.holeIndex < 17) {
+      activeScoreTarget = {
+        holeIndex: activeScoreTarget.holeIndex + 1,
+        scoreIndex: 0
+      };
+      activePlayHoleIndex = activeScoreTarget.holeIndex;
+      renderPlayEntry();
+      updateScorePad();
+      return;
+    }
     closeScorePad();
     return;
   }
@@ -2208,7 +2220,7 @@ function advanceScoreTargetOrClose() {
 
 function commitScorePadValueAndAdvance(value) {
   commitScorePadValue(value);
-  advanceScoreTargetOrClose();
+  advanceScoreTargetOrClose({ allowNextHole: true });
 }
 
 function openScorePad(holeIndex, scoreIndex) {
@@ -2757,6 +2769,18 @@ async function showRulesDialog() {
   });
 }
 
+async function promptInstallApp() {
+  const answer = await confirmDialog(t('Add to phone desktop'), t('Do you want to add this app to your phone desktop?'));
+  if (!answer) return;
+  if (installPromptEvent) {
+    installPromptEvent.prompt();
+    await installPromptEvent.userChoice.catch(() => null);
+    installPromptEvent = null;
+    return;
+  }
+  await showMessage(t('Add to phone desktop'), t('Use your browser menu and choose Add to Home Screen.'));
+}
+
 function renderScoreStrip() {
   const course = currentCourse();
   const game = currentGame();
@@ -2949,6 +2973,71 @@ function roundModeLine(round) {
   return mode === 'net' ? t('Net scoring') : t('Gross scoring');
 }
 
+function scoreRoundTotalsForMode(round, scoreMode) {
+  const normalized = normalizeRound(round);
+  const mode = scoreMode === 'net' ? 'net' : 'gross';
+  const handicaps = normalizeHandicaps(normalized.handicaps || normalized.totals?.handicaps);
+  return normalized.scores.reduce((sum, scores, index) => {
+    const par = Number(normalized.pars?.[index] || 4);
+    const indexValue = Number(normalized.indexes?.[index] || index + 1);
+    const gross = scores.map(parseScore);
+    if (gross.some(value => value === null)) return sum;
+
+    const net = gross.map((score, playerIndex) => {
+      return Math.max(1, score - handicapStrokes(handicaps[playerIndex], indexValue));
+    });
+    const activeValues = mode === 'net' ? net : gross;
+    const teamA = [activeValues[0], activeValues[1]];
+    const teamB = [activeValues[2], activeValues[3]];
+    const aUnderPar = Math.min(gross[0], gross[1]) < par;
+    const bUnderPar = Math.min(gross[2], gross[3]) < par;
+    const flipA = normalized.underParFlip && bUnderPar && !aUnderPar;
+    const flipB = normalized.underParFlip && aUnderPar && !bUnderPar;
+    const aNumber = teamNumber(teamA, par, flipA);
+    const bNumber = teamNumber(teamB, par, flipB);
+    const delta = bNumber.value - aNumber.value;
+
+    sum.a += delta;
+    sum.b -= delta;
+    sum.complete += 1;
+    return sum;
+  }, { a: 0, b: 0, complete: 0 });
+}
+
+function escapeHtml(value) {
+  return String(value ?? '').replace(/[&<>"']/g, char => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;'
+  })[char]);
+}
+
+function teamScoreChip(teamLabel, player1, player2, score, otherScore) {
+  const outcomeClass = score === otherScore ? '' : (score > otherScore ? ' winner' : ' loser');
+  return `<span class="team-result${outcomeClass}">${escapeHtml(teamLabel)} (${escapeHtml(player1)}+${escapeHtml(player2)}) ${score}</span>`;
+}
+
+function roundScoreSummaryHtml(round) {
+  const players = Array.isArray(round.players) ? round.players : [];
+  const [a1 = 'Player 1', a2 = 'Player 2', b1 = 'Player 3', b2 = 'Player 4'] = players;
+  const modes = [
+    { id: 'gross', label: t('Gross scoring') },
+    { id: 'net', label: t('Net scoring') }
+  ];
+  return `
+    ${modes.map(mode => {
+      const score = scoreRoundTotalsForMode(round, mode.id);
+      return `<span class="score-mode-line">
+        <span class="mode-chip">${escapeHtml(mode.label)}</span>
+        ${teamScoreChip(t('Team A'), a1, a2, score.a, score.b)}
+        ${teamScoreChip(t('Team B'), b1, b2, score.b, score.a)}
+      </span>`;
+    }).join('')}
+  `.trim();
+}
+
 function renderGameList(container, rounds, emptyText, status) {
   container.innerHTML = '';
   if (!rounds.length) {
@@ -2976,11 +3065,10 @@ function renderGameList(container, rounds, emptyText, status) {
       </button>
       <div class="small-actions"></div>
     `;
-    const total = round.totals || {};
     row.querySelector('.playing-icon').hidden = status !== 'playing';
-    row.querySelector('.game-main').textContent = `${round.courseName || t('Course')} | ${roundListDate(round)} | ${roundModeLine(round)}`;
+    row.querySelector('.game-main').textContent = `${round.courseName || t('Course')} | ${roundListDate(round)}`;
     row.querySelector('.game-teams').textContent = roundTeamsLine(round);
-    row.querySelector('.game-score').textContent = t('Total score: A {a}, B {b}', { a: Number(total.a || 0), b: Number(total.b || 0) });
+    row.querySelector('.game-score').innerHTML = roundScoreSummaryHtml(round);
     row.querySelector('.game-open').addEventListener('click', () => {
       loadGame(round.id, false, false);
       switchView(status === 'playing' ? 'play' : 'leaderboard');
@@ -3048,9 +3136,16 @@ function switchView(name) {
 }
 
 function addListeners() {
+  window.addEventListener('beforeinstallprompt', event => {
+    event.preventDefault();
+    installPromptEvent = event;
+  });
+
   document.querySelectorAll('.tab').forEach(tab => {
     tab.addEventListener('click', () => switchView(tab.dataset.view));
   });
+
+  els.appTitle.addEventListener('click', promptInstallApp);
 
   els.editGame.addEventListener('click', async () => {
     if (!currentGame()) return;

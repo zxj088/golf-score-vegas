@@ -136,6 +136,7 @@ h3 {
 h1 {
   font-size: 22px;
   line-height: 1.05;
+  cursor: pointer;
 }
 
 h2 {
@@ -286,8 +287,15 @@ h3 {
 }
 
 .tab-icon {
+  display: block;
   font-size: 22px;
   line-height: 1;
+}
+
+.tab span:not(.tab-icon) {
+  display: block;
+  font-size: 10px;
+  line-height: 1.15;
 }
 
 .sync-bar {
@@ -772,8 +780,42 @@ textarea {
 }
 
 .game-score {
-  color: var(--green);
+  display: grid;
+  gap: 4px;
+  color: var(--muted);
   font-weight: 800;
+  overflow: visible;
+  white-space: normal;
+}
+
+.score-mode-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px;
+}
+
+.mode-chip,
+.team-result {
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 2px 7px;
+  background: #f4f7f5;
+}
+
+.team-result.winner {
+  border-color: rgba(179, 69, 63, 0.28);
+  color: var(--red);
+  background: #fff2f1;
+}
+
+.team-result.loser {
+  border-color: rgba(17, 135, 71, 0.24);
+  color: var(--green-strong);
+  background: #ecf8f1;
 }
 
 .playing-icon {
