@@ -528,7 +528,7 @@ h3 {
 
 .play-player-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 56px 76px;
+  grid-template-columns: minmax(0, 1fr) 76px;
   align-items: center;
   gap: 8px;
   min-height: 86px;
@@ -537,6 +537,10 @@ h3 {
   padding: 10px;
   background: var(--panel);
   box-shadow: 0 8px 18px rgba(28, 35, 31, 0.07);
+}
+
+.play-player-row.has-previous-score {
+  grid-template-columns: minmax(0, 1fr) 56px 76px;
 }
 
 .play-player-row.team-a {
@@ -1586,9 +1590,13 @@ button:disabled {
   }
 
   .play-player-row {
-    grid-template-columns: minmax(0, 1fr) 46px 64px;
+    grid-template-columns: minmax(0, 1fr) 64px;
     min-height: 76px;
     padding: 8px;
+  }
+
+  .play-player-row.has-previous-score {
+    grid-template-columns: minmax(0, 1fr) 46px 64px;
   }
 
   .play-player-copy strong {

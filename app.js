@@ -2339,19 +2339,19 @@ function renderPlayEntry() {
     const netValue = holeValues.net[scoreIndex];
     const row = document.createElement('div');
     row.className = `play-player-row ${scoreIndex < 2 ? 'team-a' : 'team-b'}`;
+    row.classList.toggle('has-previous-score', activePlayHoleIndex > 0);
     row.innerHTML = `
       <div class="play-player-copy">
         <strong></strong>
         <span></span>
       </div>
-      <div class="play-score-meta"></div>
+      ${activePlayHoleIndex > 0 ? '<div class="play-score-meta previous-hole-score"></div>' : ''}
       <button class="play-score-button" type="button"></button>
     `;
     row.querySelector('.play-player-copy strong').textContent = player || t('Player');
     row.querySelector('.play-player-copy span').textContent = t('HCP {value}', { value: state.handicaps?.[scoreIndex] || 0 });
     const meta = row.querySelector('.play-score-meta');
-    meta.classList.toggle('previous-hole-score', activePlayHoleIndex > 0);
-    meta.innerHTML = activePlayHoleIndex > 0 ? previousHoleScoreHtml(scoreIndex) : scoreRelativeText(grossValue, par);
+    if (meta) meta.innerHTML = previousHoleScoreHtml(scoreIndex);
     const button = row.querySelector('.play-score-button');
     button.innerHTML = grossValue
       ? `<span>${grossValue}</span>${state.scoreMode === 'net' && netValue ? `<small>${t('Net')} ${netValue}</small>` : ''}`
@@ -3228,14 +3228,12 @@ function renderGameList(container, rounds, emptyText, status) {
             <span class="game-line game-main"></span>
             <span class="small-actions"></span>
           </span>
-          <span class="game-line game-teams"></span>
           <span class="game-line game-score"></span>
         </span>
       </div>
     `;
     row.querySelector('.playing-icon').hidden = status !== 'playing';
     row.querySelector('.game-main').textContent = `${round.courseName || t('Course')} | ${roundListDate(round)}`;
-    row.querySelector('.game-teams').textContent = roundTeamsLine(round);
     row.querySelector('.game-score').innerHTML = roundScoreSummaryHtml(round);
     row.querySelector('.game-open').addEventListener('click', () => {
       loadGame(round.id, false, false);
