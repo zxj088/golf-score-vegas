@@ -3747,6 +3747,7 @@ function init() {
   activeGameId = savedState.activeGameId || '';
   currentView = ['start', 'play', 'leaderboard', 'courses'].includes(savedState.currentView) ? savedState.currentView : 'start';
   const savedPlayHoleIndex = Math.max(0, Math.min(17, Number(savedState.activePlayHoleIndex) || 0));
+  activePlayHoleIndex = savedPlayHoleIndex;
   const shouldResumeEditing = Boolean(savedState.isEditing && activeGameId);
   state = { ...state, ...savedState, scores: normalizeScores(savedState.scores) };
   if (!Array.isArray(state.players) || state.players.length !== 4) {
