@@ -417,6 +417,7 @@ let dialogResolver = null;
 let activeScoreTarget = null;
 let activePlayHoleIndex = 0;
 let playHoleTouchStartX = null;
+let installPromptEvent = null;
 let courseSearchMode = 'shared';
 const clientId = getClientId();
 let state = {
@@ -2807,6 +2808,12 @@ async function showRulesDialog() {
 }
 
 async function promptInstallApp() {
+  if (installPromptEvent) {
+    installPromptEvent.prompt();
+    await installPromptEvent.userChoice.catch(() => null);
+    installPromptEvent = null;
+    return;
+  }
   await showMessage(t('Add to phone desktop'), t('Use your browser menu and choose Add to Home Screen.'));
 }
 
@@ -3043,10 +3050,10 @@ function escapeHtml(value) {
   })[char]);
 }
 
-function teamScoreChip(teamLabel, player1, player2, score) {
+function teamScoreChip(player1, player2, score) {
   const outcomeClass = score === 0 ? '' : (score > 0 ? ' winner' : ' loser');
   const winnerIcon = score > 0 ? '<span class="winner-icon" aria-hidden="true">🎉</span>' : '';
-  return `<span class="team-result${outcomeClass}">${winnerIcon}${escapeHtml(teamLabel)} (${escapeHtml(player1)}+${escapeHtml(player2)}) ${score}</span>`;
+  return `<span class="team-result${outcomeClass}">${winnerIcon}${escapeHtml(player1)}+${escapeHtml(player2)} ${score}</span>`;
 }
 
 function roundScoreSummaryHtml(round) {
@@ -3061,8 +3068,8 @@ function roundScoreSummaryHtml(round) {
       const score = scoreRoundTotalsForMode(round, mode.id);
       return `<span class="score-mode-line">
         <span class="mode-chip">${escapeHtml(mode.label)}</span>
-        ${teamScoreChip(t('Team A'), a1, a2, score.a)}
-        ${teamScoreChip(t('Team B'), b1, b2, score.b)}
+        ${teamScoreChip(a1, a2, score.a)}
+        ${teamScoreChip(b1, b2, score.b)}
       </span>`;
     }).join('')}
   `.trim();
@@ -3174,6 +3181,11 @@ function switchView(name) {
 }
 
 function addListeners() {
+  window.addEventListener('beforeinstallprompt', event => {
+    event.preventDefault();
+    installPromptEvent = event;
+  });
+
   document.querySelectorAll('.tab').forEach(tab => {
     tab.addEventListener('click', () => switchView(tab.dataset.view));
   });
@@ -3613,16 +3625,7 @@ function init() {
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.getRegistrations()
-      .then(registrations => Promise.all(registrations.map(registration => registration.unregister())))
-      .catch(() => {});
-  });
-}
-
-if ('caches' in window) {
-  window.addEventListener('load', () => {
-    caches.keys()
-      .then(keys => Promise.all(keys.filter(key => key.startsWith('vegas-golf-')).map(key => caches.delete(key))))
+    navigator.serviceWorker.register('./sw.js')
       .catch(() => {});
   });
 }
