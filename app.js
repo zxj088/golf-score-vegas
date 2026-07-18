@@ -538,6 +538,8 @@ const els = {
   searchCourse: document.querySelector('#searchCourse'),
   playingList: document.querySelector('#playingList'),
   historyList: document.querySelector('#historyList'),
+  historyTimeFilter: document.querySelector('#historyTimeFilter'),
+  historyCourseFilter: document.querySelector('#historyCourseFilter'),
   syncStatus: document.querySelector('#syncStatus'),
   appDialog: document.querySelector('#appDialog'),
   dialogForm: document.querySelector('#dialogForm'),
@@ -3004,6 +3006,86 @@ function roundListDate(round) {
   return formatTeeTime(round.totals?.teeTime, round.savedAt);
 }
 
+function roundPlayedDate(round) {
+  const teeTime = round?.totals?.teeTime ? new Date(round.totals.teeTime) : null;
+  if (teeTime && !Number.isNaN(teeTime.getTime())) return teeTime;
+  const savedAt = Number(round?.savedAt || 0);
+  return new Date(savedAt || Date.now());
+}
+
+function startOfDay(date) {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+}
+
+function historyTimeRange(value) {
+  const now = new Date();
+  const today = startOfDay(now);
+  switch (value) {
+    case 'this-week': {
+      const day = today.getDay() || 7;
+      return { start: new Date(today.getFullYear(), today.getMonth(), today.getDate() - day + 1), end: null };
+    }
+    case 'this-month':
+      return { start: new Date(now.getFullYear(), now.getMonth(), 1), end: null };
+    case 'last-3-months':
+      return { start: new Date(now.getFullYear(), now.getMonth() - 3, now.getDate()), end: null };
+    case 'this-year':
+      return { start: new Date(now.getFullYear(), 0, 1), end: null };
+    case 'last-year':
+      return { start: new Date(now.getFullYear() - 1, 0, 1), end: new Date(now.getFullYear(), 0, 1) };
+    case 'last-3-years':
+      return { start: new Date(now.getFullYear() - 3, now.getMonth(), now.getDate()), end: null };
+    default:
+      return { start: null, end: null };
+  }
+}
+
+function roundMatchesHistoryTime(round, value) {
+  const { start, end } = historyTimeRange(value);
+  if (!start && !end) return true;
+  const playedAt = roundPlayedDate(round);
+  return (!start || playedAt >= start) && (!end || playedAt < end);
+}
+
+function historyCourseKey(round) {
+  return String(round?.courseId || round?.courseName || '');
+}
+
+function renderHistoryCourseFilter(historyRounds) {
+  if (!els.historyCourseFilter) return;
+  const selected = els.historyCourseFilter.value || 'all';
+  const courses = new Map();
+  historyRounds.forEach(round => {
+    const key = historyCourseKey(round);
+    if (!key || courses.has(key)) return;
+    courses.set(key, round.courseName || t('Course'));
+  });
+  els.historyCourseFilter.innerHTML = '';
+  const allOption = document.createElement('option');
+  allOption.value = 'all';
+  allOption.textContent = t('All played courses');
+  els.historyCourseFilter.append(allOption);
+  Array.from(courses.entries())
+    .sort((a, b) => a[1].localeCompare(b[1]))
+    .forEach(([key, name]) => {
+      const option = document.createElement('option');
+      option.value = key;
+      option.textContent = name;
+      els.historyCourseFilter.append(option);
+    });
+  els.historyCourseFilter.value = courses.has(selected) ? selected : 'all';
+}
+
+function filteredHistoryRounds(historyRounds) {
+  renderHistoryCourseFilter(historyRounds);
+  const timeValue = els.historyTimeFilter?.value || 'all';
+  const courseValue = els.historyCourseFilter?.value || 'all';
+  return historyRounds.filter(round => {
+    const courseMatches = courseValue === 'all' || historyCourseKey(round) === courseValue;
+    return courseMatches && roundMatchesHistoryTime(round, timeValue);
+  });
+}
+
 function roundTeamsLine(round) {
   const players = Array.isArray(round.players) ? round.players : [];
   const [a1 = 'Player 1', a2 = 'Player 2', b1 = 'Player 3', b2 = 'Player 4'] = players;
@@ -3155,7 +3237,7 @@ function renderStart() {
   const playing = savedRounds.filter(round => gameStatus(round) === 'playing');
   const history = savedRounds.filter(round => gameStatus(round) !== 'playing');
   renderGameList(els.playingList, playing, t('No games currently playing'), 'playing');
-  renderGameList(els.historyList, history, t('No finished games'), 'history');
+  renderGameList(els.historyList, filteredHistoryRounds(history), t('No finished games'), 'history');
 }
 
 function render() {
@@ -3197,6 +3279,8 @@ function addListeners() {
   });
 
   els.appTitle.addEventListener('click', promptInstallApp);
+  els.historyTimeFilter.addEventListener('change', renderStart);
+  els.historyCourseFilter.addEventListener('change', renderStart);
 
   els.editGame.addEventListener('click', async () => {
     if (!currentGame()) return;

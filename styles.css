@@ -718,6 +718,12 @@ textarea {
   margin: 0 0 10px;
 }
 
+.history-filters {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  gap: 8px;
+}
+
 .game-section {
   display: grid;
   gap: 8px;
