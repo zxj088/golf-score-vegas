@@ -416,6 +416,7 @@ let autoSyncTimer = null;
 let dialogResolver = null;
 let activeScoreTarget = null;
 let activePlayHoleIndex = 0;
+let currentView = 'start';
 let playHoleTouchStartX = null;
 let installPromptEvent = null;
 let courseSearchMode = 'shared';
@@ -650,7 +651,7 @@ function loadJson(key, fallback) {
 }
 
 function saveState() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...state, activeGameId, isEditing }));
+  localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...state, activeGameId, isEditing, currentView }));
 }
 
 function saveCoursesLocal() {
@@ -3293,19 +3294,21 @@ function render() {
 }
 
 function switchView(name) {
+  currentView = ['start', 'play', 'leaderboard', 'courses'].includes(name) ? name : 'start';
   document.querySelectorAll('.tab').forEach(tab => {
-    tab.classList.toggle('active', tab.dataset.view === name);
+    tab.classList.toggle('active', tab.dataset.view === currentView);
   });
   document.querySelectorAll('.view').forEach(view => {
-    view.classList.toggle('active', view.id === `${name}View`);
+    view.classList.toggle('active', view.id === `${currentView}View`);
   });
   if (els.scoreStrip) {
-    els.scoreStrip.hidden = name !== 'leaderboard';
+    els.scoreStrip.hidden = currentView !== 'leaderboard';
   }
   if (els.syncBar) {
-    els.syncBar.hidden = name !== 'leaderboard';
+    els.syncBar.hidden = currentView !== 'leaderboard';
   }
-  if (name === 'play') renderPlayEntry();
+  if (currentView === 'play') renderPlayEntry();
+  saveState();
 }
 
 function addListeners() {
@@ -3740,6 +3743,7 @@ function init() {
   if (cloudReady) saveHistoryLocal();
   const savedState = loadJson(STORAGE_KEY, {});
   activeGameId = savedState.activeGameId || '';
+  currentView = ['start', 'play', 'leaderboard', 'courses'].includes(savedState.currentView) ? savedState.currentView : 'start';
   const shouldResumeEditing = Boolean(savedState.isEditing && activeGameId);
   state = { ...state, ...savedState, scores: normalizeScores(savedState.scores) };
   if (!Array.isArray(state.players) || state.players.length !== 4) {
@@ -3766,6 +3770,7 @@ function init() {
   renderCourseParInputs();
   addListeners();
   render();
+  switchView(currentView);
   syncFromCloud(false);
   window.setInterval(() => {
     if (!hasSupabaseConfig() || syncState.busy) return;
