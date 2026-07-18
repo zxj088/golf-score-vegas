@@ -416,6 +416,7 @@ let autoSyncTimer = null;
 let dialogResolver = null;
 let activeScoreTarget = null;
 let activePlayHoleIndex = 0;
+let playHoleTouchStartX = null;
 let courseSearchMode = 'shared';
 const clientId = getClientId();
 let state = {
@@ -447,6 +448,7 @@ const els = {
   playEntryCourse: document.querySelector('#playEntryCourse'),
   playHolePrev: document.querySelector('#playHolePrev'),
   playHoleNext: document.querySelector('#playHoleNext'),
+  playHoleSwipe: document.querySelector('#playHoleSwipe'),
   playHolePar: document.querySelector('#playHolePar'),
   playHoleNumber: document.querySelector('#playHoleNumber'),
   playHoleIndex: document.querySelector('#playHoleIndex'),
@@ -2179,6 +2181,18 @@ function commitScorePadValue(value) {
   updateScorePad();
 }
 
+function clearScorePadValue() {
+  if (!activeScoreTarget) return;
+  const { holeIndex, scoreIndex } = activeScoreTarget;
+  state.scores[holeIndex][scoreIndex] = '';
+  persistActiveGame(true);
+  renderScoreStrip();
+  renderStart();
+  renderHoles();
+  renderPlayEntry();
+  updateScorePad();
+}
+
 function advanceScoreTargetOrClose() {
   if (!activeScoreTarget) return;
   if (activeScoreTarget.scoreIndex >= 3) {
@@ -2242,7 +2256,7 @@ function renderPlayEntry() {
   els.playEntryCourse.textContent = course.name || t('Course');
   els.playHolePar.textContent = t('Par {value}', { value: par });
   els.playHoleNumber.textContent = t('Hole {hole}', { hole: activePlayHoleIndex + 1 });
-  els.playHoleIndex.textContent = t('HCP {value}', { value: indexValue });
+  els.playHoleIndex.textContent = t('Difficulty {value}', { value: indexValue });
   els.playHolePrev.disabled = activePlayHoleIndex <= 0;
   els.playHoleNext.disabled = activePlayHoleIndex >= 17;
   els.playPlayerRows.innerHTML = '';
@@ -2930,6 +2944,11 @@ function roundTeamsLine(round) {
   return t('Team A ({a1}+{a2}) vs. Team B ({b1}+{b2})', { a1, a2, b1, b2 });
 }
 
+function roundModeLine(round) {
+  const mode = round?.scoreMode || round?.totals?.scoreMode;
+  return mode === 'net' ? t('Net scoring') : t('Gross scoring');
+}
+
 function renderGameList(container, rounds, emptyText, status) {
   container.innerHTML = '';
   if (!rounds.length) {
@@ -2959,7 +2978,7 @@ function renderGameList(container, rounds, emptyText, status) {
     `;
     const total = round.totals || {};
     row.querySelector('.playing-icon').hidden = status !== 'playing';
-    row.querySelector('.game-main').textContent = `${round.courseName || t('Course')} | ${roundListDate(round)}`;
+    row.querySelector('.game-main').textContent = `${round.courseName || t('Course')} | ${roundListDate(round)} | ${roundModeLine(round)}`;
     row.querySelector('.game-teams').textContent = roundTeamsLine(round);
     row.querySelector('.game-score').textContent = t('Total score: A {a}, B {b}', { a: Number(total.a || 0), b: Number(total.b || 0) });
     row.querySelector('.game-open').addEventListener('click', () => {
@@ -3111,9 +3130,24 @@ function addListeners() {
   });
   els.playHolePrev.addEventListener('click', () => setActivePlayHole(activePlayHoleIndex - 1));
   els.playHoleNext.addEventListener('click', () => setActivePlayHole(activePlayHoleIndex + 1));
+  els.playHoleSwipe.addEventListener('touchstart', event => {
+    playHoleTouchStartX = event.touches?.[0]?.clientX ?? null;
+  }, { passive: true });
+  els.playHoleSwipe.addEventListener('touchend', event => {
+    if (playHoleTouchStartX === null) return;
+    const endX = event.changedTouches?.[0]?.clientX ?? playHoleTouchStartX;
+    const delta = endX - playHoleTouchStartX;
+    playHoleTouchStartX = null;
+    if (Math.abs(delta) < 42) return;
+    setActivePlayHole(activePlayHoleIndex + (delta < 0 ? 1 : -1));
+  }, { passive: true });
   document.querySelectorAll('.score-quick button').forEach(button => {
     button.addEventListener('click', () => {
       if (!activeScoreTarget) return;
+      if (button.dataset.scoreClear) {
+        clearScorePadValue();
+        return;
+      }
       const par = currentCourse().pars[activeScoreTarget.holeIndex] || 4;
       commitScorePadValueAndAdvance(par + Number(button.dataset.scoreOffset || 0));
     });
