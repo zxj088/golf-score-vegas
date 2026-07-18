@@ -269,6 +269,7 @@ h3 {
 
 .tab {
   display: grid;
+  grid-template-rows: 24px auto;
   min-height: 54px;
   place-items: center;
   gap: 2px;
@@ -289,12 +290,19 @@ h3 {
 .tab-icon {
   display: block;
   font-size: 22px;
+  font-weight: 900;
   line-height: 1;
+}
+
+.tab-icon-home {
+  font-size: 22px;
+  transform: scale(1.08);
 }
 
 .tab span:not(.tab-icon) {
   display: block;
   font-size: 10px;
+  font-weight: 600;
   line-height: 1.15;
 }
 
@@ -807,15 +815,20 @@ textarea {
 }
 
 .team-result.winner {
+  border-color: rgba(17, 135, 71, 0.24);
+  color: var(--green-strong);
+  background: #ecf8f1;
+}
+
+.team-result.loser {
   border-color: rgba(179, 69, 63, 0.28);
   color: var(--red);
   background: #fff2f1;
 }
 
-.team-result.loser {
-  border-color: rgba(17, 135, 71, 0.24);
-  color: var(--green-strong);
-  background: #ecf8f1;
+.winner-icon {
+  margin-right: 3px;
+  color: var(--green);
 }
 
 .playing-icon {
@@ -1149,6 +1162,7 @@ input:disabled {
   display: grid;
   align-items: end;
   padding: 12px;
+  padding-bottom: max(118px, calc(100px + env(safe-area-inset-bottom)));
   background: rgba(18, 30, 25, 0.24);
 }
 

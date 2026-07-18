@@ -3014,9 +3014,10 @@ function escapeHtml(value) {
   })[char]);
 }
 
-function teamScoreChip(teamLabel, player1, player2, score, otherScore) {
-  const outcomeClass = score === otherScore ? '' : (score > otherScore ? ' winner' : ' loser');
-  return `<span class="team-result${outcomeClass}">${escapeHtml(teamLabel)} (${escapeHtml(player1)}+${escapeHtml(player2)}) ${score}</span>`;
+function teamScoreChip(teamLabel, player1, player2, score) {
+  const outcomeClass = score === 0 ? '' : (score > 0 ? ' winner' : ' loser');
+  const winnerIcon = score > 0 ? '<span class="winner-icon" aria-hidden="true">🎉</span>' : '';
+  return `<span class="team-result${outcomeClass}">${winnerIcon}${escapeHtml(teamLabel)} (${escapeHtml(player1)}+${escapeHtml(player2)}) ${score}</span>`;
 }
 
 function roundScoreSummaryHtml(round) {
@@ -3031,8 +3032,8 @@ function roundScoreSummaryHtml(round) {
       const score = scoreRoundTotalsForMode(round, mode.id);
       return `<span class="score-mode-line">
         <span class="mode-chip">${escapeHtml(mode.label)}</span>
-        ${teamScoreChip(t('Team A'), a1, a2, score.a, score.b)}
-        ${teamScoreChip(t('Team B'), b1, b2, score.b, score.a)}
+        ${teamScoreChip(t('Team A'), a1, a2, score.a)}
+        ${teamScoreChip(t('Team B'), b1, b2, score.b)}
       </span>`;
     }).join('')}
   `.trim();
