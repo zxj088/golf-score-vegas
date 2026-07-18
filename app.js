@@ -2248,6 +2248,12 @@ function commitScorePadValueAndAdvance(value) {
   advanceScoreTargetOrClose({ allowNextHole: true });
 }
 
+function commitDisplayedScorePadValueAndAdvance() {
+  const value = parseScore(els.scorePadInput.textContent);
+  if (value === null) return;
+  commitScorePadValueAndAdvance(value);
+}
+
 function openScorePad(holeIndex, scoreIndex) {
   if (!isEditing || !els.scorePad) return;
   activeScoreTarget = { holeIndex, scoreIndex };
@@ -3264,11 +3270,17 @@ function addListeners() {
   });
   els.scorePadMinus.addEventListener('click', () => {
     const current = parseScore(els.scorePadInput.textContent) || currentCourse().pars[activeScoreTarget?.holeIndex || 0] || 4;
-    commitScorePadValueAndAdvance(current - 1);
+    commitScorePadValue(current - 1);
   });
   els.scorePadPlus.addEventListener('click', () => {
     const current = parseScore(els.scorePadInput.textContent) || currentCourse().pars[activeScoreTarget?.holeIndex || 0] || 4;
-    commitScorePadValueAndAdvance(current + 1);
+    commitScorePadValue(current + 1);
+  });
+  els.scorePadInput.addEventListener('click', commitDisplayedScorePadValueAndAdvance);
+  els.scorePadInput.addEventListener('keydown', event => {
+    if (event.key !== 'Enter' && event.key !== ' ') return;
+    event.preventDefault();
+    commitDisplayedScorePadValueAndAdvance();
   });
   els.playHolePrev.addEventListener('click', () => setActivePlayHole(activePlayHoleIndex - 1));
   els.playHoleNext.addEventListener('click', () => setActivePlayHole(activePlayHoleIndex + 1));
@@ -3587,8 +3599,10 @@ function init() {
   state.scoreMode = state.scoreMode === 'net' ? 'net' : 'gross';
   state.underParFlip = 'underParFlip' in state ? Boolean(state.underParFlip) : Boolean(state.birdieFlip);
   state.birdieFlip = state.underParFlip;
-  chooseInitialGame();
-  if (activeGameId) loadGame(activeGameId, shouldResumeEditing, false);
+  if (!cloudReady) chooseInitialGame();
+  if (activeGameId && savedRounds.some(round => round.id === activeGameId)) {
+    loadGame(activeGameId, shouldResumeEditing, false);
+  }
   isEditing = shouldResumeEditing;
   if (cloudReady) {
     setSyncState({

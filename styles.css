@@ -1277,6 +1277,13 @@ input:disabled {
   font-size: 30px;
   font-weight: 900;
   background: #ffffff;
+  cursor: pointer;
+  user-select: none;
+}
+
+.score-pad-value:active {
+  border-color: var(--green);
+  color: var(--green-strong);
 }
 
 .score-quick {
