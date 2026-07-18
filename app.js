@@ -641,7 +641,7 @@ function loadJson(key, fallback) {
 }
 
 function saveState() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...state, activeGameId }));
+  localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...state, activeGameId, isEditing }));
 }
 
 function saveCoursesLocal() {
@@ -1225,6 +1225,40 @@ function chooseInitialGame() {
   if (activeGameId) loadGame(activeGameId, false, false);
 }
 
+async function restoreActiveGameAfterCloudSync() {
+  if (!activeGameId) {
+    chooseInitialGame();
+    return;
+  }
+
+  const activeRound = savedRounds.find(round => round.id === activeGameId);
+  if (!activeRound) {
+    isEditing = false;
+    chooseInitialGame();
+    saveState();
+    return;
+  }
+
+  if (!isEditing) {
+    applyGameToState(activeRound);
+    saveState();
+    return;
+  }
+
+  const owner = editLockOwner(activeRound);
+  if (owner && owner !== clientId) {
+    isEditing = false;
+    applyGameToState(activeRound);
+    saveState();
+    return;
+  }
+
+  const refreshed = replaceRound(withCurrentEditLock(activeRound));
+  applyGameToState(refreshed);
+  saveState();
+  await upsertCloudRound(refreshed);
+}
+
 async function syncFromCloud(pushLocal = true, quiet = false) {
   if (!hasSupabaseConfig()) {
     setSyncState({
@@ -1258,12 +1292,7 @@ async function syncFromCloud(pushLocal = true, quiet = false) {
 
     customCourses = mergeById(customCourses, cloudCourses).filter(course => !isCourseDeleted(course));
     savedRounds = serverRounds(cloudRounds);
-    if (activeGameId && !isEditing && savedRounds.some(round => round.id === activeGameId)) {
-      applyGameToState(savedRounds.find(round => round.id === activeGameId));
-      saveState();
-    } else {
-      chooseInitialGame();
-    }
+    await restoreActiveGameAfterCloudSync();
     saveCoursesLocal();
     saveHistoryLocal();
     setSyncState({
@@ -3171,6 +3200,7 @@ function addListeners() {
       if (!(await confirmEditWithCode(currentGame()))) return;
       await acquireEditLock(currentGame());
       isEditing = true;
+      saveState();
       render();
       return;
     }
@@ -3180,6 +3210,7 @@ function addListeners() {
     finished.totals.editLock = null;
     saveHistoryLocal();
     isEditing = false;
+    saveState();
     scheduleAutoSync(finished);
     render();
     switchView('start');
@@ -3549,6 +3580,7 @@ function init() {
   if (cloudReady) saveHistoryLocal();
   const savedState = loadJson(STORAGE_KEY, {});
   activeGameId = savedState.activeGameId || '';
+  const shouldResumeEditing = Boolean(savedState.isEditing && activeGameId);
   state = { ...state, ...savedState, scores: normalizeScores(savedState.scores) };
   if (!Array.isArray(state.players) || state.players.length !== 4) {
     state.players = ['Player 1', 'Player 2', 'Player 3', 'Player 4'];
@@ -3559,6 +3591,7 @@ function init() {
   state.birdieFlip = state.underParFlip;
   chooseInitialGame();
   if (activeGameId) loadGame(activeGameId, false, false);
+  isEditing = shouldResumeEditing;
   if (cloudReady) {
     setSyncState({
       ready: true,
@@ -3594,8 +3627,7 @@ function init() {
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.getRegistrations()
-      .then(registrations => Promise.all(registrations.map(registration => registration.unregister())))
+    navigator.serviceWorker.register('./sw.js')
       .catch(() => {});
   });
 }
