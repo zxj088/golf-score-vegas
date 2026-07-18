@@ -114,6 +114,7 @@
     'Gross scoring': '实际杆计分',
     'Net scoring': '净杆计分',
     'Previous hole': '上一洞',
+    'Previous': '上一洞',
     'Next hole': '下一洞',
     'Clear': '清除',
     'Decrease score': '减少杆数',

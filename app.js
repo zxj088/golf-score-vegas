@@ -2253,6 +2253,13 @@ function scoreRelativeText(score, par) {
   return value > 0 ? `+${value}` : String(value);
 }
 
+function previousHoleScoreText(scoreIndex) {
+  if (activePlayHoleIndex <= 0) return '--';
+  const previousScores = state.scores[activePlayHoleIndex - 1] || [];
+  const previousScore = parseScore(previousScores[scoreIndex]);
+  return previousScore === null ? '--' : String(previousScore);
+}
+
 function renderPlayEntry() {
   if (!els.playPlayerRows) return;
   const course = currentCourse();
@@ -2286,7 +2293,12 @@ function renderPlayEntry() {
     const netValue = holeValues.net[scoreIndex];
     const row = document.createElement('div');
     row.className = `play-player-row ${scoreIndex < 2 ? 'team-a' : 'team-b'}`;
+    row.classList.toggle('has-previous-score', activePlayHoleIndex > 0);
     row.innerHTML = `
+      <div class="previous-score" ${activePlayHoleIndex <= 0 ? 'hidden' : ''}>
+        <span></span>
+        <strong></strong>
+      </div>
       <div class="play-player-copy">
         <strong></strong>
         <span></span>
@@ -2294,8 +2306,10 @@ function renderPlayEntry() {
       <div class="play-score-meta"></div>
       <button class="play-score-button" type="button"></button>
     `;
-    row.querySelector('strong').textContent = player || t('Player');
-    row.querySelector('span').textContent = t('HCP {value}', { value: state.handicaps?.[scoreIndex] || 0 });
+    row.querySelector('.previous-score span').textContent = t('Previous');
+    row.querySelector('.previous-score strong').textContent = previousHoleScoreText(scoreIndex);
+    row.querySelector('.play-player-copy strong').textContent = player || t('Player');
+    row.querySelector('.play-player-copy span').textContent = t('HCP {value}', { value: state.handicaps?.[scoreIndex] || 0 });
     const meta = row.querySelector('.play-score-meta');
     meta.textContent = scoreRelativeText(grossValue, par);
     const button = row.querySelector('.play-score-button');
@@ -3056,21 +3070,29 @@ function renderGameList(container, rounds, emptyText, status) {
     row.classList.toggle('history-game-row', status === 'history');
     row.classList.toggle('active-game', round.id === activeGameId);
     row.innerHTML = `
-      <button class="game-open" type="button">
+      <div class="game-open" role="button" tabindex="0">
         <span class="playing-icon" aria-hidden="true"></span>
         <span class="game-copy">
-          <span class="game-line game-main"></span>
+          <span class="game-top-line">
+            <span class="game-line game-main"></span>
+            <span class="small-actions"></span>
+          </span>
           <span class="game-line game-teams"></span>
           <span class="game-line game-score"></span>
         </span>
-      </button>
-      <div class="small-actions"></div>
+      </div>
     `;
     row.querySelector('.playing-icon').hidden = status !== 'playing';
     row.querySelector('.game-main').textContent = `${round.courseName || t('Course')} | ${roundListDate(round)}`;
     row.querySelector('.game-teams').textContent = roundTeamsLine(round);
     row.querySelector('.game-score').innerHTML = roundScoreSummaryHtml(round);
     row.querySelector('.game-open').addEventListener('click', () => {
+      loadGame(round.id, false, false);
+      switchView(status === 'playing' ? 'play' : 'leaderboard');
+    });
+    row.querySelector('.game-open').addEventListener('keydown', event => {
+      if (event.key !== 'Enter' && event.key !== ' ') return;
+      event.preventDefault();
       loadGame(round.id, false, false);
       switchView(status === 'playing' ? 'play' : 'leaderboard');
     });
@@ -3235,7 +3257,7 @@ function addListeners() {
     const delta = endX - playHoleTouchStartX;
     playHoleTouchStartX = null;
     if (Math.abs(delta) < 42) return;
-    setActivePlayHole(activePlayHoleIndex + (delta < 0 ? 1 : -1));
+    setActivePlayHole(activePlayHoleIndex + (delta > 0 ? 1 : -1));
   }, { passive: true });
   document.querySelectorAll('.score-quick button').forEach(button => {
     button.addEventListener('click', () => {
@@ -3512,6 +3534,12 @@ function addListeners() {
     render();
     switchView('play');
     scheduleAutoSync(game);
+  });
+
+  els.gameForm.querySelectorAll('input').forEach(input => {
+    input.addEventListener('focus', () => {
+      window.setTimeout(() => input.select(), 0);
+    });
   });
 
   els.languageButton.addEventListener('click', window.VEGAS_I18N.toggle);

@@ -486,6 +486,33 @@ h3 {
   box-shadow: 0 8px 18px rgba(28, 35, 31, 0.07);
 }
 
+.play-player-row.has-previous-score {
+  grid-template-columns: 48px minmax(0, 1fr) 56px 76px;
+}
+
+.previous-score {
+  display: grid;
+  place-items: center;
+  min-height: 54px;
+  border-right: 1px solid var(--line);
+  padding-right: 8px;
+  color: var(--muted);
+  text-align: center;
+}
+
+.previous-score span {
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.previous-score strong {
+  margin-top: 4px;
+  color: var(--ink);
+  font-size: 20px;
+  line-height: 1;
+}
+
 .play-player-row.team-a {
   border-color: rgba(31, 111, 91, 0.22);
 }
@@ -767,6 +794,14 @@ textarea {
 .game-copy {
   display: grid;
   gap: 3px;
+  min-width: 0;
+}
+
+.game-top-line {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
   min-width: 0;
 }
 
@@ -1467,6 +1502,19 @@ button:disabled {
     grid-template-columns: minmax(0, 1fr) 46px 64px;
     min-height: 76px;
     padding: 8px;
+  }
+
+  .play-player-row.has-previous-score {
+    grid-template-columns: 42px minmax(0, 1fr) 46px 64px;
+  }
+
+  .previous-score {
+    min-height: 48px;
+    padding-right: 6px;
+  }
+
+  .previous-score strong {
+    font-size: 18px;
   }
 
   .play-player-copy strong {
