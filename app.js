@@ -651,7 +651,7 @@ function loadJson(key, fallback) {
 }
 
 function saveState() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...state, activeGameId, isEditing, currentView }));
+  localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...state, activeGameId, isEditing, currentView, activePlayHoleIndex }));
 }
 
 function saveCoursesLocal() {
@@ -2239,6 +2239,7 @@ function advanceScoreTargetOrClose({ allowNextHole = false } = {}) {
   if (activeScoreTarget.scoreIndex >= 3) {
     if (allowNextHole && activeScoreTarget.holeIndex < 17) {
       activePlayHoleIndex = activeScoreTarget.holeIndex + 1;
+      saveState();
       renderPlayEntry();
       closeScorePad();
       return;
@@ -2284,6 +2285,7 @@ function firstIncompleteHole() {
 
 function setActivePlayHole(index) {
   activePlayHoleIndex = Math.max(0, Math.min(17, Number(index) || 0));
+  saveState();
   renderPlayEntry();
 }
 
@@ -2562,13 +2564,15 @@ function applyGameToState(round) {
   };
 }
 
-function loadGame(gameId, editable = false, goToPlay = true) {
+function loadGame(gameId, editable = false, goToPlay = true, preferredHoleIndex = null) {
   const round = savedRounds.find(item => item.id === gameId);
   if (!round) return;
   activeGameId = round.id;
   isEditing = editable;
   applyGameToState(round);
-  activePlayHoleIndex = firstIncompleteHole();
+  activePlayHoleIndex = preferredHoleIndex === null
+    ? firstIncompleteHole()
+    : Math.max(0, Math.min(17, Number(preferredHoleIndex) || 0));
   saveState();
   render();
   if (goToPlay) switchView('play');
@@ -3742,6 +3746,7 @@ function init() {
   const savedState = loadJson(STORAGE_KEY, {});
   activeGameId = savedState.activeGameId || '';
   currentView = ['start', 'play', 'leaderboard', 'courses'].includes(savedState.currentView) ? savedState.currentView : 'start';
+  const savedPlayHoleIndex = Math.max(0, Math.min(17, Number(savedState.activePlayHoleIndex) || 0));
   const shouldResumeEditing = Boolean(savedState.isEditing && activeGameId);
   state = { ...state, ...savedState, scores: normalizeScores(savedState.scores) };
   if (!Array.isArray(state.players) || state.players.length !== 4) {
@@ -3753,7 +3758,7 @@ function init() {
   state.birdieFlip = state.underParFlip;
   if (!cloudReady) chooseInitialGame();
   if (activeGameId && savedRounds.some(round => round.id === activeGameId)) {
-    loadGame(activeGameId, shouldResumeEditing, false);
+    loadGame(activeGameId, shouldResumeEditing, false, savedPlayHoleIndex);
   }
   isEditing = shouldResumeEditing;
   if (cloudReady) {
