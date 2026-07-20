@@ -3327,6 +3327,8 @@ function underParFlipDetails(round) {
         triggered: Boolean(flippedTeam),
         beforeText,
         afterText,
+        beforePoints: Math.abs(beforeDelta),
+        afterPoints: Math.abs(afterDelta),
         extra: Math.abs(afterDelta) - Math.abs(beforeDelta)
       };
     });
@@ -3391,7 +3393,7 @@ function scorecardFileName(round) {
 async function createScorecardAsset(round) {
   const normalized = normalizeRound(round);
   const flipDetails = underParFlipDetails(normalized);
-  const detailRowHeight = normalized.underParFlip ? 245 : 145;
+  const detailRowHeight = 145;
   const exportScale = 2;
   const logicalWidth = 1200;
   const logicalHeight = Math.max(2050, 2020 + flipDetails.length * detailRowHeight);
@@ -3528,18 +3530,15 @@ async function createScorecardAsset(round) {
       let resultLineY = rowY + 28;
       detail.results.forEach(result => {
         if (result.triggered && normalized.underParFlip) {
-          drawScorecardText(ctx, `${result.label} · ${t('Without flip')}: ${result.beforeText}`, detailX + 720, resultLineY, {
-            align: 'left', font: 'bold 16px Arial, Microsoft YaHei, sans-serif', maxWidth: 380
-          });
-          resultLineY += 31;
-          drawScorecardText(ctx, `${t('After flip')}: ${result.afterText}`, detailX + 720, resultLineY, {
-            align: 'left', color: '#b3453f', font: 'bold 16px Arial, Microsoft YaHei, sans-serif', maxWidth: 380
-          });
-          resultLineY += 31;
-          drawScorecardText(ctx, `${t('Extra points from flip')}: ${result.extra >= 0 ? '+' : ''}${result.extra}`, detailX + 720, resultLineY, {
-            align: 'left', color: '#c9892a', font: 'bold 17px Arial, Microsoft YaHei, sans-serif', maxWidth: 380
-          });
-          resultLineY += 39;
+          drawScorecardText(ctx,
+            `${result.label}: ${result.beforePoints}  💣➡️  ${result.afterPoints}  (${result.extra >= 0 ? '+' : ''}${result.extra})`,
+            detailX + 720,
+            resultLineY,
+            {
+              align: 'left', color: '#b3453f', font: 'bold 21px Arial, Microsoft YaHei, sans-serif', maxWidth: 380
+            }
+          );
+          resultLineY += 46;
         } else {
           drawScorecardText(ctx, `${result.label}: ${result.beforeText}`, detailX + 720, resultLineY, {
             align: 'left', font: 'bold 17px Arial, Microsoft YaHei, sans-serif', maxWidth: 380
