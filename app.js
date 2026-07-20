@@ -3327,8 +3327,6 @@ function underParFlipDetails(round) {
         triggered: Boolean(flippedTeam),
         beforeText,
         afterText,
-        losingNumberBefore: flipA ? aBefore : bBefore,
-        losingNumberAfter: flipA ? aAfter : bAfter,
         beforePoints: -Math.abs(beforeDelta),
         afterPoints: -Math.abs(afterDelta),
         extra: Math.abs(afterDelta) - Math.abs(beforeDelta)
@@ -3363,11 +3361,12 @@ function drawFlipResultLine(ctx, result, x, y) {
   const normalFont = 'bold 18px Arial, Microsoft YaHei, sans-serif';
   const iconFont = 'bold 30px Arial, Microsoft YaHei, sans-serif';
   const parts = [
-    { text: `${result.label}: ${result.losingNumberBefore} `, color: '#17221f', font: normalFont },
+    { text: `${result.label}: ${result.beforePoints} `, color: '#17221f', font: normalFont },
     { text: '💣➡️', color: '#b3453f', font: iconFont },
-    { text: ` ${result.losingNumberAfter}   ${result.beforePoints} `, color: '#b3453f', font: normalFont },
-    { text: '💣➡️', color: '#b3453f', font: iconFont },
-    { text: ` ${result.afterPoints}   ${result.extra >= 0 ? '+' : ''}${result.extra}`, color: '#c9892a', font: normalFont }
+    { text: ` ${result.afterPoints} `, color: '#b3453f', font: normalFont },
+    { text: '❗', color: '#b3453f', font: iconFont },
+    { text: ` ${result.extra >= 0 ? '+' : ''}${result.extra} `, color: '#c9892a', font: normalFont },
+    { text: '➕', color: '#c9892a', font: iconFont }
   ];
   ctx.textAlign = 'left';
   ctx.textBaseline = 'middle';
@@ -3419,7 +3418,7 @@ async function createScorecardAsset(round) {
   const detailRowHeight = 145;
   const exportScale = 2;
   const logicalWidth = 1200;
-  const logicalHeight = Math.max(2050, 2020 + flipDetails.length * detailRowHeight);
+  const logicalHeight = Math.max(1800, 1785 + flipDetails.length * detailRowHeight);
   const canvas = document.createElement('canvas');
   canvas.width = logicalWidth * exportScale;
   canvas.height = logicalHeight * exportScale;
@@ -3427,15 +3426,14 @@ async function createScorecardAsset(round) {
   ctx.scale(exportScale, exportScale);
   const players = normalized.players.map((name, index) => name || t(`Player ${index + 1}`));
   const handicaps = normalizeHandicaps(normalized.handicaps || normalized.totals?.handicaps);
-  const totals = scorecardPlayerTotals(normalized);
   const grossTeam = scoreRoundTotalsForMode(normalized, 'gross');
   const netTeam = scoreRoundTotalsForMode(normalized, 'net');
   const margin = 55;
   const tableTop = 320;
   const headerHeight = 78;
   const rowHeight = 54;
-  const columns = [90, 90, 90, 205, 205, 205, 205];
-  const labels = [t('Hole'), t('Par'), t('Index'), ...players];
+  const columns = [85, 65, 135, 135, 105, 105, 135, 135, 95, 95];
+  const labels = ['H/I', t('Par'), players[0], players[1], 'A#', 'A+/-', players[2], players[3], 'B#', 'B+/-'];
 
   ctx.fillStyle = '#f7f3e9';
   ctx.fillRect(0, 0, logicalWidth, logicalHeight);
@@ -3455,39 +3453,64 @@ async function createScorecardAsset(round) {
 
   let x = margin;
   labels.forEach((label, index) => {
-    ctx.fillStyle = index < 3 ? '#315e51' : (index < 5 ? '#dceee8' : '#fff1d6');
+    ctx.fillStyle = index < 2 ? '#315e51' : (index < 6 ? '#dceee8' : '#fff1d6');
     ctx.fillRect(x, tableTop, columns[index], headerHeight);
     drawScorecardText(ctx, label, x + columns[index] / 2, tableTop + headerHeight / 2, {
-      color: index < 3 ? '#ffffff' : '#17221f',
-      font: index < 3 ? 'bold 24px Arial' : 'bold 22px Arial, Microsoft YaHei, sans-serif'
+      color: index < 2 ? '#ffffff' : '#17221f',
+      font: index < 2 ? 'bold 24px Arial' : 'bold 21px Arial, Microsoft YaHei, sans-serif'
     });
     x += columns[index];
   });
 
   for (let holeIndex = 0; holeIndex < 18; holeIndex += 1) {
     const y = tableTop + headerHeight + holeIndex * rowHeight;
-    const values = [holeIndex + 1, normalized.pars[holeIndex], normalized.indexes[holeIndex], ...normalized.scores[holeIndex].map(value => value || '—')];
+    const gross = normalized.scores[holeIndex].map(parseScore);
+    const complete = gross.every(value => value !== null);
+    let aNumber = '';
+    let bNumber = '';
+    let aPoints = '';
+    let bPoints = '';
+    if (complete) {
+      const par = Number(normalized.pars[holeIndex] || 4);
+      const indexValue = Number(normalized.indexes[holeIndex] || holeIndex + 1);
+      const net = gross.map((score, playerIndex) => Math.max(1, score - handicapStrokes(handicaps[playerIndex], indexValue)));
+      const activeValues = normalized.scoreMode === 'net' ? net : gross;
+      const aUnderPar = Math.min(gross[0], gross[1]) < par;
+      const bUnderPar = Math.min(gross[2], gross[3]) < par;
+      const flipA = normalized.underParFlip && bUnderPar && !aUnderPar;
+      const flipB = normalized.underParFlip && aUnderPar && !bUnderPar;
+      aNumber = teamNumber([activeValues[0], activeValues[1]], par, flipA).value;
+      bNumber = teamNumber([activeValues[2], activeValues[3]], par, flipB).value;
+      aPoints = bNumber - aNumber;
+      bPoints = -aPoints;
+    }
+    const values = [
+      `${holeIndex + 1}/${normalized.indexes[holeIndex]}`,
+      normalized.pars[holeIndex],
+      ...normalized.scores[holeIndex].map(value => value || '—').slice(0, 2),
+      aNumber,
+      aPoints,
+      ...normalized.scores[holeIndex].map(value => value || '—').slice(2, 4),
+      bNumber,
+      bPoints
+    ];
     x = margin;
     values.forEach((value, columnIndex) => {
       ctx.fillStyle = holeIndex % 2 ? '#ffffff' : '#f0eee8';
       ctx.fillRect(x, y, columns[columnIndex], rowHeight);
       ctx.strokeStyle = '#d6d1c6';
       ctx.strokeRect(x, y, columns[columnIndex], rowHeight);
-      drawScorecardText(ctx, value, x + columns[columnIndex] / 2, y + rowHeight / 2, { font: columnIndex < 3 ? '23px Arial' : 'bold 26px Arial' });
+      const isPointsColumn = columnIndex === 5 || columnIndex === 9;
+      const pointValue = Number(value);
+      drawScorecardText(ctx, value, x + columns[columnIndex] / 2, y + rowHeight / 2, {
+        color: isPointsColumn && pointValue > 0 ? '#118747' : (isPointsColumn && pointValue < 0 ? '#b3453f' : '#17221f'),
+        font: columnIndex < 2 ? '22px Arial' : 'bold 24px Arial'
+      });
       x += columns[columnIndex];
     });
   }
 
-  const summaryTop = tableTop + headerHeight + 18 * rowHeight + 38;
-  ctx.fillStyle = '#ffffff';
-  ctx.fillRect(margin, summaryTop - 30, 1090, 245);
-  drawScorecardText(ctx, t('Player totals'), margin + 25, summaryTop, { align: 'left', color: '#1f6f5b', font: 'bold 31px Arial, Microsoft YaHei, sans-serif' });
-  players.forEach((player, index) => {
-    const y = summaryTop + 48 + index * 44;
-    drawScorecardText(ctx, player, margin + 25, y, { align: 'left', font: '25px Arial, Microsoft YaHei, sans-serif' });
-    drawScorecardText(ctx, `${t('Gross')}: ${totals.gross[index]}     ${t('Net')}: ${totals.net[index]}`, 1120, y, { align: 'right', font: 'bold 25px Arial, Microsoft YaHei, sans-serif' });
-  });
-  const resultY = summaryTop + 245;
+  const resultY = tableTop + headerHeight + 18 * rowHeight + 38;
   const resultHeight = 320 + flipDetails.length * detailRowHeight;
   ctx.fillStyle = '#ffffff';
   ctx.strokeStyle = '#c9892a';
