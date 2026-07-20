@@ -3327,8 +3327,8 @@ function underParFlipDetails(round) {
         triggered: Boolean(flippedTeam),
         beforeText,
         afterText,
-        beforePoints: Math.abs(beforeDelta),
-        afterPoints: Math.abs(afterDelta),
+        beforePoints: -Math.abs(beforeDelta),
+        afterPoints: -Math.abs(afterDelta),
         extra: Math.abs(afterDelta) - Math.abs(beforeDelta)
       };
     });
