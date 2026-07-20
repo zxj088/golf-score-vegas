@@ -3362,9 +3362,9 @@ function drawFlipResultLine(ctx, result, x, y) {
   const iconFont = 'bold 32px Arial, Microsoft YaHei, sans-serif';
   const parts = [
     { text: `${result.label}: ${result.beforePoints} `, color: '#17221f', font: normalFont },
-    { text: '💣➡️', color: '#b3453f', font: iconFont },
+    { text: '🔄', color: '#b3453f', font: iconFont },
     { text: ` ${result.afterPoints} `, color: '#b3453f', font: normalFont },
-    { text: '🩸', color: '#b3453f', font: iconFont },
+    { text: '💣', color: '#b3453f', font: iconFont },
     { text: ` ${result.extra >= 0 ? '+' : ''}${result.extra} `, color: '#c9892a', font: normalFont },
     { text: 'EXTRA', color: '#c9892a', font: 'italic bold 22px Arial, sans-serif' }
   ];
