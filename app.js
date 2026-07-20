@@ -3346,7 +3346,7 @@ function drawPlayerScoreSegments(ctx, players, x, y, width) {
     return {
       text: praise || warning || `${player.name} ${player.score}`,
       color: praise ? '#118747' : (warning ? '#b3453f' : '#17221f'),
-      font: praise || warning ? 'bold 20px Arial, Microsoft YaHei, sans-serif' : '20px Arial, Microsoft YaHei, sans-serif'
+      font: praise || warning ? 'bold 23px Arial, Microsoft YaHei, sans-serif' : '23px Arial, Microsoft YaHei, sans-serif'
     };
   });
   const lineHeight = 30;
@@ -3358,15 +3358,15 @@ function drawPlayerScoreSegments(ctx, players, x, y, width) {
 }
 
 function drawFlipResultLine(ctx, result, x, y) {
-  const normalFont = 'bold 18px Arial, Microsoft YaHei, sans-serif';
-  const iconFont = 'bold 30px Arial, Microsoft YaHei, sans-serif';
+  const normalFont = 'bold 21px Arial, Microsoft YaHei, sans-serif';
+  const iconFont = 'bold 32px Arial, Microsoft YaHei, sans-serif';
   const parts = [
     { text: `${result.label}: ${result.beforePoints} `, color: '#17221f', font: normalFont },
     { text: '💣➡️', color: '#b3453f', font: iconFont },
     { text: ` ${result.afterPoints} `, color: '#b3453f', font: normalFont },
     { text: '❗', color: '#b3453f', font: iconFont },
     { text: ` ${result.extra >= 0 ? '+' : ''}${result.extra} `, color: '#c9892a', font: normalFont },
-    { text: '➕', color: '#c9892a', font: iconFont }
+    { text: 'EXTRA', color: '#c9892a', font: 'italic bold 22px Arial, sans-serif' }
   ];
   ctx.textAlign = 'left';
   ctx.textBaseline = 'middle';
@@ -3415,10 +3415,10 @@ function scorecardFileName(round) {
 async function createScorecardAsset(round) {
   const normalized = normalizeRound(round);
   const flipDetails = underParFlipDetails(normalized);
-  const detailRowHeight = 145;
+  const detailRowHeight = 165;
   const exportScale = 2;
   const logicalWidth = 1200;
-  const logicalHeight = Math.max(1800, 1785 + flipDetails.length * detailRowHeight);
+  const logicalHeight = Math.max(1800, 1795 + flipDetails.length * detailRowHeight);
   const canvas = document.createElement('canvas');
   canvas.width = logicalWidth * exportScale;
   canvas.height = logicalHeight * exportScale;
@@ -3466,6 +3466,7 @@ async function createScorecardAsset(round) {
     const y = tableTop + headerHeight + holeIndex * rowHeight;
     const gross = normalized.scores[holeIndex].map(parseScore);
     const complete = gross.every(value => value !== null);
+    let netValues = [];
     let aNumber = '';
     let bNumber = '';
     let aPoints = '';
@@ -3473,8 +3474,8 @@ async function createScorecardAsset(round) {
     if (complete) {
       const par = Number(normalized.pars[holeIndex] || 4);
       const indexValue = Number(normalized.indexes[holeIndex] || holeIndex + 1);
-      const net = gross.map((score, playerIndex) => Math.max(1, score - handicapStrokes(handicaps[playerIndex], indexValue)));
-      const activeValues = normalized.scoreMode === 'net' ? net : gross;
+      netValues = gross.map((score, playerIndex) => Math.max(1, score - handicapStrokes(handicaps[playerIndex], indexValue)));
+      const activeValues = normalized.scoreMode === 'net' ? netValues : gross;
       const aUnderPar = Math.min(gross[0], gross[1]) < par;
       const bUnderPar = Math.min(gross[2], gross[3]) < par;
       const flipA = normalized.underParFlip && bUnderPar && !aUnderPar;
@@ -3500,6 +3501,16 @@ async function createScorecardAsset(round) {
       ctx.fillRect(x, y, columns[columnIndex], rowHeight);
       ctx.strokeStyle = '#d6d1c6';
       ctx.strokeRect(x, y, columns[columnIndex], rowHeight);
+      const playerIndexByColumn = { 2: 0, 3: 1, 6: 2, 7: 3 };
+      const playerIndex = playerIndexByColumn[columnIndex];
+      if (playerIndex !== undefined && normalized.scoreMode === 'net' && complete) {
+        drawScorecardText(ctx, value, x + columns[columnIndex] / 2, y + 20, { font: 'bold 22px Arial' });
+        drawScorecardText(ctx, `${t('Net')} ${netValues[playerIndex]}`, x + columns[columnIndex] / 2, y + 41, {
+          color: '#62706a', font: 'bold 13px Arial, Microsoft YaHei, sans-serif'
+        });
+        x += columns[columnIndex];
+        return;
+      }
       const isPointsColumn = columnIndex === 5 || columnIndex === 9;
       const pointValue = Number(value);
       drawScorecardText(ctx, value, x + columns[columnIndex] / 2, y + rowHeight / 2, {
@@ -3510,8 +3521,32 @@ async function createScorecardAsset(round) {
     });
   }
 
+  const tableBottom = tableTop + headerHeight + 18 * rowHeight;
+  const aStartX = margin + columns[0] + columns[1];
+  const teamBoundaryX = aStartX + columns[2] + columns[3] + columns[4] + columns[5];
+  ctx.lineWidth = 4;
+  ctx.strokeStyle = '#5da58f';
+  ctx.beginPath();
+  ctx.moveTo(aStartX, tableTop);
+  ctx.lineTo(aStartX, tableBottom);
+  ctx.stroke();
+  ctx.strokeStyle = '#9b7a36';
+  ctx.beginPath();
+  ctx.moveTo(teamBoundaryX, tableTop);
+  ctx.lineTo(teamBoundaryX, tableBottom);
+  ctx.moveTo(margin + 1090, tableTop);
+  ctx.lineTo(margin + 1090, tableBottom);
+  ctx.stroke();
+  ctx.lineWidth = 5;
+  ctx.strokeStyle = '#315e51';
+  const nineHoleDividerY = tableTop + headerHeight + 9 * rowHeight;
+  ctx.beginPath();
+  ctx.moveTo(margin, nineHoleDividerY);
+  ctx.lineTo(margin + 1090, nineHoleDividerY);
+  ctx.stroke();
+
   const resultY = tableTop + headerHeight + 18 * rowHeight + 38;
-  const resultHeight = 320 + flipDetails.length * detailRowHeight;
+  const resultHeight = 330 + flipDetails.length * detailRowHeight;
   ctx.fillStyle = '#ffffff';
   ctx.strokeStyle = '#c9892a';
   ctx.lineWidth = 3;
@@ -3547,18 +3582,19 @@ async function createScorecardAsset(round) {
     const detailX = margin;
     const detailTop = resultY + 252;
     const detailColumns = [70, 70, 260, 260, 430];
+    const detailHeaderHeight = 56;
     const detailHeaders = [t('Hole'), t('Par'), t('Team A'), t('Team B'), t('Score result')];
     let headerX = detailX;
     detailHeaders.forEach((header, index) => {
       ctx.fillStyle = index < 2 ? '#315e51' : (index === 2 ? '#dceee8' : (index === 3 ? '#fff1d6' : '#f4f1ea'));
-      ctx.fillRect(headerX, detailTop, detailColumns[index], 48);
-      drawScorecardText(ctx, header, headerX + detailColumns[index] / 2, detailTop + 24, {
-        color: index < 2 ? '#ffffff' : '#17221f', font: 'bold 20px Arial, Microsoft YaHei, sans-serif'
+      ctx.fillRect(headerX, detailTop, detailColumns[index], detailHeaderHeight);
+      drawScorecardText(ctx, header, headerX + detailColumns[index] / 2, detailTop + detailHeaderHeight / 2, {
+        color: index < 2 ? '#ffffff' : '#17221f', font: 'bold 24px Arial, Microsoft YaHei, sans-serif'
       });
       headerX += detailColumns[index];
     });
     flipDetails.forEach((detail, index) => {
-      const rowY = detailTop + 48 + index * detailRowHeight;
+      const rowY = detailTop + detailHeaderHeight + index * detailRowHeight;
       let cellX = detailX;
       detailColumns.forEach(width => {
         ctx.fillStyle = index % 2 ? '#ffffff' : '#faf8f3';
@@ -3569,8 +3605,8 @@ async function createScorecardAsset(round) {
         cellX += width;
       });
       const rowMiddle = rowY + detailRowHeight / 2;
-      drawScorecardText(ctx, detail.hole, detailX + 35, rowMiddle, { font: 'bold 23px Arial' });
-      drawScorecardText(ctx, detail.par, detailX + 105, rowMiddle, { font: 'bold 23px Arial' });
+      drawScorecardText(ctx, detail.hole, detailX + 35, rowMiddle, { font: 'bold 27px Arial' });
+      drawScorecardText(ctx, detail.par, detailX + 105, rowMiddle, { font: 'bold 27px Arial' });
       drawPlayerScoreSegments(ctx, detail.teams[0], detailX + 155, rowMiddle, 230);
       drawPlayerScoreSegments(ctx, detail.teams[1], detailX + 415, rowMiddle, 230);
       let resultLineY = rowY + 28;
@@ -3580,14 +3616,14 @@ async function createScorecardAsset(round) {
           resultLineY += 46;
         } else {
           drawScorecardText(ctx, `${result.label}: ${result.beforeText}`, detailX + 675, resultLineY, {
-            align: 'left', font: 'bold 17px Arial, Microsoft YaHei, sans-serif', maxWidth: 410
+            align: 'left', font: 'bold 21px Arial, Microsoft YaHei, sans-serif', maxWidth: 410
           });
           resultLineY += 38;
         }
       });
       if (detail.note) {
         drawScorecardText(ctx, detail.note, detailX + 675, Math.min(rowY + detailRowHeight - 25, resultLineY + 6), {
-          align: 'left', color: '#62706a', font: '18px Arial, Microsoft YaHei, sans-serif', maxWidth: 410
+          align: 'left', color: '#62706a', font: '21px Arial, Microsoft YaHei, sans-serif', maxWidth: 410
         });
       }
     });
