@@ -3327,6 +3327,8 @@ function underParFlipDetails(round) {
         triggered: Boolean(flippedTeam),
         beforeText,
         afterText,
+        losingNumberBefore: flipA ? aBefore : bBefore,
+        losingNumberAfter: flipA ? aAfter : bAfter,
         beforePoints: -Math.abs(beforeDelta),
         afterPoints: -Math.abs(afterDelta),
         extra: Math.abs(afterDelta) - Math.abs(beforeDelta)
@@ -3358,21 +3360,24 @@ function drawPlayerScoreSegments(ctx, players, x, y, width) {
 }
 
 function drawFlipResultLine(ctx, result, x, y) {
-  const normalFont = 'bold 20px Arial, Microsoft YaHei, sans-serif';
-  const iconFont = 'bold 34px Arial, Microsoft YaHei, sans-serif';
-  const beforeText = `${result.label}: ${result.beforePoints}  `;
-  const afterText = `  ${result.afterPoints}  (${result.extra >= 0 ? '+' : ''}${result.extra})`;
+  const normalFont = 'bold 18px Arial, Microsoft YaHei, sans-serif';
+  const iconFont = 'bold 30px Arial, Microsoft YaHei, sans-serif';
+  const parts = [
+    { text: `${result.label}: ${result.losingNumberBefore} `, color: '#17221f', font: normalFont },
+    { text: '💣➡️', color: '#b3453f', font: iconFont },
+    { text: ` ${result.losingNumberAfter}   ${result.beforePoints} `, color: '#b3453f', font: normalFont },
+    { text: '💣➡️', color: '#b3453f', font: iconFont },
+    { text: ` ${result.afterPoints}   ${result.extra >= 0 ? '+' : ''}${result.extra}`, color: '#c9892a', font: normalFont }
+  ];
   ctx.textAlign = 'left';
   ctx.textBaseline = 'middle';
-  ctx.fillStyle = '#b3453f';
-  ctx.font = normalFont;
-  ctx.fillText(beforeText, x, y);
-  let cursorX = x + ctx.measureText(beforeText).width;
-  ctx.font = iconFont;
-  ctx.fillText('💣➡️', cursorX, y);
-  cursorX += ctx.measureText('💣➡️').width;
-  ctx.font = normalFont;
-  ctx.fillText(afterText, cursorX, y);
+  let cursorX = x;
+  parts.forEach(part => {
+    ctx.fillStyle = part.color;
+    ctx.font = part.font;
+    ctx.fillText(part.text, cursorX, y);
+    cursorX += ctx.measureText(part.text).width;
+  });
 }
 
 function roundedRectPath(ctx, x, y, width, height, radius) {
@@ -3518,7 +3523,7 @@ async function createScorecardAsset(round) {
   } else {
     const detailX = margin;
     const detailTop = resultY + 252;
-    const detailColumns = [70, 70, 275, 275, 400];
+    const detailColumns = [70, 70, 260, 260, 430];
     const detailHeaders = [t('Hole'), t('Par'), t('Team A'), t('Team B'), t('Score result')];
     let headerX = detailX;
     detailHeaders.forEach((header, index) => {
@@ -3543,23 +3548,23 @@ async function createScorecardAsset(round) {
       const rowMiddle = rowY + detailRowHeight / 2;
       drawScorecardText(ctx, detail.hole, detailX + 35, rowMiddle, { font: 'bold 23px Arial' });
       drawScorecardText(ctx, detail.par, detailX + 105, rowMiddle, { font: 'bold 23px Arial' });
-      drawPlayerScoreSegments(ctx, detail.teams[0], detailX + 155, rowMiddle, 245);
-      drawPlayerScoreSegments(ctx, detail.teams[1], detailX + 430, rowMiddle, 245);
+      drawPlayerScoreSegments(ctx, detail.teams[0], detailX + 155, rowMiddle, 230);
+      drawPlayerScoreSegments(ctx, detail.teams[1], detailX + 415, rowMiddle, 230);
       let resultLineY = rowY + 28;
       detail.results.forEach(result => {
         if (result.triggered && normalized.underParFlip) {
-          drawFlipResultLine(ctx, result, detailX + 720, resultLineY);
+          drawFlipResultLine(ctx, result, detailX + 675, resultLineY);
           resultLineY += 46;
         } else {
-          drawScorecardText(ctx, `${result.label}: ${result.beforeText}`, detailX + 720, resultLineY, {
-            align: 'left', font: 'bold 17px Arial, Microsoft YaHei, sans-serif', maxWidth: 380
+          drawScorecardText(ctx, `${result.label}: ${result.beforeText}`, detailX + 675, resultLineY, {
+            align: 'left', font: 'bold 17px Arial, Microsoft YaHei, sans-serif', maxWidth: 410
           });
           resultLineY += 38;
         }
       });
       if (detail.note) {
-        drawScorecardText(ctx, detail.note, detailX + 720, Math.min(rowY + detailRowHeight - 25, resultLineY + 6), {
-          align: 'left', color: '#62706a', font: '18px Arial, Microsoft YaHei, sans-serif', maxWidth: 380
+        drawScorecardText(ctx, detail.note, detailX + 675, Math.min(rowY + detailRowHeight - 25, resultLineY + 6), {
+          align: 'left', color: '#62706a', font: '18px Arial, Microsoft YaHei, sans-serif', maxWidth: 410
         });
       }
     });

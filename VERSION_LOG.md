@@ -12,7 +12,7 @@ Tag: `v4.1`
 
 Live URL:
 
-`https://zxj088.github.io/golf-score-vegas/?v=105`
+`https://zxj088.github.io/golf-score-vegas/?v=106`
 
 What is good in this version:
 
@@ -22,7 +22,7 @@ What is good in this version:
 - Shared scorecards use the supplied golf photo background with opaque readable data panels.
 - Under-par holes show player details, flip-before/after results, and additional flip points for gross and net scoring.
 - Chinese ongoing-game Modify action is labeled 设置.
-- PWA asset query version is `v105`.
+- PWA asset query version is `v106`.
 
 ### v4.0 - Official v4 mobile scoring UI
 
