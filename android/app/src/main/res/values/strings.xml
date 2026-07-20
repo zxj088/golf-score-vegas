@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Vegas Golf Scorecard</string>
+    <string name="title_activity_main">Vegas Golf Scorecard</string>
+    <string name="package_name">com.stanley.vegasgolfscorecard</string>
+    <string name="custom_url_scheme">com.stanley.vegasgolfscorecard</string>
+</resources>

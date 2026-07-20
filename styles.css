@@ -37,6 +37,70 @@ body {
     #f3f4f6;
 }
 
+.welcome-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  min-height: 100dvh;
+  padding: max(28px, env(safe-area-inset-top)) 24px max(28px, env(safe-area-inset-bottom));
+  overflow: hidden;
+  color: #ffffff;
+  background: #386947 url('./assets/welcome-golf.jpg') center center / cover no-repeat;
+  transition: opacity 280ms ease, visibility 280ms ease;
+}
+
+.welcome-screen.leaving {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.welcome-shade {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(4, 25, 38, 0.12), rgba(4, 25, 38, 0.06) 45%, rgba(3, 20, 13, 0.65));
+}
+
+.welcome-copy {
+  position: relative;
+  align-self: end;
+  width: min(680px, 100%);
+  margin-bottom: clamp(40px, 10vh, 110px);
+  text-align: center;
+  text-shadow: 0 3px 14px rgba(0, 0, 0, 0.82);
+}
+
+.welcome-copy p {
+  margin: 5px 0;
+  font-family: Georgia, 'Times New Roman', 'Microsoft YaHei', serif;
+  font-size: clamp(25px, 6vw, 48px);
+  font-style: italic;
+  font-weight: 700;
+  line-height: 1.12;
+}
+
+.welcome-copy p[lang] {
+  font-style: normal;
+  letter-spacing: 0.08em;
+}
+
+.welcome-spinner {
+  display: inline-block;
+  width: 26px;
+  height: 26px;
+  margin-top: 20px;
+  border: 3px solid rgba(255, 255, 255, 0.42);
+  border-top-color: #ffffff;
+  border-radius: 50%;
+  animation: welcome-spin 850ms linear infinite;
+}
+
+@keyframes welcome-spin {
+  to { transform: rotate(360deg); }
+}
+
 button,
 input,
 select,
@@ -1203,6 +1267,48 @@ input:disabled {
 
 .dialog-form {
   width: min(420px, 100%);
+}
+
+.dialog-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 12px 0 4px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #ffffff;
+  font-weight: 700;
+}
+
+.dialog-checkbox input {
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  accent-color: var(--green);
+}
+
+.share-card-form {
+  width: min(640px, 100%);
+}
+
+.share-card-form img {
+  display: block;
+  width: min(100%, 430px);
+  max-height: 68dvh;
+  margin: 10px auto;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  object-fit: contain;
+  background: #ffffff;
+}
+
+.share-card-status {
+  min-height: 1.3em;
+  margin: 4px 0;
+  color: var(--muted);
+  text-align: center;
+  font-size: 13px;
 }
 
 .search-form {

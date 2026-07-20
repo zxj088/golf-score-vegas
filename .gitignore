@@ -1,5 +1,6 @@
 .agents/
 node_modules/
+www/
 server.err.log
 server.out.log
 .DS_Store

@@ -1,0 +1,9 @@
+{
+  "appId": "com.stanley.vegasgolfscorecard",
+  "appName": "Vegas Golf Scorecard",
+  "webDir": "www",
+  "bundledWebRuntime": false,
+  "ios": {
+    "contentInset": "always"
+  }
+}

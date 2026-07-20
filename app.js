@@ -443,6 +443,7 @@ let syncState = {
   label: t('Cloud sync Not ok'),
   title: t('Supabase is not connected.')
 };
+let shareCardAsset = null;
 
 const els = {
   scoreStrip: document.querySelector('#scoreStrip'),
@@ -549,6 +550,7 @@ const els = {
   historyRangeTo: document.querySelector('#historyRangeTo'),
   historyRangeCancel: document.querySelector('#historyRangeCancel'),
   syncStatus: document.querySelector('#syncStatus'),
+  welcomeScreen: document.querySelector('#welcomeScreen'),
   appDialog: document.querySelector('#appDialog'),
   dialogForm: document.querySelector('#dialogForm'),
   dialogEyebrow: document.querySelector('#dialogEyebrow'),
@@ -557,8 +559,16 @@ const els = {
   dialogInputWrap: document.querySelector('#dialogInputWrap'),
   dialogInputLabel: document.querySelector('#dialogInputLabel'),
   dialogInput: document.querySelector('#dialogInput'),
+  dialogCheckboxWrap: document.querySelector('#dialogCheckboxWrap'),
+  dialogCheckboxLabel: document.querySelector('#dialogCheckboxLabel'),
+  dialogCheckbox: document.querySelector('#dialogCheckbox'),
   dialogOk: document.querySelector('#dialogOk'),
   dialogCancel: document.querySelector('#dialogCancel'),
+  shareCardModal: document.querySelector('#shareCardModal'),
+  shareCardPreview: document.querySelector('#shareCardPreview'),
+  shareCardStatus: document.querySelector('#shareCardStatus'),
+  shareScorecardButton: document.querySelector('#shareScorecardButton'),
+  closeShareCard: document.querySelector('#closeShareCard'),
   scorePad: document.querySelector('#scorePad'),
   scorePadHole: document.querySelector('#scorePadHole'),
   scorePadPlayer: document.querySelector('#scorePadPlayer'),
@@ -2596,6 +2606,9 @@ function openAppDialog({
   inputMode = 'text',
   maxLength = '',
   pattern = '',
+  checkbox = false,
+  checkboxLabel = '',
+  checkboxChecked = false,
   okText = 'OK',
   cancelText = t('Cancel'),
   showOk = true,
@@ -2616,6 +2629,9 @@ function openAppDialog({
     els.dialogInput.inputMode = inputMode;
     els.dialogInput.maxLength = maxLength;
     els.dialogInput.pattern = pattern;
+    els.dialogCheckboxWrap.hidden = !checkbox;
+    els.dialogCheckboxLabel.textContent = checkboxLabel;
+    els.dialogCheckbox.checked = Boolean(checkboxChecked);
     els.appDialog.hidden = false;
     if (input) els.dialogInput.focus();
     else if (showOk) els.dialogOk.focus();
@@ -2713,7 +2729,26 @@ async function confirmEditWithCode(round) {
 }
 
 async function confirmFinishWithCode(round) {
-  return confirmActionWithCode(round, t('Finish game'), t('Enter code, then choose Yes to finish this game.'));
+  let errorMessage = '';
+  while (true) {
+    const answer = await openAppDialog({
+      eyebrow: t('Edit Code'),
+      title: t('Finish game'),
+      message: errorMessage || t('Enter code, then choose Yes to finish this game.'),
+      input: true,
+      inputLabel: t('Code'),
+      inputMode: 'numeric',
+      maxLength: '2',
+      pattern: '[0-9]{2}',
+      checkbox: true,
+      checkboxLabel: t('Share game scoring card'),
+      okText: t('Yes'),
+      cancelText: t('No')
+    });
+    if (answer === false) return false;
+    if (codeMatchesRound(round, answer.value)) return { share: answer.checked };
+    errorMessage = t('The edit code is not correct. Try again.');
+  }
 }
 
 async function confirmDeleteWithCode(round) {
@@ -3208,6 +3243,381 @@ function roundScoreSummaryHtml(round) {
   `.trim();
 }
 
+function scorecardPlayerTotals(round) {
+  const normalized = normalizeRound(round);
+  const handicaps = normalizeHandicaps(normalized.handicaps || normalized.totals?.handicaps);
+  return normalized.scores.reduce((sum, scores, holeIndex) => {
+    const indexValue = Number(normalized.indexes?.[holeIndex] || holeIndex + 1);
+    scores.forEach((rawScore, playerIndex) => {
+      const gross = parseScore(rawScore);
+      if (gross === null) return;
+      sum.gross[playerIndex] += gross;
+      sum.net[playerIndex] += Math.max(1, gross - handicapStrokes(handicaps[playerIndex], indexValue));
+    });
+    return sum;
+  }, { gross: [0, 0, 0, 0], net: [0, 0, 0, 0] });
+}
+
+function drawScorecardText(ctx, value, x, y, options = {}) {
+  const { align = 'center', color = '#17221f', font = '26px Arial', maxWidth } = options;
+  ctx.fillStyle = color;
+  ctx.font = font;
+  ctx.textAlign = align;
+  ctx.textBaseline = 'middle';
+  ctx.fillText(String(value ?? ''), x, y, maxWidth);
+}
+
+function underParLabel(strokesUnderPar) {
+  if (strokesUnderPar === 1) return t('Birdie');
+  if (strokesUnderPar === 2) return t('Eagle');
+  return t('{value} under par', { value: strokesUnderPar });
+}
+
+function underParFlipDetails(round) {
+  const normalized = normalizeRound(round);
+  const handicaps = normalizeHandicaps(normalized.handicaps || normalized.totals?.handicaps);
+  return normalized.scores.flatMap((scores, holeIndex) => {
+    const gross = scores.map(parseScore);
+    if (gross.some(value => value === null)) return [];
+    const par = Number(normalized.pars?.[holeIndex] || 4);
+    const indexValue = Number(normalized.indexes?.[holeIndex] || holeIndex + 1);
+    const underParPlayers = gross
+      .map((score, playerIndex) => ({ score, playerIndex, under: par - score }))
+      .filter(item => item.under > 0);
+    if (!underParPlayers.length) return [];
+    const aUnderPar = underParPlayers.some(item => item.playerIndex < 2);
+    const bUnderPar = underParPlayers.some(item => item.playerIndex >= 2);
+    const flipA = normalized.underParFlip && bUnderPar && !aUnderPar;
+    const flipB = normalized.underParFlip && aUnderPar && !bUnderPar;
+    const flippedTeam = flipA ? 'a' : (flipB ? 'b' : '');
+    const worstA = Math.max(gross[0], gross[1]);
+    const worstB = Math.max(gross[2], gross[3]);
+    const teams = [
+      [0, 1].map(playerIndex => ({
+        name: normalized.players[playerIndex] || t(`Player ${playerIndex + 1}`),
+        score: gross[playerIndex],
+        under: par - gross[playerIndex],
+        flippedWorst: flippedTeam === 'a' && gross[playerIndex] === worstA
+      })),
+      [2, 3].map(playerIndex => ({
+        name: normalized.players[playerIndex] || t(`Player ${playerIndex + 1}`),
+        score: gross[playerIndex],
+        under: par - gross[playerIndex],
+        flippedWorst: flippedTeam === 'b' && gross[playerIndex] === worstB
+      }))
+    ];
+    const results = ['gross', 'net'].map(mode => {
+      const values = mode === 'gross'
+        ? gross
+        : gross.map((score, playerIndex) => Math.max(1, score - handicapStrokes(handicaps[playerIndex], indexValue)));
+      const aBefore = teamNumber([values[0], values[1]], par, false).value;
+      const bBefore = teamNumber([values[2], values[3]], par, false).value;
+      const aAfter = teamNumber([values[0], values[1]], par, flipA).value;
+      const bAfter = teamNumber([values[2], values[3]], par, flipB).value;
+      const beforeDelta = bBefore - aBefore;
+      const afterDelta = bAfter - aAfter;
+      const aNumberAfter = flipA ? `${aBefore}→${aAfter}` : String(aAfter);
+      const bNumberAfter = flipB ? `${bBefore}→${bAfter}` : String(bAfter);
+      const beforeText = `${t('Team A')} ${beforeDelta >= 0 ? '+' : ''}${beforeDelta} (${aBefore}) vs ${t('Team B')} ${-beforeDelta >= 0 ? '+' : ''}${-beforeDelta} (${bBefore})`;
+      const afterText = `${t('Team A')} ${afterDelta >= 0 ? '+' : ''}${afterDelta} (${aNumberAfter}) vs ${t('Team B')} ${-afterDelta >= 0 ? '+' : ''}${-afterDelta} (${bNumberAfter})`;
+      return {
+        label: t(mode === 'gross' ? 'Gross' : 'Net'),
+        triggered: Boolean(flippedTeam),
+        beforeText,
+        afterText,
+        extra: Math.abs(afterDelta) - Math.abs(beforeDelta)
+      };
+    });
+    const note = normalized.underParFlip && !flippedTeam
+      ? (aUnderPar && bUnderPar ? t('No flip: both teams were under par') : t('No score was flipped'))
+      : '';
+    return [{ hole: holeIndex + 1, par, teams, results, note }];
+  });
+}
+
+function drawPlayerScoreSegments(ctx, players, x, y, width) {
+  const segments = players.map(player => {
+    const praise = player.under > 0 ? `👍${player.name} ${player.score} (${underParLabel(player.under)})` : '';
+    const warning = player.flippedWorst ? `👎${player.name} ${player.score}` : '';
+    return {
+      text: praise || warning || `${player.name} ${player.score}`,
+      color: praise ? '#118747' : (warning ? '#b3453f' : '#17221f'),
+      font: praise || warning ? 'bold 20px Arial, Microsoft YaHei, sans-serif' : '20px Arial, Microsoft YaHei, sans-serif'
+    };
+  });
+  const lineHeight = 30;
+  segments.forEach((segment, index) => {
+    drawScorecardText(ctx, segment.text, x, y + (index - 0.5) * lineHeight, {
+      align: 'left', color: segment.color, font: segment.font, maxWidth: width
+    });
+  });
+}
+
+function roundedRectPath(ctx, x, y, width, height, radius) {
+  const r = Math.min(radius, width / 2, height / 2);
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + width, y, x + width, y + height, r);
+  ctx.arcTo(x + width, y + height, x, y + height, r);
+  ctx.arcTo(x, y + height, x, y, r);
+  ctx.arcTo(x, y, x + width, y, r);
+  ctx.closePath();
+}
+
+function drawRoundResultChip(ctx, x, y, width, text, score) {
+  const isWinner = score > 0;
+  const isLoser = score < 0;
+  ctx.fillStyle = isWinner ? '#ecf8f1' : (isLoser ? '#fff2f1' : '#f4f7f5');
+  ctx.strokeStyle = isWinner ? '#86cba4' : (isLoser ? '#dfa19d' : '#d6d1c6');
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  roundedRectPath(ctx, x, y, width, 58, 29);
+  ctx.fill();
+  ctx.stroke();
+  drawScorecardText(ctx, `${isWinner ? '🎉 ' : ''}${text} ${score}`, x + width / 2, y + 29, {
+    color: isWinner ? '#118747' : (isLoser ? '#b3453f' : '#17221f'),
+    font: 'bold 23px Arial, Microsoft YaHei, sans-serif',
+    maxWidth: width - 24
+  });
+}
+
+function scorecardFileName(round) {
+  const safeCourse = String(round.courseName || 'golf-game')
+    .normalize('NFKD').replace(/[^a-zA-Z0-9\u4e00-\u9fff]+/g, '-').replace(/^-|-$/g, '');
+  return `${safeCourse || 'golf-game'}-${roundListDate(round).replace(/[^0-9]+/g, '-')}.png`;
+}
+
+function loadScorecardBackground() {
+  return new Promise(resolve => {
+    const image = new Image();
+    image.onload = () => resolve(image);
+    image.onerror = () => resolve(null);
+    image.src = './assets/welcome-golf.jpg';
+  });
+}
+
+function drawCoverImage(ctx, image, width, height) {
+  const scale = Math.max(width / image.naturalWidth, height / image.naturalHeight);
+  const drawWidth = image.naturalWidth * scale;
+  const drawHeight = image.naturalHeight * scale;
+  ctx.drawImage(image, (width - drawWidth) / 2, (height - drawHeight) / 2, drawWidth, drawHeight);
+}
+
+async function createScorecardAsset(round) {
+  const normalized = normalizeRound(round);
+  const flipDetails = underParFlipDetails(normalized);
+  const detailRowHeight = normalized.underParFlip ? 245 : 145;
+  const canvas = document.createElement('canvas');
+  canvas.width = 1200;
+  canvas.height = Math.max(2050, 2020 + flipDetails.length * detailRowHeight);
+  const ctx = canvas.getContext('2d');
+  const players = normalized.players.map((name, index) => name || t(`Player ${index + 1}`));
+  const handicaps = normalizeHandicaps(normalized.handicaps || normalized.totals?.handicaps);
+  const totals = scorecardPlayerTotals(normalized);
+  const grossTeam = scoreRoundTotalsForMode(normalized, 'gross');
+  const netTeam = scoreRoundTotalsForMode(normalized, 'net');
+  const margin = 55;
+  const tableTop = 320;
+  const headerHeight = 78;
+  const rowHeight = 54;
+  const columns = [90, 90, 90, 205, 205, 205, 205];
+  const labels = [t('Hole'), t('Par'), t('Index'), ...players];
+
+  const backgroundImage = await loadScorecardBackground();
+  if (backgroundImage) drawCoverImage(ctx, backgroundImage, canvas.width, canvas.height);
+  if (!backgroundImage) {
+    ctx.fillStyle = '#f7f3e9';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  }
+  ctx.fillStyle = '#1f6f5b';
+  ctx.fillRect(0, 0, canvas.width, 245);
+  drawScorecardText(ctx, t('Vegas Golf Scorecard'), 600, 65, { color: '#ffffff', font: 'bold 48px Georgia, Microsoft YaHei, serif' });
+  drawScorecardText(ctx, normalized.courseName || t('Course'), 600, 132, { color: '#ffffff', font: 'bold 42px Arial, Microsoft YaHei, sans-serif' });
+  drawScorecardText(ctx, roundListDate(normalized), 600, 194, { color: '#dceee8', font: '28px Arial, Microsoft YaHei, sans-serif' });
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(margin, 245, 1090, 75);
+  drawScorecardText(ctx,
+    `${t('Team A')}: ${players[0]} (HCP ${handicaps[0]}) + ${players[1]} (HCP ${handicaps[1]})  vs  ${t('Team B')}: ${players[2]} (HCP ${handicaps[2]}) + ${players[3]} (HCP ${handicaps[3]})`,
+    600,
+    277,
+    { font: '23px Arial, Microsoft YaHei, sans-serif', maxWidth: 1090 }
+  );
+
+  let x = margin;
+  labels.forEach((label, index) => {
+    ctx.fillStyle = index < 3 ? '#315e51' : (index < 5 ? '#dceee8' : '#fff1d6');
+    ctx.fillRect(x, tableTop, columns[index], headerHeight);
+    drawScorecardText(ctx, label, x + columns[index] / 2, tableTop + headerHeight / 2, {
+      color: index < 3 ? '#ffffff' : '#17221f',
+      font: index < 3 ? 'bold 24px Arial' : 'bold 22px Arial, Microsoft YaHei, sans-serif'
+    });
+    x += columns[index];
+  });
+
+  for (let holeIndex = 0; holeIndex < 18; holeIndex += 1) {
+    const y = tableTop + headerHeight + holeIndex * rowHeight;
+    const values = [holeIndex + 1, normalized.pars[holeIndex], normalized.indexes[holeIndex], ...normalized.scores[holeIndex].map(value => value || '—')];
+    x = margin;
+    values.forEach((value, columnIndex) => {
+      ctx.fillStyle = holeIndex % 2 ? '#ffffff' : '#f0eee8';
+      ctx.fillRect(x, y, columns[columnIndex], rowHeight);
+      ctx.strokeStyle = '#d6d1c6';
+      ctx.strokeRect(x, y, columns[columnIndex], rowHeight);
+      drawScorecardText(ctx, value, x + columns[columnIndex] / 2, y + rowHeight / 2, { font: columnIndex < 3 ? '23px Arial' : 'bold 26px Arial' });
+      x += columns[columnIndex];
+    });
+  }
+
+  const summaryTop = tableTop + headerHeight + 18 * rowHeight + 38;
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(margin, summaryTop - 30, 1090, 245);
+  drawScorecardText(ctx, t('Player totals'), margin + 25, summaryTop, { align: 'left', color: '#1f6f5b', font: 'bold 31px Arial, Microsoft YaHei, sans-serif' });
+  players.forEach((player, index) => {
+    const y = summaryTop + 48 + index * 44;
+    drawScorecardText(ctx, player, margin + 25, y, { align: 'left', font: '25px Arial, Microsoft YaHei, sans-serif' });
+    drawScorecardText(ctx, `${t('Gross')}: ${totals.gross[index]}     ${t('Net')}: ${totals.net[index]}`, 1120, y, { align: 'right', font: 'bold 25px Arial, Microsoft YaHei, sans-serif' });
+  });
+  const resultY = summaryTop + 245;
+  const resultHeight = 320 + flipDetails.length * detailRowHeight;
+  ctx.fillStyle = '#ffffff';
+  ctx.strokeStyle = '#c9892a';
+  ctx.lineWidth = 3;
+  ctx.fillRect(margin, resultY, 1090, resultHeight);
+  ctx.strokeRect(margin, resultY, 1090, resultHeight);
+  drawScorecardText(ctx, t('Match totals'), margin + 26, resultY + 35, { align: 'left', color: '#1f6f5b', font: 'bold 29px Arial, Microsoft YaHei, sans-serif' });
+  [
+    { label: t('Gross'), score: grossTeam, y: resultY + 62 },
+    { label: t('Net'), score: netTeam, y: resultY + 130 }
+  ].forEach(mode => {
+    ctx.fillStyle = '#f4f7f5';
+    ctx.strokeStyle = '#d6d1c6';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    roundedRectPath(ctx, margin + 25, mode.y, 110, 58, 29);
+    ctx.fill();
+    ctx.stroke();
+    drawScorecardText(ctx, mode.label, margin + 80, mode.y + 29, { font: 'bold 23px Arial, Microsoft YaHei, sans-serif' });
+    drawRoundResultChip(ctx, margin + 155, mode.y, 430, `${players[0]}+${players[1]}`, mode.score.a);
+    drawRoundResultChip(ctx, margin + 605, mode.y, 430, `${players[2]}+${players[3]}`, mode.score.b);
+  });
+  drawScorecardText(ctx,
+    t(normalized.underParFlip ? 'Under-par flip was enabled for this game.' : 'Under-par flip was disabled for this game.'),
+    margin + 26,
+    resultY + 220,
+    { align: 'left', color: normalized.underParFlip ? '#1f6f5b' : '#62706a', font: 'bold 24px Arial, Microsoft YaHei, sans-serif' }
+  );
+  if (!flipDetails.length) {
+    drawScorecardText(ctx, t('No under-par scores were recorded.'), margin + 26, resultY + 275, {
+      align: 'left', color: '#62706a', font: '23px Arial, Microsoft YaHei, sans-serif'
+    });
+  } else {
+    const detailX = margin;
+    const detailTop = resultY + 252;
+    const detailColumns = [70, 70, 275, 275, 400];
+    const detailHeaders = [t('Hole'), t('Par'), t('Team A'), t('Team B'), t('Score result')];
+    let headerX = detailX;
+    detailHeaders.forEach((header, index) => {
+      ctx.fillStyle = index < 2 ? '#315e51' : (index === 2 ? '#dceee8' : (index === 3 ? '#fff1d6' : '#f4f1ea'));
+      ctx.fillRect(headerX, detailTop, detailColumns[index], 48);
+      drawScorecardText(ctx, header, headerX + detailColumns[index] / 2, detailTop + 24, {
+        color: index < 2 ? '#ffffff' : '#17221f', font: 'bold 20px Arial, Microsoft YaHei, sans-serif'
+      });
+      headerX += detailColumns[index];
+    });
+    flipDetails.forEach((detail, index) => {
+      const rowY = detailTop + 48 + index * detailRowHeight;
+      let cellX = detailX;
+      detailColumns.forEach(width => {
+        ctx.fillStyle = index % 2 ? '#ffffff' : '#faf8f3';
+        ctx.fillRect(cellX, rowY, width, detailRowHeight);
+        ctx.strokeStyle = '#d6d1c6';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(cellX, rowY, width, detailRowHeight);
+        cellX += width;
+      });
+      const rowMiddle = rowY + detailRowHeight / 2;
+      drawScorecardText(ctx, detail.hole, detailX + 35, rowMiddle, { font: 'bold 23px Arial' });
+      drawScorecardText(ctx, detail.par, detailX + 105, rowMiddle, { font: 'bold 23px Arial' });
+      drawPlayerScoreSegments(ctx, detail.teams[0], detailX + 155, rowMiddle, 245);
+      drawPlayerScoreSegments(ctx, detail.teams[1], detailX + 430, rowMiddle, 245);
+      let resultLineY = rowY + 28;
+      detail.results.forEach(result => {
+        if (result.triggered && normalized.underParFlip) {
+          drawScorecardText(ctx, `${result.label} · ${t('Without flip')}: ${result.beforeText}`, detailX + 720, resultLineY, {
+            align: 'left', font: 'bold 16px Arial, Microsoft YaHei, sans-serif', maxWidth: 380
+          });
+          resultLineY += 31;
+          drawScorecardText(ctx, `${t('After flip')}: ${result.afterText}`, detailX + 720, resultLineY, {
+            align: 'left', color: '#b3453f', font: 'bold 16px Arial, Microsoft YaHei, sans-serif', maxWidth: 380
+          });
+          resultLineY += 31;
+          drawScorecardText(ctx, `${t('Extra points from flip')}: ${result.extra >= 0 ? '+' : ''}${result.extra}`, detailX + 720, resultLineY, {
+            align: 'left', color: '#c9892a', font: 'bold 17px Arial, Microsoft YaHei, sans-serif', maxWidth: 380
+          });
+          resultLineY += 39;
+        } else {
+          drawScorecardText(ctx, `${result.label}: ${result.beforeText}`, detailX + 720, resultLineY, {
+            align: 'left', font: 'bold 17px Arial, Microsoft YaHei, sans-serif', maxWidth: 380
+          });
+          resultLineY += 38;
+        }
+      });
+      if (detail.note) {
+        drawScorecardText(ctx, detail.note, detailX + 720, Math.min(rowY + detailRowHeight - 25, resultLineY + 6), {
+          align: 'left', color: '#62706a', font: '18px Arial, Microsoft YaHei, sans-serif', maxWidth: 380
+        });
+      }
+    });
+  }
+
+  const blob = await new Promise((resolve, reject) => {
+    canvas.toBlob(value => value ? resolve(value) : reject(new Error('Could not create scorecard image.')), 'image/png');
+  });
+  const fileName = scorecardFileName(normalized);
+  return { blob, file: new File([blob], fileName, { type: 'image/png' }), fileName, url: URL.createObjectURL(blob) };
+}
+
+function downloadScorecard(asset) {
+  const link = document.createElement('a');
+  link.href = asset.url;
+  link.download = asset.fileName;
+  document.body.append(link);
+  link.click();
+  link.remove();
+}
+
+async function shareScorecardAsset() {
+  if (!shareCardAsset) return;
+  els.shareCardStatus.textContent = '';
+  const shareData = { title: t('Game scoring card'), text: t('Game scoring card'), files: [shareCardAsset.file] };
+  try {
+    if (!navigator.share || (navigator.canShare && !navigator.canShare(shareData))) throw new Error('File sharing unavailable');
+    await navigator.share(shareData);
+    els.shareCardStatus.textContent = t('Scorecard shared.');
+  } catch {
+    downloadScorecard(shareCardAsset);
+    els.shareCardStatus.textContent = t('Sharing is unavailable. The scorecard was downloaded instead.');
+  }
+}
+
+async function openShareCard(round) {
+  els.shareCardModal.hidden = false;
+  els.shareCardStatus.textContent = t('Generating scorecard...');
+  els.shareScorecardButton.disabled = true;
+  try {
+    if (shareCardAsset?.url) URL.revokeObjectURL(shareCardAsset.url);
+    shareCardAsset = await createScorecardAsset(round);
+    els.shareCardPreview.src = shareCardAsset.url;
+    els.shareCardStatus.textContent = '';
+    els.shareScorecardButton.disabled = false;
+  } catch {
+    els.shareCardStatus.textContent = t('Could not generate the scorecard image.');
+  }
+}
+
+function closeShareCard() {
+  els.shareCardModal.hidden = true;
+}
+
 function renderGameList(container, rounds, emptyText, status) {
   container.innerHTML = '';
   if (!rounds.length) {
@@ -3239,15 +3649,18 @@ function renderGameList(container, rounds, emptyText, status) {
     row.querySelector('.playing-icon').hidden = status !== 'playing';
     row.querySelector('.game-main').textContent = `${round.courseName || t('Course')} | ${roundListDate(round)}`;
     row.querySelector('.game-score').innerHTML = roundScoreSummaryHtml(round);
+    const openRound = () => {
+      const canEdit = status === 'playing' && hasCurrentEditLock(round);
+      loadGame(round.id, canEdit, false);
+      switchView(status === 'playing' && canEdit ? 'play' : 'leaderboard');
+    };
     row.querySelector('.game-open').addEventListener('click', () => {
-      loadGame(round.id, false, false);
-      switchView(status === 'playing' ? 'play' : 'leaderboard');
+      openRound();
     });
     row.querySelector('.game-open').addEventListener('keydown', event => {
       if (event.key !== 'Enter' && event.key !== ' ') return;
       event.preventDefault();
-      loadGame(round.id, false, false);
-      switchView(status === 'playing' ? 'play' : 'leaderboard');
+      openRound();
     });
     if (status === 'playing') {
       const editInfoButton = document.createElement('button');
@@ -3364,7 +3777,8 @@ function addListeners() {
       return;
     }
 
-    if (!(await confirmFinishWithCode(currentGame()))) return;
+    const finishAnswer = await confirmFinishWithCode(currentGame());
+    if (!finishAnswer) return;
     const finished = replaceRound(roundFromState(currentGame(), 'history'));
     finished.totals.editLock = null;
     saveHistoryLocal();
@@ -3373,6 +3787,7 @@ function addListeners() {
     scheduleAutoSync(finished);
     render();
     switchView('start');
+    if (finishAnswer.share) await openShareCard(finished);
   });
 
   els.shareButton.addEventListener('click', async () => {
@@ -3407,7 +3822,9 @@ function addListeners() {
         els.dialogInput.setCustomValidity('');
         return;
       }
-      closeAppDialog(value);
+      closeAppDialog(els.dialogCheckboxWrap.hidden
+        ? value
+        : { value, checked: els.dialogCheckbox.checked });
       return;
     }
     closeAppDialog(true);
@@ -3417,6 +3834,12 @@ function addListeners() {
 
   els.appDialog.addEventListener('click', event => {
     if (event.target === els.appDialog) closeAppDialog(false);
+  });
+
+  els.shareScorecardButton.addEventListener('click', shareScorecardAsset);
+  els.closeShareCard.addEventListener('click', closeShareCard);
+  els.shareCardModal.addEventListener('click', event => {
+    if (event.target === els.shareCardModal) closeShareCard();
   });
 
   els.scorePadClose.addEventListener('click', closeScorePad);
@@ -3736,7 +4159,7 @@ function addListeners() {
   els.languageButton.addEventListener('click', window.VEGAS_I18N.toggle);
 }
 
-function init() {
+async function init() {
   const cloudReady = hasSupabaseConfig();
   customCourses = loadJson(COURSE_KEY, []);
   deletedRoundKeys = loadJson(DELETE_KEY, []);
@@ -3775,7 +4198,14 @@ function init() {
   addListeners();
   render();
   switchView(currentView);
-  syncFromCloud(false);
+  try {
+    await syncFromCloud(false);
+  } finally {
+    if (els.welcomeScreen) {
+      els.welcomeScreen.classList.add('leaving');
+      window.setTimeout(() => { els.welcomeScreen.hidden = true; }, 300);
+    }
+  }
   window.setInterval(() => {
     if (!hasSupabaseConfig() || syncState.busy) return;
     if (isEditing) {
