@@ -156,6 +156,8 @@
     'Game scoring card': '比赛记分卡',
     'Player totals': '球员总杆数',
     'Score result': '比分结果',
+    'Gross win/loss': '总杆输赢',
+    'Net win/loss': '净杆输赢',
     'Without flip': '不翻转',
     'After flip': '翻转后',
     'Extra points from flip': '比不翻转额外多出',

@@ -3323,12 +3323,12 @@ function underParFlipDetails(round) {
       const beforeText = `${t('Team A')} ${beforeDelta >= 0 ? '+' : ''}${beforeDelta} (${aBefore}) vs ${t('Team B')} ${-beforeDelta >= 0 ? '+' : ''}${-beforeDelta} (${bBefore})`;
       const afterText = `${t('Team A')} ${afterDelta >= 0 ? '+' : ''}${afterDelta} (${aNumberAfter}) vs ${t('Team B')} ${-afterDelta >= 0 ? '+' : ''}${-afterDelta} (${bNumberAfter})`;
       return {
-        label: t(mode === 'gross' ? 'Gross' : 'Net'),
+        label: t(mode === 'gross' ? 'Gross win/loss' : 'Net win/loss'),
         triggered: Boolean(flippedTeam),
         beforeText,
         afterText,
-        beforePoints: -Math.abs(beforeDelta),
-        afterPoints: -Math.abs(afterDelta),
+        beforePoints: Math.abs(beforeDelta),
+        afterPoints: Math.abs(afterDelta),
         extra: Math.abs(afterDelta) - Math.abs(beforeDelta)
       };
     });
@@ -3364,7 +3364,7 @@ function drawFlipResultLine(ctx, result, x, y) {
     { text: `${result.label}: ${result.beforePoints} `, color: '#17221f', font: normalFont },
     { text: '💣➡️', color: '#b3453f', font: iconFont },
     { text: ` ${result.afterPoints} `, color: '#b3453f', font: normalFont },
-    { text: '❗', color: '#b3453f', font: iconFont },
+    { text: '🩸', color: '#b3453f', font: iconFont },
     { text: ` ${result.extra >= 0 ? '+' : ''}${result.extra} `, color: '#c9892a', font: normalFont },
     { text: 'EXTRA', color: '#c9892a', font: 'italic bold 22px Arial, sans-serif' }
   ];
@@ -3503,7 +3503,7 @@ async function createScorecardAsset(round) {
       ctx.strokeRect(x, y, columns[columnIndex], rowHeight);
       const playerIndexByColumn = { 2: 0, 3: 1, 6: 2, 7: 3 };
       const playerIndex = playerIndexByColumn[columnIndex];
-      if (playerIndex !== undefined && normalized.scoreMode === 'net' && complete) {
+      if (playerIndex !== undefined && complete) {
         drawScorecardText(ctx, value, x + columns[columnIndex] / 2, y + 20, { font: 'bold 22px Arial' });
         drawScorecardText(ctx, `${t('Net')} ${netValues[playerIndex]}`, x + columns[columnIndex] / 2, y + 41, {
           color: '#62706a', font: 'bold 13px Arial, Microsoft YaHei, sans-serif'
@@ -3521,24 +3521,8 @@ async function createScorecardAsset(round) {
     });
   }
 
-  const tableBottom = tableTop + headerHeight + 18 * rowHeight;
-  const aStartX = margin + columns[0] + columns[1];
-  const teamBoundaryX = aStartX + columns[2] + columns[3] + columns[4] + columns[5];
-  ctx.lineWidth = 4;
-  ctx.strokeStyle = '#5da58f';
-  ctx.beginPath();
-  ctx.moveTo(aStartX, tableTop);
-  ctx.lineTo(aStartX, tableBottom);
-  ctx.stroke();
-  ctx.strokeStyle = '#9b7a36';
-  ctx.beginPath();
-  ctx.moveTo(teamBoundaryX, tableTop);
-  ctx.lineTo(teamBoundaryX, tableBottom);
-  ctx.moveTo(margin + 1090, tableTop);
-  ctx.lineTo(margin + 1090, tableBottom);
-  ctx.stroke();
-  ctx.lineWidth = 5;
-  ctx.strokeStyle = '#315e51';
+  ctx.lineWidth = 2;
+  ctx.strokeStyle = '#78958c';
   const nineHoleDividerY = tableTop + headerHeight + 9 * rowHeight;
   ctx.beginPath();
   ctx.moveTo(margin, nineHoleDividerY);
