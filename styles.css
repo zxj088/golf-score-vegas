@@ -1289,13 +1289,12 @@ input:disabled {
 }
 
 .share-card-form {
-  width: min(640px, 100%);
+  width: min(900px, 100%);
 }
 
 .share-card-form img {
   display: block;
-  width: min(100%, 430px);
-  max-height: 68dvh;
+  width: 100%;
   margin: 10px auto;
   border: 1px solid var(--line);
   border-radius: 8px;

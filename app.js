@@ -8,6 +8,8 @@ const COURSE_DELETE_KEY = 'vegasGolfDeletedCourses.v1';
 const GAME_LIMIT = 200;
 const CLOUD_ROUND_LIMIT = 1000;
 const EDIT_LOCK_TTL_MS = 12000;
+const WELCOME_MIN_DURATION_MS = 1000;
+const welcomeStartedAt = performance.now();
 const DEFAULT_COURSE_COUNTRY = 'Sweden';
 const DEFAULT_COURSE_REGION = 'Stockholm County';
 const OVERPASS_API_URLS = [
@@ -3386,30 +3388,18 @@ function scorecardFileName(round) {
   return `${safeCourse || 'golf-game'}-${roundListDate(round).replace(/[^0-9]+/g, '-')}.png`;
 }
 
-function loadScorecardBackground() {
-  return new Promise(resolve => {
-    const image = new Image();
-    image.onload = () => resolve(image);
-    image.onerror = () => resolve(null);
-    image.src = './assets/welcome-golf.jpg';
-  });
-}
-
-function drawCoverImage(ctx, image, width, height) {
-  const scale = Math.max(width / image.naturalWidth, height / image.naturalHeight);
-  const drawWidth = image.naturalWidth * scale;
-  const drawHeight = image.naturalHeight * scale;
-  ctx.drawImage(image, (width - drawWidth) / 2, (height - drawHeight) / 2, drawWidth, drawHeight);
-}
-
 async function createScorecardAsset(round) {
   const normalized = normalizeRound(round);
   const flipDetails = underParFlipDetails(normalized);
   const detailRowHeight = normalized.underParFlip ? 245 : 145;
+  const exportScale = 2;
+  const logicalWidth = 1200;
+  const logicalHeight = Math.max(2050, 2020 + flipDetails.length * detailRowHeight);
   const canvas = document.createElement('canvas');
-  canvas.width = 1200;
-  canvas.height = Math.max(2050, 2020 + flipDetails.length * detailRowHeight);
+  canvas.width = logicalWidth * exportScale;
+  canvas.height = logicalHeight * exportScale;
   const ctx = canvas.getContext('2d');
+  ctx.scale(exportScale, exportScale);
   const players = normalized.players.map((name, index) => name || t(`Player ${index + 1}`));
   const handicaps = normalizeHandicaps(normalized.handicaps || normalized.totals?.handicaps);
   const totals = scorecardPlayerTotals(normalized);
@@ -3422,12 +3412,8 @@ async function createScorecardAsset(round) {
   const columns = [90, 90, 90, 205, 205, 205, 205];
   const labels = [t('Hole'), t('Par'), t('Index'), ...players];
 
-  const backgroundImage = await loadScorecardBackground();
-  if (backgroundImage) drawCoverImage(ctx, backgroundImage, canvas.width, canvas.height);
-  if (!backgroundImage) {
-    ctx.fillStyle = '#f7f3e9';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-  }
+  ctx.fillStyle = '#f7f3e9';
+  ctx.fillRect(0, 0, logicalWidth, logicalHeight);
   ctx.fillStyle = '#1f6f5b';
   ctx.fillRect(0, 0, canvas.width, 245);
   drawScorecardText(ctx, t('Vegas Golf Scorecard'), 600, 65, { color: '#ffffff', font: 'bold 48px Georgia, Microsoft YaHei, serif' });
@@ -4202,6 +4188,10 @@ async function init() {
     await syncFromCloud(false);
   } finally {
     if (els.welcomeScreen) {
+      const remainingWelcomeTime = Math.max(0, WELCOME_MIN_DURATION_MS - (performance.now() - welcomeStartedAt));
+      if (remainingWelcomeTime) {
+        await new Promise(resolve => window.setTimeout(resolve, remainingWelcomeTime));
+      }
       els.welcomeScreen.classList.add('leaving');
       window.setTimeout(() => { els.welcomeScreen.hidden = true; }, 300);
     }
