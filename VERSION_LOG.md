@@ -4,6 +4,26 @@ This file records the good baseline versions of the app and how to switch back t
 
 ## Good Baselines
 
+### v4.2 - Shareable scorecard baseline
+
+Date: 2026-07-20
+
+Tag: `v4.2`
+
+Live URL:
+
+`https://zxj088.github.io/golf-score-vegas/?v=110`
+
+What is good in this version:
+
+- Stable bilingual mobile scoring UI with edit-lock-aware game navigation.
+- Startup welcome photo displays for at least one second while the initial cloud connection settles.
+- Finish flow can generate, preview, share, or download a high-resolution game scorecard PNG.
+- Shared scorecard uses a Leaderboard-style table with gross scores, small net scores, team numbers, and signed results.
+- Under-par details highlight praised players and flipped losing players, with gross/net win-loss analysis.
+- Flip analysis uses dedicated `🔄`, `💣`, and italic `EXTRA` indicators.
+- PWA asset query version is `v110`.
+
 ### v4.1 - Welcome screen and shareable game scorecard
 
 Date: 2026-07-20
@@ -78,7 +98,7 @@ Use these commands in the repo folder:
 ```powershell
 git fetch --all --tags
 git switch v4-dev
-git reset --hard v4.1
+git reset --hard v4.2
 ```
 
 To switch back to the current development branch later:
@@ -96,15 +116,15 @@ If there are local changes you want to keep, commit or stash them before using `
 1. Open the repository in GitHub.
 2. Click the branch/tag selector near the top-left of the file list.
 3. Choose the `Tags` tab.
-4. Select `v4.1`, `v4.0`, `v3.0-final`, or another baseline tag.
+4. Select `v4.2`, `v4.1`, `v4.0`, `v3.0-final`, or another baseline tag.
 5. To restore a baseline as the live website, create a branch from that tag or use GitHub Desktop/command line to push that tag commit to `main`.
 
-Command line example to publish `v4.1` to the live GitHub Pages site:
+Command line example to publish `v4.2` to the live GitHub Pages site:
 
 ```powershell
 git fetch --all --tags
 git switch v4-dev
-git reset --hard v4.1
+git reset --hard v4.2
 git push origin v4-dev:main
 ```
 
