@@ -3357,6 +3357,24 @@ function drawPlayerScoreSegments(ctx, players, x, y, width) {
   });
 }
 
+function drawFlipResultLine(ctx, result, x, y) {
+  const normalFont = 'bold 20px Arial, Microsoft YaHei, sans-serif';
+  const iconFont = 'bold 34px Arial, Microsoft YaHei, sans-serif';
+  const beforeText = `${result.label}: ${result.beforePoints}  `;
+  const afterText = `  ${result.afterPoints}  (${result.extra >= 0 ? '+' : ''}${result.extra})`;
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = '#b3453f';
+  ctx.font = normalFont;
+  ctx.fillText(beforeText, x, y);
+  let cursorX = x + ctx.measureText(beforeText).width;
+  ctx.font = iconFont;
+  ctx.fillText('💣➡️', cursorX, y);
+  cursorX += ctx.measureText('💣➡️').width;
+  ctx.font = normalFont;
+  ctx.fillText(afterText, cursorX, y);
+}
+
 function roundedRectPath(ctx, x, y, width, height, radius) {
   const r = Math.min(radius, width / 2, height / 2);
   ctx.moveTo(x + r, y);
@@ -3530,14 +3548,7 @@ async function createScorecardAsset(round) {
       let resultLineY = rowY + 28;
       detail.results.forEach(result => {
         if (result.triggered && normalized.underParFlip) {
-          drawScorecardText(ctx,
-            `${result.label}: ${result.beforePoints}  💣➡️  ${result.afterPoints}  (${result.extra >= 0 ? '+' : ''}${result.extra})`,
-            detailX + 720,
-            resultLineY,
-            {
-              align: 'left', color: '#b3453f', font: 'bold 21px Arial, Microsoft YaHei, sans-serif', maxWidth: 380
-            }
-          );
+          drawFlipResultLine(ctx, result, detailX + 720, resultLineY);
           resultLineY += 46;
         } else {
           drawScorecardText(ctx, `${result.label}: ${result.beforeText}`, detailX + 720, resultLineY, {
