@@ -3416,9 +3416,10 @@ async function createScorecardAsset(round) {
   const normalized = normalizeRound(round);
   const flipDetails = underParFlipDetails(normalized);
   const detailRowHeight = 165;
+  const totalRowHeight = 74;
   const exportScale = 2;
   const logicalWidth = 1200;
-  const logicalHeight = Math.max(1800, 1795 + flipDetails.length * detailRowHeight);
+  const logicalHeight = Math.max(1875, 1869 + flipDetails.length * detailRowHeight);
   const canvas = document.createElement('canvas');
   canvas.width = logicalWidth * exportScale;
   canvas.height = logicalHeight * exportScale;
@@ -3428,6 +3429,8 @@ async function createScorecardAsset(round) {
   const handicaps = normalizeHandicaps(normalized.handicaps || normalized.totals?.handicaps);
   const grossTeam = scoreRoundTotalsForMode(normalized, 'gross');
   const netTeam = scoreRoundTotalsForMode(normalized, 'net');
+  const playerTotals = scorecardPlayerTotals(normalized);
+  const displayedTeamTotal = normalized.scoreMode === 'net' ? netTeam : grossTeam;
   const margin = 55;
   const tableTop = 320;
   const headerHeight = 78;
@@ -3448,7 +3451,7 @@ async function createScorecardAsset(round) {
     `${t('Team A')}: ${players[0]} (HCP ${handicaps[0]}) + ${players[1]} (HCP ${handicaps[1]})  vs  ${t('Team B')}: ${players[2]} (HCP ${handicaps[2]}) + ${players[3]} (HCP ${handicaps[3]})`,
     600,
     277,
-    { font: '23px Arial, Microsoft YaHei, sans-serif', maxWidth: 1090 }
+    { font: '28px Arial, Microsoft YaHei, sans-serif', maxWidth: 1060 }
   );
 
   let x = margin;
@@ -3529,7 +3532,48 @@ async function createScorecardAsset(round) {
   ctx.lineTo(margin + 1090, nineHoleDividerY);
   ctx.stroke();
 
-  const resultY = tableTop + headerHeight + 18 * rowHeight + 38;
+  const totalsY = tableTop + headerHeight + 18 * rowHeight;
+  const parTotal = normalized.pars.reduce((sum, value) => sum + (Number(value) || 0), 0);
+  const totalValues = [
+    t('Total'),
+    parTotal,
+    playerTotals.gross[0],
+    playerTotals.gross[1],
+    '—',
+    displayedTeamTotal.a,
+    playerTotals.gross[2],
+    playerTotals.gross[3],
+    '—',
+    displayedTeamTotal.b
+  ];
+  x = margin;
+  totalValues.forEach((value, columnIndex) => {
+    ctx.fillStyle = columnIndex < 2 ? '#315e51' : (columnIndex < 6 ? '#dceee8' : '#fff1d6');
+    ctx.fillRect(x, totalsY, columns[columnIndex], totalRowHeight);
+    ctx.strokeStyle = '#78958c';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(x, totalsY, columns[columnIndex], totalRowHeight);
+    const playerIndexByColumn = { 2: 0, 3: 1, 6: 2, 7: 3 };
+    const playerIndex = playerIndexByColumn[columnIndex];
+    if (playerIndex !== undefined) {
+      drawScorecardText(ctx, value, x + columns[columnIndex] / 2, totalsY + 27, {
+        font: 'bold 25px Arial, Microsoft YaHei, sans-serif'
+      });
+      drawScorecardText(ctx, `${t('Net')} ${playerTotals.net[playerIndex]}`, x + columns[columnIndex] / 2, totalsY + 55, {
+        color: '#52635d', font: 'bold 16px Arial, Microsoft YaHei, sans-serif'
+      });
+    } else {
+      const isPointsColumn = columnIndex === 5 || columnIndex === 9;
+      const pointValue = Number(value);
+      drawScorecardText(ctx, value, x + columns[columnIndex] / 2, totalsY + totalRowHeight / 2, {
+        color: columnIndex < 2 ? '#ffffff' : (isPointsColumn && pointValue > 0 ? '#118747' : (isPointsColumn && pointValue < 0 ? '#b3453f' : '#17221f')),
+        font: columnIndex === 0 ? 'bold 21px Arial, Microsoft YaHei, sans-serif' : 'bold 25px Arial, Microsoft YaHei, sans-serif'
+      });
+    }
+    x += columns[columnIndex];
+  });
+
+  const resultY = totalsY + totalRowHeight + 38;
   const resultHeight = 330 + flipDetails.length * detailRowHeight;
   ctx.fillStyle = '#ffffff';
   ctx.strokeStyle = '#c9892a';

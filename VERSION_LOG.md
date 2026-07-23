@@ -22,7 +22,7 @@ What is good in this version:
 - Shared scorecard uses a Leaderboard-style table with gross scores, small net scores, team numbers, and signed results.
 - Under-par details highlight praised players and flipped losing players, with gross/net win-loss analysis.
 - Flip analysis uses dedicated `🔄`, `💣`, and italic `EXTRA` indicators.
-- PWA asset query version is `v110`.
+- PWA asset query version is `v111`.
 
 ### v4.1 - Welcome screen and shareable game scorecard
 
