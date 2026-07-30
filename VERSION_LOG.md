@@ -4,6 +4,25 @@ This file records the good baseline versions of the app and how to switch back t
 
 ## Good Baselines
 
+### v4.4 - Stable Wolf & Pack mobile baseline
+
+Date: 2026-07-31
+
+Tag: `v4.4`
+
+Live URL:
+
+`https://zxj088.github.io/golf-score-vegas/?v=149`
+
+What is good in this version:
+
+- Las Vegas and Wolf & Pack Scoring are fully integrated with bilingual rules, setup, scoring, leaderboard, history, and sharing.
+- Wolf & Pack supports automatic hole settlement, winner-only gross-score bombs, fair next-Wolf rotation, manual overrides, and 3- or 4-player games.
+- Historical players can be selected reliably on mobile and automatically restore their most recent handicap.
+- Mobile setup hints stay within the visible screen and player fields remain readable on narrow devices.
+- High-resolution share scorecards fit the phone width and use enlarged player statistics, hole details, and total-row text.
+- PWA asset query version is `v149`.
+
 ### v4.3 - Las Vegas and Fight the Landlord
 
 Date: 2026-07-30
