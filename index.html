@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#1f6f5b">
   <title>Simple Golf Scorecard</title>
-  <link rel="manifest" href="./manifest.webmanifest?v=137">
-  <link rel="stylesheet" href="./styles.css?v=137">
+  <link rel="manifest" href="./manifest.webmanifest?v=138">
+  <link rel="stylesheet" href="./styles.css?v=138">
 </head>
 <body>
   <div class="welcome-screen" id="welcomeScreen" role="status" aria-live="polite">
@@ -324,6 +324,25 @@
         <button class="icon-button" id="cancelGame" type="button" aria-label="Close new game" title="Close">x</button>
       </div>
 
+      <div class="game-options game-location-options">
+        <label>
+          Country
+          <select id="newGameCountry"></select>
+        </label>
+        <label>
+          Region
+          <select id="newGameRegion"></select>
+        </label>
+        <label>
+          Course
+          <select id="newGameCourse"></select>
+        </label>
+        <label>
+          Tee time
+          <input id="newGameTeeTime" type="datetime-local" required>
+        </label>
+      </div>
+
       <div class="teams-grid">
         <section class="team-card team-a">
           <h3>Team A</h3>
@@ -379,22 +398,6 @@
             <option value="3">3 players</option>
             <option value="4">4 players</option>
           </select>
-        </label>
-        <label>
-          Country
-          <select id="newGameCountry"></select>
-        </label>
-        <label>
-          Region
-          <select id="newGameRegion"></select>
-        </label>
-        <label>
-          Course
-          <select id="newGameCourse"></select>
-        </label>
-        <label>
-          Tee time
-          <input id="newGameTeeTime" type="datetime-local" required>
         </label>
         <label>
           Scoring Mode
@@ -534,8 +537,8 @@
     </form>
   </div>
 
-  <script src="./i18n.js?v=137" defer></script>
-  <script src="./supabase-config.js?v=137"></script>
-  <script src="./app.js?v=137" defer></script>
+  <script src="./i18n.js?v=138" defer></script>
+  <script src="./supabase-config.js?v=138"></script>
+  <script src="./app.js?v=138" defer></script>
 </body>
 </html>

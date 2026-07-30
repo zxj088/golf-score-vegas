@@ -1645,6 +1645,10 @@ input:disabled {
   gap: 8px;
 }
 
+.game-location-options {
+  margin-bottom: 2px;
+}
+
 .par-editor section {
   display: grid;
   gap: 7px;
