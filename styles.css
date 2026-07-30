@@ -1952,6 +1952,18 @@ button:disabled {
   font-weight: 900;
 }
 
+.landlord-choice-list button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.landlord-person-icon {
+  font-size: 25px;
+  line-height: 1;
+}
+
 .landlord-choice-list button.active,
 .multiplier-buttons button.active {
   border-color: #70450f;

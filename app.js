@@ -2467,7 +2467,7 @@ function renderLandlordActions() {
     const button = document.createElement('button');
     button.type = 'button';
     button.className = index === landlordIndex ? 'active' : '';
-    button.textContent = `${index === landlordIndex ? '♛ ' : ''}${player}`;
+    button.innerHTML = `${index === landlordIndex ? '<span class="landlord-person-icon" aria-hidden="true">👲</span>' : ''}<span>${escapeHtml(player)}</span>`;
     button.disabled = !isEditing;
     button.addEventListener('click', () => setLandlordForHole(index));
     els.landlordChoices.append(button);
