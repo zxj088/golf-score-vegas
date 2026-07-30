@@ -554,7 +554,10 @@ const els = {
   newHandicapA2: document.querySelector('#newHandicapA2'),
   newHandicapB1: document.querySelector('#newHandicapB1'),
   newHandicapB2: document.querySelector('#newHandicapB2'),
-  playerHistoryOptions: document.querySelector('#playerHistoryOptions'),
+  historyPlayerA1: document.querySelector('#historyPlayerA1'),
+  historyPlayerA2: document.querySelector('#historyPlayerA2'),
+  historyPlayerB1: document.querySelector('#historyPlayerB1'),
+  historyPlayerB2: document.querySelector('#historyPlayerB2'),
   newGameCountry: document.querySelector('#newGameCountry'),
   newGameRegion: document.querySelector('#newGameRegion'),
   newGameCourse: document.querySelector('#newGameCourse'),
@@ -2222,12 +2225,21 @@ function updateGameTypeFields() {
 }
 
 function renderPlayerHistoryOptions() {
-  if (!els.playerHistoryOptions) return;
   const profiles = historicalPlayerProfiles();
-  els.playerHistoryOptions.innerHTML = Array.from(profiles.values())
+  const options = Array.from(profiles.values())
     .sort((a, b) => a.name.localeCompare(b.name))
-    .map(profile => `<option value="${escapeHtml(profile.name)}" label="${escapeHtml(`HCP ${profile.handicap}`)}"></option>`)
+    .map(profile => `<option value="${escapeHtml(profile.name)}">${escapeHtml(profile.name)} · HCP ${profile.handicap}</option>`)
     .join('');
+  [
+    els.historyPlayerA1,
+    els.historyPlayerA2,
+    els.historyPlayerB1,
+    els.historyPlayerB2
+  ].forEach(select => {
+    if (!select) return;
+    select.innerHTML = `<option value="">${escapeHtml(t('History player'))}</option>${options}`;
+    select.value = '';
+  });
 }
 
 function historicalPlayerProfiles() {
@@ -4871,13 +4883,19 @@ function addListeners() {
   els.newGameType.addEventListener('change', updateGameTypeFields);
   els.newLandlordPlayerCount.addEventListener('change', updateGameTypeFields);
   [
-    [els.newPlayerA1, els.newHandicapA1],
-    [els.newPlayerA2, els.newHandicapA2],
-    [els.newPlayerB1, els.newHandicapB1],
-    [els.newPlayerB2, els.newHandicapB2]
-  ].forEach(([playerInput, handicapInput]) => {
+    [els.newPlayerA1, els.newHandicapA1, els.historyPlayerA1],
+    [els.newPlayerA2, els.newHandicapA2, els.historyPlayerA2],
+    [els.newPlayerB1, els.newHandicapB1, els.historyPlayerB1],
+    [els.newPlayerB2, els.newHandicapB2, els.historyPlayerB2]
+  ].forEach(([playerInput, handicapInput, historySelect]) => {
     playerInput.addEventListener('input', () => fillHistoricalPlayerHandicap(playerInput, handicapInput));
     playerInput.addEventListener('change', () => fillHistoricalPlayerHandicap(playerInput, handicapInput));
+    historySelect?.addEventListener('change', () => {
+      if (!historySelect.value) return;
+      playerInput.value = historySelect.value;
+      fillHistoricalPlayerHandicap(playerInput, handicapInput);
+      historySelect.value = '';
+    });
   });
   els.landlordMultipliers.addEventListener('click', event => {
     const button = event.target.closest('[data-multiplier]');
@@ -5068,12 +5086,12 @@ async function init() {
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js?v=146', { updateViaCache: 'none' })
+    navigator.serviceWorker.register('./sw.js?v=147', { updateViaCache: 'none' })
       .then(registration => registration.update())
       .catch(() => {});
   });
   navigator.serviceWorker.addEventListener('controllerchange', () => {
-    const reloadKey = 'simpleGolfSwReload.v146';
+    const reloadKey = 'simpleGolfSwReload.v147';
     if (sessionStorage.getItem(reloadKey)) return;
     sessionStorage.setItem(reloadKey, '1');
     window.location.reload();

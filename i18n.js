@@ -23,6 +23,7 @@
     'Player 3': '球员3',
     'Player 4': '球员4',
     'Player': '球员',
+    'History player': '历史球员',
     'Handicap': '差点',
     'Par': '标准杆',
     'Index': '难度',

@@ -872,6 +872,32 @@ textarea {
   background: linear-gradient(180deg, var(--gold-2), var(--panel));
 }
 
+.player-name-picker {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(8.5rem, 38%);
+  gap: 7px;
+  margin-top: 4px;
+}
+
+.player-name-picker > input,
+.player-name-picker > select {
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+}
+
+.history-player-select {
+  color: var(--muted);
+  font-size: 0.9em;
+}
+
+@media (max-width: 520px) {
+  .player-name-picker {
+    grid-template-columns: minmax(0, 1fr) minmax(7.2rem, 36%);
+    gap: 5px;
+  }
+}
+
 .teams-grid.landlord-mode {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px 14px;
