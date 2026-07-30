@@ -2320,11 +2320,37 @@ function updateScorePad() {
   const value = state.scores[holeIndex][scoreIndex] || '';
   els.scorePadHole.textContent = t('Hole {hole} - Par {par}', { hole: holeIndex + 1, par });
   els.scorePadPlayer.textContent = scoreTargetLabel(activeScoreTarget);
-  els.scorePadInput.textContent = value || '--';
+  els.scorePadInput.textContent = value || String(par);
   document.querySelectorAll('.score-quick button').forEach(button => {
     const quickScore = String(par + Number(button.dataset.scoreOffset || 0));
-    button.classList.toggle('active', value === quickScore);
+    button.classList.toggle('active', (value || String(par)) === quickScore);
   });
+}
+
+function autoLandlordMultiplierForHole(holeIndex) {
+  if (state.gameType !== 'landlord') return;
+  const config = normalizeLandlordState(state.landlord, state.players.length);
+  const par = Number(currentCourse().pars[holeIndex] || 4);
+  const scores = (state.scores[holeIndex] || [])
+    .slice(0, config.playerCount)
+    .map(parseScore)
+    .filter(score => score !== null);
+  const hasSuperBomb = scores.some(score => score === 1 || score <= par - 2);
+  const hasBirdie = scores.some(score => score === par - 1);
+  state.landlord.multipliers[holeIndex] = hasSuperBomb ? 4 : (hasBirdie ? 2 : 1);
+}
+
+function autoAssignNextLandlord(holeIndex) {
+  if (state.gameType !== 'landlord' || holeIndex >= 17) return;
+  const result = landlordHoleResult(state, holeIndex);
+  if (!result) return;
+  const bestScore = Math.min(...result.scoringValues);
+  const bestPlayers = result.scoringValues
+    .map((score, playerIndex) => ({ score, playerIndex }))
+    .filter(item => item.score === bestScore);
+  state.landlord.landlords[holeIndex + 1] = bestPlayers.length === 1
+    ? bestPlayers[0].playerIndex
+    : state.landlord.landlords[holeIndex];
 }
 
 function commitScorePadValue(value) {
@@ -2335,6 +2361,10 @@ function commitScorePadValue(value) {
     ? String(Math.min(Number(clampScore(value)) || 1, par * 2))
     : clampScore(value);
   state.scores[holeIndex][scoreIndex] = score;
+  if (state.gameType === 'landlord') {
+    autoLandlordMultiplierForHole(holeIndex);
+    autoAssignNextLandlord(holeIndex);
+  }
   persistActiveGame(true);
   renderScoreStrip();
   renderStart();
@@ -2348,6 +2378,7 @@ function clearScorePadValue() {
   if (!activeScoreTarget) return;
   const { holeIndex, scoreIndex } = activeScoreTarget;
   state.scores[holeIndex][scoreIndex] = '';
+  if (state.gameType === 'landlord') autoLandlordMultiplierForHole(holeIndex);
   persistActiveGame(true);
   renderScoreStrip();
   renderStart();
@@ -2445,6 +2476,7 @@ function signedPoints(value) {
 function setLandlordForHole(playerIndex) {
   if (!isEditing || state.gameType !== 'landlord') return;
   state.landlord.landlords[activePlayHoleIndex] = playerIndex;
+  autoAssignNextLandlord(activePlayHoleIndex);
   persistActiveGame(true);
   render();
 }
