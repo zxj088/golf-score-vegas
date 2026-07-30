@@ -827,8 +827,18 @@ textarea {
 
 .history-filters {
   display: grid;
-  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
+}
+
+@media (max-width: 620px) {
+  .history-filters {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .history-filters label:last-child {
+    grid-column: 1 / -1;
+  }
 }
 
 .date-range-fields {
@@ -1778,6 +1788,155 @@ button:disabled {
   .course-total {
     padding: 7px 8px;
     font-size: 12px;
+  }
+}
+
+.landlord-actions {
+  display: grid;
+  gap: 12px;
+  border: 2px solid #8c5a19;
+  border-radius: 12px;
+  margin: 10px 0;
+  padding: 12px;
+  background: #fff7df;
+}
+
+.landlord-action-group {
+  display: grid;
+  gap: 8px;
+}
+
+.landlord-choice-list,
+.multiplier-buttons {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(86px, 1fr));
+  gap: 8px;
+}
+
+.landlord-choice-list button,
+.multiplier-buttons button {
+  min-height: 50px;
+  border: 2px solid #bfae88;
+  font-size: 16px;
+  font-weight: 900;
+}
+
+.landlord-choice-list button.active,
+.multiplier-buttons button.active {
+  border-color: #70450f;
+  color: #fff;
+  background: #8c5a19;
+}
+
+.landlord-hole-result {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 6px;
+  border-top: 1px solid #d5c39d;
+  padding-top: 10px;
+}
+
+.landlord-settle-button {
+  width: 100%;
+  min-height: 54px;
+  font-size: 18px;
+  font-weight: 900;
+}
+
+.landlord-hole-result span {
+  border-radius: 8px;
+  padding: 8px;
+  background: #fff;
+  font-size: 15px;
+}
+
+.play-player-row.landlord-player {
+  border-left: 6px solid #78958c;
+  background: #f2f6f4;
+}
+
+.play-player-row.landlord-player.is-landlord {
+  border-left-color: #8c5a19;
+  background: #fff1d6;
+}
+
+.landlord-leaderboard {
+  display: grid;
+  gap: 12px;
+}
+
+.landlord-ranking {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 16px;
+  background: #fff7df;
+}
+
+.landlord-ranking h2 {
+  margin: 4px 0 12px;
+}
+
+.rank-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.rank-chips span {
+  border: 1px solid #d5c39d;
+  border-radius: 999px;
+  padding: 8px 12px;
+  background: #fff;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.landlord-table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fff;
+}
+
+.landlord-table-wrap table {
+  width: 100%;
+  min-width: 720px;
+  border-collapse: collapse;
+  font-size: 14px;
+  text-align: center;
+}
+
+.landlord-table-wrap th,
+.landlord-table-wrap td {
+  border: 1px solid var(--line);
+  padding: 8px 6px;
+}
+
+.landlord-table-wrap thead th,
+.landlord-table-wrap tfoot th {
+  background: #dceee8;
+}
+
+.landlord-table-wrap td small,
+.landlord-table-wrap th small,
+.landlord-table-wrap td span,
+.landlord-table-wrap th span {
+  display: block;
+  margin-top: 3px;
+}
+
+.landlord-table-wrap .landlord-cell {
+  background: #fff1d6;
+}
+
+@media (max-width: 430px) {
+  .landlord-actions {
+    padding: 10px;
+  }
+
+  .landlord-choice-list button,
+  .multiplier-buttons button {
+    font-size: 15px;
   }
 }
 

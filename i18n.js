@@ -226,6 +226,28 @@
     'Par {par} - {type}': '标准杆 {par} - {type}',
     'Team A ({a1}+{a2}) vs. Team B ({b1}+{b2})': 'A队（{a1}+{a2}）对 B队（{b1}+{b2}）',
     'Total score: A {a}, B {b}': '总分：A {a}，B {b}'
+    ,'Game type': '比赛玩法'
+    ,'Las Vegas': '拉斯'
+    ,'Fight the Landlord': '斗地主'
+    ,'Players': '球员人数'
+    ,'3 players': '3人'
+    ,'4 players': '4人'
+    ,'Landlord': '地主'
+    ,'Peasant': '农民'
+    ,'Multiplier': '倍数'
+    ,'Double x2': '加倍 x2'
+    ,'Bomb x4': '炸弹 x4'
+    ,'Maximum points per hole': '单洞封顶分数'
+    ,'Tie: higher-handicap landlord wins': '平局时高差点地主获胜'
+    ,'Enter all scores to settle this hole.': '输入所有球员杆数后自动结算本洞。'
+    ,'Leader': '领先'
+    ,'Completed': '已完成'
+    ,'Settle hole': '结算本洞'
+    ,'All game types': '全部玩法'
+    ,'Group': '组别'
+    ,'Tee color': '发球台颜色'
+    ,'Golf Game Rules': '高尔夫玩法规则'
+    ,'Choose one landlord on each hole. The other players are peasants. In Gross mode, compare actual strokes; in Net mode, use the same full-handicap allocation as Las Vegas. The landlord score is multiplied by the number of peasants and compared with their combined score. The winning side receives the selected multiplier, subject to the per-hole cap. Scores are capped at double par.': '每洞选择一名地主，其余球员为农民。总杆模式按实际杆数比较；净杆模式采用与拉斯一致的完整差点分洞让杆。地主净杆乘以农民人数后，与所有农民净杆之和比较。胜方按所选倍数得分，并受单洞封顶限制；单洞最高记录为双倍标准杆。'
   };
 
   let language = localStorage.getItem(LANGUAGE_KEY) === 'zh-CN' ? 'zh-CN' : 'en';

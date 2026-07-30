@@ -4,6 +4,23 @@ This file records the good baseline versions of the app and how to switch back t
 
 ## Good Baselines
 
+### v4.3 - Las Vegas and Fight the Landlord
+
+Date: 2026-07-30
+
+Live URL:
+
+`https://zxj088.github.io/golf-score-vegas/?v=120`
+
+What is new in this version:
+
+- New games can use either Las Vegas or Fight the Landlord scoring.
+- Fight the Landlord supports 3 or 4 players, per-hole landlord selection, x1/x2/x4 multipliers, point caps, double-par protection, and optional landlord tie privilege.
+- Gross or net mode controls Fight the Landlord settlement; net mode uses the same full-handicap hole allocation as Las Vegas.
+- Dedicated mobile score entry, hole settlement results, leaderboard, history summaries, and shareable PNG scorecard.
+- Rules dialog explains both games, and History can be filtered by game type.
+- PWA asset query version is `v120`.
+
 ### v4.2 - Shareable scorecard baseline
 
 Date: 2026-07-20

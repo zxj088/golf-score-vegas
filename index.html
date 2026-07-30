@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#1f6f5b">
   <title>Vegas Golf Scorecard</title>
-  <link rel="manifest" href="./manifest.webmanifest?v=111">
-  <link rel="stylesheet" href="./styles.css?v=111">
+  <link rel="manifest" href="./manifest.webmanifest?v=120">
+  <link rel="stylesheet" href="./styles.css?v=120">
 </head>
 <body>
   <div class="welcome-screen" id="welcomeScreen" role="status" aria-live="polite">
@@ -79,6 +79,23 @@
             <button id="playHoleNext" type="button" aria-label="Next hole">›</button>
           </div>
 
+          <section class="landlord-actions" id="landlordActions" hidden>
+            <div class="landlord-action-group">
+              <strong>Landlord</strong>
+              <div class="landlord-choice-list" id="landlordChoices"></div>
+            </div>
+            <div class="landlord-action-group">
+              <strong>Multiplier</strong>
+              <div class="multiplier-buttons" id="landlordMultipliers">
+                <button type="button" data-multiplier="1">x1</button>
+                <button type="button" data-multiplier="2">Double x2</button>
+                <button type="button" data-multiplier="4">Bomb x4</button>
+              </div>
+            </div>
+            <button class="primary landlord-settle-button" id="settleLandlordHole" type="button">Settle hole</button>
+            <div class="landlord-hole-result" id="landlordHoleResult"></div>
+          </section>
+
           <div class="play-player-list" id="playPlayerRows"></div>
         </section>
       </section>
@@ -138,6 +155,7 @@
             </tfoot>
           </table>
         </section>
+        <section class="landlord-leaderboard" id="landlordLeaderboard" hidden></section>
       </section>
 
       <section class="view" id="coursesView">
@@ -185,6 +203,14 @@
             <label>
               Course
               <select id="historyCourseFilter"></select>
+            </label>
+            <label>
+              Game type
+              <select id="historyGameTypeFilter">
+                <option value="all">All game types</option>
+                <option value="vegas">Las Vegas</option>
+                <option value="landlord">Fight the Landlord</option>
+              </select>
             </label>
           </div>
           <div class="history-list" id="historyList"></div>
@@ -304,43 +330,89 @@
           <h3>Team A</h3>
           <label>
             Player 1
-            <input id="newPlayerA1" type="text" autocomplete="off" required>
+            <input id="newPlayerA1" type="text" list="playerHistoryOptions" autocomplete="off" required>
           </label>
           <label>
             Handicap
             <input id="newHandicapA1" type="number" min="0" max="54" inputmode="numeric" value="0" required>
           </label>
+          <label class="landlord-setup" hidden>
+            Group
+            <input id="newGroupA1" type="text" autocomplete="off">
+          </label>
+          <label class="landlord-setup" hidden>
+            Tee color
+            <input id="newTeeA1" type="text" autocomplete="off">
+          </label>
           <label>
             Player 2
-            <input id="newPlayerA2" type="text" autocomplete="off" required>
+            <input id="newPlayerA2" type="text" list="playerHistoryOptions" autocomplete="off" required>
           </label>
           <label>
             Handicap
             <input id="newHandicapA2" type="number" min="0" max="54" inputmode="numeric" value="0" required>
+          </label>
+          <label class="landlord-setup" hidden>
+            Group
+            <input id="newGroupA2" type="text" autocomplete="off">
+          </label>
+          <label class="landlord-setup" hidden>
+            Tee color
+            <input id="newTeeA2" type="text" autocomplete="off">
           </label>
         </section>
         <section class="team-card team-b">
           <h3>Team B</h3>
           <label>
             Player 3
-            <input id="newPlayerB1" type="text" autocomplete="off" required>
+            <input id="newPlayerB1" type="text" list="playerHistoryOptions" autocomplete="off" required>
           </label>
           <label>
             Handicap
             <input id="newHandicapB1" type="number" min="0" max="54" inputmode="numeric" value="0" required>
           </label>
-          <label>
-            Player 4
-            <input id="newPlayerB2" type="text" autocomplete="off" required>
+          <label class="landlord-setup" hidden>
+            Group
+            <input id="newGroupB1" type="text" autocomplete="off">
           </label>
-          <label>
+          <label class="landlord-setup" hidden>
+            Tee color
+            <input id="newTeeB1" type="text" autocomplete="off">
+          </label>
+          <label class="player-four-setup">
+            Player 4
+            <input id="newPlayerB2" type="text" list="playerHistoryOptions" autocomplete="off" required>
+          </label>
+          <label class="player-four-setup">
             Handicap
             <input id="newHandicapB2" type="number" min="0" max="54" inputmode="numeric" value="0" required>
+          </label>
+          <label class="landlord-setup player-four-setup" hidden>
+            Group
+            <input id="newGroupB2" type="text" autocomplete="off">
+          </label>
+          <label class="landlord-setup player-four-setup" hidden>
+            Tee color
+            <input id="newTeeB2" type="text" autocomplete="off">
           </label>
         </section>
       </div>
 
       <div class="game-options">
+        <label>
+          Game type
+          <select id="newGameType">
+            <option value="vegas">Las Vegas</option>
+            <option value="landlord">Fight the Landlord</option>
+          </select>
+        </label>
+        <label class="landlord-setup" hidden>
+          Players
+          <select id="newLandlordPlayerCount">
+            <option value="3">3 players</option>
+            <option value="4">4 players</option>
+          </select>
+        </label>
         <label>
           Country
           <select id="newGameCountry"></select>
@@ -367,6 +439,14 @@
         <label class="toggle-row">
           <span>Under Par Flip</span>
           <input id="newGameBirdieFlip" type="checkbox" checked>
+        </label>
+        <label class="landlord-setup" hidden>
+          Maximum points per hole
+          <input id="newLandlordMaxPoints" type="number" min="1" max="20" inputmode="numeric" value="3">
+        </label>
+        <label class="toggle-row landlord-setup" hidden>
+          <span>Tie: higher-handicap landlord wins</span>
+          <input id="newLandlordTieWins" type="checkbox">
         </label>
         <label>
           Edit code
@@ -440,6 +520,7 @@
           <h2 id="shareCardTitle">Game scoring card</h2>
         </div>
       </div>
+      <datalist id="playerHistoryOptions"></datalist>
       <img id="shareCardPreview" alt="Game scoring card preview">
       <p class="share-card-status" id="shareCardStatus" aria-live="polite"></p>
       <div class="action-row">
@@ -474,8 +555,8 @@
     </form>
   </div>
 
-  <script src="./i18n.js?v=110" defer></script>
-  <script src="./supabase-config.js?v=110"></script>
-  <script src="./app.js?v=111" defer></script>
+  <script src="./i18n.js?v=120" defer></script>
+  <script src="./supabase-config.js?v=120"></script>
+  <script src="./app.js?v=120" defer></script>
 </body>
 </html>
