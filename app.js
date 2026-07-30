@@ -32,7 +32,7 @@ const LANDLORD_RULES_SECTIONS = [
   'The player with the lowest Gross or Net score becomes landlord on the next hole. If the best score is tied, the current landlord continues.',
   'Bomb rule: Only a special score by the winning side earns a multiplier. A winning-side birdie is x2; a winning-side eagle or hole-in-one is x4. If both sides have special scores, they cancel and the hole is x1. A special score by only the losing side is also x1.',
   'Special-score multipliers use gross strokes and multiply together with the manually selected x1, x2, or x4.',
-  'Tap a player to change the landlord, or tap x1, x2, or x4 to change the multiplier.',
+  'Tap a player to change the landlord. Manual x2 and x4 can be selected; tap the selected multiplier again to return to x1. Bomb x2 or x4 is determined automatically from the winning side’s gross scores.',
   'Per-hole cap: Each peasant cannot win or lose more than the selected cap on one hole. The landlord’s limit is the cap multiplied by the number of peasants.',
   'Tied hole: Normally everyone scores zero. If the higher-handicap-landlord option is enabled, an eligible landlord wins the tie at the current multiplier.'
 ];
@@ -478,6 +478,7 @@ const els = {
   landlordActions: document.querySelector('#landlordActions'),
   landlordChoices: document.querySelector('#landlordChoices'),
   landlordMultipliers: document.querySelector('#landlordMultipliers'),
+  landlordAutomaticBomb: document.querySelector('#landlordAutomaticBomb'),
   landlordHoleResult: document.querySelector('#landlordHoleResult'),
   landlordLeaderboard: document.querySelector('#landlordLeaderboard'),
   rulesButton: document.querySelector('#rulesButton'),
@@ -2533,9 +2534,12 @@ function setLandlordForHole(playerIndex) {
 
 function setLandlordMultiplier(multiplier) {
   if (!isEditing || state.gameType !== 'landlord') return;
-  const manualMultiplier = [1, 2, 4].includes(Number(multiplier)) ? Number(multiplier) : 1;
   state.landlord = normalizeLandlordState(state.landlord, state.players.length);
   const config = state.landlord;
+  const selectedMultiplier = [2, 4].includes(Number(multiplier)) ? Number(multiplier) : 1;
+  const manualMultiplier = config.manualMultipliers[activePlayHoleIndex] === selectedMultiplier
+    ? 1
+    : selectedMultiplier;
   state.landlord.manualMultipliers[activePlayHoleIndex] = manualMultiplier;
   state.landlord.multipliers[activePlayHoleIndex] = manualMultiplier * config.specialMultipliers[activePlayHoleIndex];
   persistActiveGame(true);
@@ -2569,6 +2573,11 @@ function renderLandlordActions() {
     button.disabled = !isEditing;
   });
   const result = landlordHoleResult(state, activePlayHoleIndex);
+  const displayedSpecialMultiplier = result ? config.specialMultipliers[activePlayHoleIndex] : null;
+  els.landlordAutomaticBomb.textContent = displayedSpecialMultiplier
+    ? t('Bomb x{value}', { value: displayedSpecialMultiplier })
+    : t('Bomb --');
+  els.landlordAutomaticBomb.classList.toggle('active', displayedSpecialMultiplier > 1);
   if (!result) {
     const missingCount = (state.scores[activePlayHoleIndex] || [])
       .slice(0, config.playerCount)

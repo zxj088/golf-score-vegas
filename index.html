@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#1f6f5b">
   <title>Simple Golf Scorecard</title>
-  <link rel="manifest" href="./manifest.webmanifest?v=139">
-  <link rel="stylesheet" href="./styles.css?v=139">
+  <link rel="manifest" href="./manifest.webmanifest?v=140">
+  <link rel="stylesheet" href="./styles.css?v=140">
 </head>
 <body>
   <div class="welcome-screen" id="welcomeScreen" role="status" aria-live="polite">
@@ -87,9 +87,9 @@
             <div class="landlord-action-group">
               <strong>Multiplier</strong>
               <div class="multiplier-buttons" id="landlordMultipliers">
-                <button type="button" data-multiplier="1">x1</button>
-                <button type="button" data-multiplier="2">Double x2</button>
-                <button type="button" data-multiplier="4">Bomb x4</button>
+                <button type="button" data-multiplier="2">Manual x2</button>
+                <button type="button" data-multiplier="4">Manual x4</button>
+                <span class="automatic-bomb" id="landlordAutomaticBomb">Bomb --</span>
               </div>
             </div>
             <div class="landlord-hole-result" id="landlordHoleResult"></div>
@@ -537,8 +537,8 @@
     </form>
   </div>
 
-  <script src="./i18n.js?v=139" defer></script>
-  <script src="./supabase-config.js?v=139"></script>
-  <script src="./app.js?v=139" defer></script>
+  <script src="./i18n.js?v=140" defer></script>
+  <script src="./supabase-config.js?v=140"></script>
+  <script src="./app.js?v=140" defer></script>
 </body>
 </html>
