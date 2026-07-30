@@ -3992,7 +3992,7 @@ async function createLandlordScorecardAsset(round) {
   const logicalWidth = 800;
   const margin = 20;
   const contentWidth = logicalWidth - margin * 2;
-  const playerCardHeight = 220;
+  const playerCardHeight = 270;
   const playerCardGap = 10;
   const statisticsTop = 225;
   const tableTop = statisticsTop + 48 + playerCount * (playerCardHeight + playerCardGap) + 18;
@@ -4024,16 +4024,16 @@ async function createLandlordScorecardAsset(round) {
     ctx.fillRect(margin, cardY, contentWidth, playerCardHeight);
     ctx.strokeRect(margin, cardY, contentWidth, playerCardHeight);
     drawScorecardText(ctx, statistics.player, margin + 18, cardY + 31, {
-      align: 'left', color: '#315e51', font: 'bold 32px Arial, Microsoft YaHei, sans-serif',
+      align: 'left', color: '#315e51', font: 'bold 42px Arial, Microsoft YaHei, sans-serif',
       maxWidth: contentWidth * 0.4
     });
     drawScorecardText(ctx, `${t('Gross')} ${totalsValue.gross[playerIndex]}   ${t('Net')} ${totalsValue.net[playerIndex]}`, margin + contentWidth * 0.55, cardY + 31, {
-      font: 'bold 24px Arial, Microsoft YaHei, sans-serif', maxWidth: contentWidth * 0.35
+      font: 'bold 31px Arial, Microsoft YaHei, sans-serif', maxWidth: contentWidth * 0.35
     });
     drawScorecardText(ctx, signedPoints(totalsValue.points[playerIndex]), margin + contentWidth - 18, cardY + 31, {
       align: 'right',
       color: totalsValue.points[playerIndex] > 0 ? '#118747' : (totalsValue.points[playerIndex] < 0 ? '#b3453f' : '#17221f'),
-      font: 'bold 34px Arial'
+      font: 'bold 44px Arial'
     });
     let roleY = cardY + 72;
     [
@@ -4046,10 +4046,10 @@ async function createLandlordScorecardAsset(round) {
       chunks.forEach((chunk, chunkIndex) => {
         const prefix = chunkIndex === 0 ? `${role.icon} ${role.label}: ` : '　';
         drawScorecardText(ctx, `${prefix}${chunk.join(' · ') || '--'}`, margin + 18, roleY, {
-          align: 'left', color: role.color, font: 'bold 20px Arial, Microsoft YaHei, Segoe UI Emoji, sans-serif',
+          align: 'left', color: role.color, font: 'bold 26px Arial, Microsoft YaHei, Segoe UI Emoji, sans-serif',
           maxWidth: contentWidth - 36
         });
-        roleY += 28;
+        roleY += 34;
       });
     });
   });
@@ -4064,7 +4064,7 @@ async function createLandlordScorecardAsset(round) {
     ctx.fillRect(x, tableTop, columns[index], headerHeight);
     drawScorecardText(ctx, header, x + columns[index] / 2, tableTop + headerHeight / 2, {
       color: index < 3 ? '#fff' : '#17221f',
-      font: 'bold 21px Arial, Microsoft YaHei, sans-serif',
+      font: 'bold 27px Arial, Microsoft YaHei, sans-serif',
       maxWidth: columns[index] - 12
     });
     x += columns[index];
@@ -4089,15 +4089,15 @@ async function createLandlordScorecardAsset(round) {
       ctx.strokeRect(x, y, columns[columnIndex], rowHeight);
       if (columnIndex >= 3 && result) {
         const playerIndex = columnIndex - 3;
-        drawScorecardText(ctx, value, x + columns[columnIndex] / 2, y + 24, { font: 'bold 26px Arial' });
+        drawScorecardText(ctx, value, x + columns[columnIndex] / 2, y + 24, { font: 'bold 34px Arial' });
         drawScorecardText(ctx, `${t('Net')} ${result.net[playerIndex]} · ${signedPoints(result.points[playerIndex])}`, x + columns[columnIndex] / 2, y + 54, {
           color: result.points[playerIndex] > 0 ? '#118747' : (result.points[playerIndex] < 0 ? '#b3453f' : '#62706a'),
-          font: 'bold 18px Arial, Microsoft YaHei, sans-serif',
+          font: 'bold 23px Arial, Microsoft YaHei, sans-serif',
           maxWidth: columns[columnIndex] - 8
         });
       } else {
         drawScorecardText(ctx, value, x + columns[columnIndex] / 2, y + rowHeight / 2, {
-          font: columnIndex === 2 ? 'bold 18px Arial, Microsoft YaHei, sans-serif' : '21px Arial, Microsoft YaHei, sans-serif',
+          font: columnIndex === 2 ? 'bold 23px Arial, Microsoft YaHei, sans-serif' : '27px Arial, Microsoft YaHei, sans-serif',
           maxWidth: columns[columnIndex] - 8
         });
       }
@@ -4120,16 +4120,16 @@ async function createLandlordScorecardAsset(round) {
     if (columnIndex >= 3) {
       const playerIndex = columnIndex - 3;
       drawScorecardText(ctx, value, x + columns[columnIndex] / 2, totalY + 24, {
-        font: 'bold 25px Arial, Microsoft YaHei, sans-serif'
+        font: 'bold 33px Arial, Microsoft YaHei, sans-serif'
       });
       drawScorecardText(ctx, `${t('Net')} ${totalsValue.net[playerIndex]} · ${signedPoints(totalsValue.points[playerIndex])}`, x + columns[columnIndex] / 2, totalY + 55, {
         color: totalsValue.points[playerIndex] > 0 ? '#118747' : (totalsValue.points[playerIndex] < 0 ? '#b3453f' : '#315e51'),
-        font: 'bold 17px Arial, Microsoft YaHei, sans-serif',
+        font: 'bold 22px Arial, Microsoft YaHei, sans-serif',
         maxWidth: columns[columnIndex] - 8
       });
     } else {
       drawScorecardText(ctx, value, x + columns[columnIndex] / 2, totalY + totalRowHeight / 2, {
-        color: '#fff', font: 'bold 20px Arial, Microsoft YaHei, sans-serif', maxWidth: columns[columnIndex] - 8
+        color: '#fff', font: 'bold 26px Arial, Microsoft YaHei, sans-serif', maxWidth: columns[columnIndex] - 8
       });
     }
     x += columns[columnIndex];
@@ -5086,12 +5086,12 @@ async function init() {
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js?v=148', { updateViaCache: 'none' })
+    navigator.serviceWorker.register('./sw.js?v=149', { updateViaCache: 'none' })
       .then(registration => registration.update())
       .catch(() => {});
   });
   navigator.serviceWorker.addEventListener('controllerchange', () => {
-    const reloadKey = 'simpleGolfSwReload.v148';
+    const reloadKey = 'simpleGolfSwReload.v149';
     if (sessionStorage.getItem(reloadKey)) return;
     sessionStorage.setItem(reloadKey, '1');
     window.location.reload();
