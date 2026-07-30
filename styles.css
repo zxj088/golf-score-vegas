@@ -933,11 +933,18 @@ textarea {
 
 @media (max-width: 620px) {
   .history-filters {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.15fr) minmax(0, 1fr);
+    gap: 6px;
   }
 
-  .history-filters label:last-child {
-    grid-column: 1 / -1;
+  .history-filters label,
+  .history-filters select {
+    min-width: 0;
+  }
+
+  .history-filters select {
+    padding-inline: 7px 22px;
+    font-size: 13px;
   }
 }
 

@@ -31,6 +31,7 @@ const LANDLORD_RULES_SECTIONS = [
   'Gross mode uses actual strokes. Net mode allocates handicap strokes by hole. The landlord’s score is multiplied by the number of peasants and compared with the peasants’ total score.',
   'The player with the lowest Gross or Net score becomes landlord on the next hole. If the best score is tied, the current landlord continues.',
   'Bomb rule: Only a special score by the winning side earns a multiplier. A winning-side birdie is x2; a winning-side eagle or hole-in-one is x4. If both sides have special scores, they cancel and the hole is x1. A special score by only the losing side is also x1.',
+  'Special-score multipliers use gross strokes and multiply together with the manually selected x1, x2, or x4.',
   'Tap a player to change the landlord, or tap x1, x2, or x4 to change the multiplier.',
   'Per-hole cap: Each peasant cannot win or lose more than the selected cap on one hole. The landlord’s limit is the cap multiplied by the number of peasants.',
   'Tied hole: Normally everyone scores zero. If the higher-handicap-landlord option is enabled, an eligible landlord wins the tie at the current multiplier.'
@@ -611,13 +612,16 @@ function defaultLandlordState(playerCount = 3) {
     maxPoints: 3,
     tieHigherHandicapLandlordWins: false,
     landlords: Array.from({ length: 18 }, () => 0),
-    multipliers: Array.from({ length: 18 }, () => 1)
+    multipliers: Array.from({ length: 18 }, () => 1),
+    manualMultipliers: Array.from({ length: 18 }, () => 1),
+    specialMultipliers: Array.from({ length: 18 }, () => 1)
   };
 }
 
 function normalizeLandlordState(value, playerCount = 3) {
   const source = value && typeof value === 'object' ? value : {};
   const count = Number(source.playerCount || playerCount) === 4 ? 4 : 3;
+  const hasChainedMultipliers = Array.isArray(source.manualMultipliers);
   return {
     playerCount: count,
     handicapEnabled: source.handicapEnabled !== false,
@@ -627,9 +631,18 @@ function normalizeLandlordState(value, playerCount = 3) {
       const landlord = Math.round(Number(source.landlords?.[index]) || 0);
       return landlord >= 0 && landlord < count ? landlord : 0;
     }),
-    multipliers: Array.from({ length: 18 }, (_, index) => {
-      const multiplier = Number(source.multipliers?.[index]) || 1;
+    manualMultipliers: Array.from({ length: 18 }, (_, index) => {
+      const multiplier = Number(hasChainedMultipliers ? source.manualMultipliers?.[index] : 1) || 1;
       return [1, 2, 4].includes(multiplier) ? multiplier : 1;
+    }),
+    specialMultipliers: Array.from({ length: 18 }, (_, index) => {
+      const multiplier = Number(source.specialMultipliers?.[index] ?? (hasChainedMultipliers ? 1 : source.multipliers?.[index])) || 1;
+      return [1, 2, 4].includes(multiplier) ? multiplier : 1;
+    }),
+    multipliers: Array.from({ length: 18 }, (_, index) => {
+      const manual = Number(hasChainedMultipliers ? source.manualMultipliers?.[index] : 1) || 1;
+      const special = Number(source.specialMultipliers?.[index] ?? (hasChainedMultipliers ? 1 : source.multipliers?.[index])) || 1;
+      return Math.max(1, Math.min(16, manual * special));
     })
   };
 }
@@ -2339,42 +2352,55 @@ function updateScorePad() {
 
 function autoLandlordMultiplierForHole(holeIndex) {
   if (state.gameType !== 'landlord') return;
-  const config = normalizeLandlordState(state.landlord, state.players.length);
+  state.landlord = normalizeLandlordState(state.landlord, state.players.length);
+  const config = state.landlord;
   const par = Number(currentCourse().pars[holeIndex] || 4);
   const scores = (state.scores[holeIndex] || [])
     .slice(0, config.playerCount)
     .map(parseScore);
   if (scores.some(score => score === null)) {
-    state.landlord.multipliers[holeIndex] = 1;
+    state.landlord.specialMultipliers[holeIndex] = 1;
+    state.landlord.multipliers[holeIndex] = config.manualMultipliers[holeIndex];
     return;
   }
   const result = landlordHoleResult(state, holeIndex);
   if (!result || result.tied) {
-    state.landlord.multipliers[holeIndex] = 1;
+    state.landlord.specialMultipliers[holeIndex] = 1;
+    state.landlord.multipliers[holeIndex] = config.manualMultipliers[holeIndex];
     return;
   }
+  // Special-score detection always uses the entered gross strokes, never net strokes.
   const specialLevel = score => score === 1 || score <= par - 2 ? 4 : (score === par - 1 ? 2 : 1);
   const landlordLevel = specialLevel(scores[result.landlordIndex]);
   const peasantLevel = Math.max(...result.peasantIndexes.map(playerIndex => specialLevel(scores[playerIndex])));
   const bothSidesSpecial = landlordLevel > 1 && peasantLevel > 1;
   const winningLevel = result.landlordWon ? landlordLevel : peasantLevel;
   const losingLevel = result.landlordWon ? peasantLevel : landlordLevel;
-  state.landlord.multipliers[holeIndex] = !bothSidesSpecial && winningLevel > 1 && losingLevel === 1
+  const specialMultiplier = !bothSidesSpecial && winningLevel > 1 && losingLevel === 1
     ? winningLevel
     : 1;
+  state.landlord.specialMultipliers[holeIndex] = specialMultiplier;
+  state.landlord.multipliers[holeIndex] = config.manualMultipliers[holeIndex] * specialMultiplier;
 }
 
 function autoAssignNextLandlord(holeIndex) {
   if (state.gameType !== 'landlord' || holeIndex >= 17) return;
   const result = landlordHoleResult(state, holeIndex);
   if (!result) return;
-  const bestScore = Math.min(...result.scoringValues);
-  const bestPlayers = result.scoringValues
-    .map((score, playerIndex) => ({ score, playerIndex }))
-    .filter(item => item.score === bestScore);
-  state.landlord.landlords[holeIndex + 1] = bestPlayers.length === 1
-    ? bestPlayers[0].playerIndex
-    : state.landlord.landlords[holeIndex];
+  const currentLandlord = result.landlordIndex;
+  if (result.tied) {
+    state.landlord.landlords[holeIndex + 1] = currentLandlord;
+    return;
+  }
+  // A losing Wolf cannot remain Wolf merely because an individual score is tied.
+  const candidates = result.landlordWon
+    ? result.scoringValues.map((_, playerIndex) => playerIndex)
+    : result.peasantIndexes;
+  const bestScore = Math.min(...candidates.map(playerIndex => result.scoringValues[playerIndex]));
+  const bestPlayers = candidates.filter(playerIndex => result.scoringValues[playerIndex] === bestScore);
+  state.landlord.landlords[holeIndex + 1] = bestPlayers.includes(currentLandlord)
+    ? currentLandlord
+    : bestPlayers[0];
 }
 
 function commitScorePadValue(value) {
@@ -2507,7 +2533,11 @@ function setLandlordForHole(playerIndex) {
 
 function setLandlordMultiplier(multiplier) {
   if (!isEditing || state.gameType !== 'landlord') return;
-  state.landlord.multipliers[activePlayHoleIndex] = [1, 2, 4].includes(Number(multiplier)) ? Number(multiplier) : 1;
+  const manualMultiplier = [1, 2, 4].includes(Number(multiplier)) ? Number(multiplier) : 1;
+  state.landlord = normalizeLandlordState(state.landlord, state.players.length);
+  const config = state.landlord;
+  state.landlord.manualMultipliers[activePlayHoleIndex] = manualMultiplier;
+  state.landlord.multipliers[activePlayHoleIndex] = manualMultiplier * config.specialMultipliers[activePlayHoleIndex];
   persistActiveGame(true);
   render();
 }
@@ -2519,19 +2549,23 @@ function renderLandlordActions() {
   const config = normalizeLandlordState(state.landlord, state.players.length);
   els.landlordHoleResult.style.setProperty('--landlord-result-columns', config.playerCount);
   const landlordIndex = config.landlords[activePlayHoleIndex];
+  const holeStarted = (state.scores[activePlayHoleIndex] || [])
+    .slice(0, config.playerCount)
+    .some(score => parseScore(score) !== null);
+  const displayedLandlordIndex = holeStarted ? landlordIndex : -1;
   els.landlordChoices.innerHTML = '';
   state.players.slice(0, config.playerCount).forEach((player, index) => {
     const button = document.createElement('button');
     button.type = 'button';
-    button.className = index === landlordIndex ? 'active' : '';
-    const roleIcon = index === landlordIndex ? '👲' : '👨‍🌾';
+    button.className = index === displayedLandlordIndex ? 'active' : '';
+    const roleIcon = index === displayedLandlordIndex ? '👲' : '👨‍🌾';
     button.innerHTML = `<span class="landlord-person-icon" aria-hidden="true">${roleIcon}</span><span>${escapeHtml(player)}</span>`;
     button.disabled = !isEditing;
     button.addEventListener('click', () => setLandlordForHole(index));
     els.landlordChoices.append(button);
   });
   els.landlordMultipliers.querySelectorAll('[data-multiplier]').forEach(button => {
-    button.classList.toggle('active', Number(button.dataset.multiplier) === config.multipliers[activePlayHoleIndex]);
+    button.classList.toggle('active', Number(button.dataset.multiplier) === config.manualMultipliers[activePlayHoleIndex]);
     button.disabled = !isEditing;
   });
   const result = landlordHoleResult(state, activePlayHoleIndex);
@@ -2548,7 +2582,12 @@ function renderLandlordActions() {
     const roleIcon = index === landlordIndex ? '👲' : '👨‍🌾';
     return `<span class="${result.points[index] > 0 ? 'point-positive' : (result.points[index] < 0 ? 'point-negative' : '')}">${roleIcon} ${escapeHtml(player)} · ${escapeHtml(role)} <strong>${signedPoints(result.points[index])}</strong></span>`;
   }).join('');
-  els.landlordHoleResult.innerHTML = `<strong class="landlord-auto-status">${escapeHtml(t('Hole result'))}</strong>${playerResults}`;
+  const manualMultiplier = config.manualMultipliers[activePlayHoleIndex];
+  const specialMultiplier = config.specialMultipliers[activePlayHoleIndex];
+  const multiplierSummary = manualMultiplier > 1 || specialMultiplier > 1
+    ? ` · x${manualMultiplier} × x${specialMultiplier} = x${config.multipliers[activePlayHoleIndex]}`
+    : '';
+  els.landlordHoleResult.innerHTML = `<strong class="landlord-auto-status">${escapeHtml(t('Hole result'))}${multiplierSummary}</strong>${playerResults}`;
 }
 
 function renderPlayEntry() {
@@ -2583,12 +2622,18 @@ function renderPlayEntry() {
   }
 
   const landlordConfig = normalizeLandlordState(state.landlord, state.players.length);
+  const landlordHoleStarted = scores
+    .slice(0, landlordConfig.playerCount)
+    .some(score => parseScore(score) !== null);
+  const displayedLandlordIndex = landlordHoleStarted
+    ? landlordConfig.landlords[activePlayHoleIndex]
+    : -1;
   state.players.slice(0, state.gameType === 'landlord' ? landlordConfig.playerCount : 4).forEach((player, scoreIndex) => {
     const grossValue = scores[scoreIndex] || '';
     const netValue = holeValues.net[scoreIndex];
     const row = document.createElement('div');
     row.className = state.gameType === 'landlord'
-      ? `play-player-row landlord-player ${scoreIndex === landlordConfig.landlords[activePlayHoleIndex] ? 'is-landlord' : 'is-peasant'}`
+      ? `play-player-row landlord-player ${scoreIndex === displayedLandlordIndex ? 'is-landlord' : 'is-peasant'}`
       : `play-player-row ${scoreIndex < 2 ? 'team-a' : 'team-b'}`;
     row.classList.toggle('has-previous-score', activePlayHoleIndex > 0);
     row.innerHTML = `
@@ -2601,7 +2646,7 @@ function renderPlayEntry() {
     `;
     row.querySelector('.play-player-copy strong').textContent = player || t('Player');
     const role = state.gameType === 'landlord'
-      ? (scoreIndex === landlordConfig.landlords[activePlayHoleIndex] ? `👲 ${t('Landlord')}` : `👨‍🌾 ${t('Peasant')}`)
+      ? (displayedLandlordIndex < 0 ? '' : (scoreIndex === displayedLandlordIndex ? `👲 ${t('Landlord')}` : `👨‍🌾 ${t('Peasant')}`))
       : '';
     row.querySelector('.play-player-copy span').textContent = `${t('HCP {value}', { value: state.handicaps?.[scoreIndex] || 0 })}${role ? ` · ${role}` : ''}`;
     const meta = row.querySelector('.play-score-meta');
@@ -3878,8 +3923,16 @@ async function createLandlordScorecardAsset(round) {
     return { player, landlord, peasant };
   });
   const exportScale = 2;
-  const logicalWidth = 1200;
-  const logicalHeight = 2100;
+  const logicalWidth = 900;
+  const margin = 25;
+  const contentWidth = logicalWidth - margin * 2;
+  const playerCardHeight = 190;
+  const playerCardGap = 10;
+  const statisticsTop = 225;
+  const tableTop = statisticsTop + 48 + playerCount * (playerCardHeight + playerCardGap) + 18;
+  const headerHeight = 58;
+  const rowHeight = 68;
+  const logicalHeight = tableTop + headerHeight + 18 * rowHeight + 30;
   const canvas = document.createElement('canvas');
   canvas.width = logicalWidth * exportScale;
   canvas.height = logicalHeight * exportScale;
@@ -3888,17 +3941,54 @@ async function createLandlordScorecardAsset(round) {
   ctx.fillStyle = '#f7f3e9';
   ctx.fillRect(0, 0, logicalWidth, logicalHeight);
   ctx.fillStyle = '#8c5a19';
-  ctx.fillRect(0, 0, logicalWidth, 220);
-  drawScorecardText(ctx, t('Fight the Landlord'), 600, 58, { color: '#fff', font: 'bold 48px Georgia, Microsoft YaHei, serif' });
-  drawScorecardText(ctx, normalized.courseName, 600, 120, { color: '#fff', font: 'bold 38px Arial, Microsoft YaHei, sans-serif' });
-  drawScorecardText(ctx, `${roundListDate(normalized)} · ${roundModeLine(normalized)}`, 600, 177, { color: '#fff5dc', font: '27px Arial, Microsoft YaHei, sans-serif' });
+  ctx.fillRect(0, 0, logicalWidth, 205);
+  drawScorecardText(ctx, t('Fight the Landlord'), logicalWidth / 2, 54, { color: '#fff', font: 'bold 42px Georgia, Microsoft YaHei, serif' });
+  drawScorecardText(ctx, normalized.courseName, logicalWidth / 2, 111, { color: '#fff', font: 'bold 34px Arial, Microsoft YaHei, sans-serif' });
+  drawScorecardText(ctx, `${roundListDate(normalized)} · ${roundModeLine(normalized)}`, logicalWidth / 2, 163, { color: '#fff5dc', font: '24px Arial, Microsoft YaHei, sans-serif' });
 
-  const margin = 45;
-  const tableTop = 245;
-  const headerHeight = 62;
-  const rowHeight = 58;
-  const fixedColumns = [80, 65, 180];
-  const playerWidth = (1110 - fixedColumns.reduce((sum, value) => sum + value, 0)) / playerCount;
+  drawScorecardText(ctx, `${t('Leaderboard')} · ${roundModeLine(normalized)}`, margin, statisticsTop + 27, {
+    align: 'left', color: '#8c5a19', font: 'bold 28px Arial, Microsoft YaHei, sans-serif'
+  });
+  roleStatistics.forEach((statistics, playerIndex) => {
+    const cardY = statisticsTop + 48 + playerIndex * (playerCardHeight + playerCardGap);
+    ctx.fillStyle = '#fff';
+    ctx.strokeStyle = '#d5c39d';
+    ctx.lineWidth = 2;
+    ctx.fillRect(margin, cardY, contentWidth, playerCardHeight);
+    ctx.strokeRect(margin, cardY, contentWidth, playerCardHeight);
+    drawScorecardText(ctx, statistics.player, margin + 18, cardY + 31, {
+      align: 'left', color: '#315e51', font: 'bold 28px Arial, Microsoft YaHei, sans-serif',
+      maxWidth: contentWidth * 0.4
+    });
+    drawScorecardText(ctx, `${t('Gross')} ${totalsValue.gross[playerIndex]}   ${t('Net')} ${totalsValue.net[playerIndex]}`, margin + contentWidth * 0.55, cardY + 31, {
+      font: 'bold 21px Arial, Microsoft YaHei, sans-serif', maxWidth: contentWidth * 0.35
+    });
+    drawScorecardText(ctx, signedPoints(totalsValue.points[playerIndex]), margin + contentWidth - 18, cardY + 31, {
+      align: 'right',
+      color: totalsValue.points[playerIndex] > 0 ? '#118747' : (totalsValue.points[playerIndex] < 0 ? '#b3453f' : '#17221f'),
+      font: 'bold 30px Arial'
+    });
+    let roleY = cardY + 72;
+    [
+      { icon: '👲', label: t('Landlord {count} times', { count: statistics.landlord.length }), items: statistics.landlord, color: '#8c5a19' },
+      { icon: '👨‍🌾', label: t('Peasant {count} times', { count: statistics.peasant.length }), items: statistics.peasant, color: '#315e51' }
+    ].forEach(role => {
+      const chunks = role.items.length
+        ? Array.from({ length: Math.ceil(role.items.length / 6) }, (_, index) => role.items.slice(index * 6, index * 6 + 6))
+        : [[]];
+      chunks.forEach((chunk, chunkIndex) => {
+        const prefix = chunkIndex === 0 ? `${role.icon} ${role.label}: ` : '　';
+        drawScorecardText(ctx, `${prefix}${chunk.join(' · ') || '--'}`, margin + 18, roleY, {
+          align: 'left', color: role.color, font: 'bold 18px Arial, Microsoft YaHei, Segoe UI Emoji, sans-serif',
+          maxWidth: contentWidth - 36
+        });
+        roleY += 25;
+      });
+    });
+  });
+
+  const fixedColumns = [62, 52, 120];
+  const playerWidth = (contentWidth - fixedColumns.reduce((sum, value) => sum + value, 0)) / playerCount;
   const columns = [...fixedColumns, ...Array.from({ length: playerCount }, () => playerWidth)];
   const headers = ['H/I', t('Par'), t('Landlord'), ...normalized.players.slice(0, playerCount)];
   let x = margin;
@@ -3907,7 +3997,7 @@ async function createLandlordScorecardAsset(round) {
     ctx.fillRect(x, tableTop, columns[index], headerHeight);
     drawScorecardText(ctx, header, x + columns[index] / 2, tableTop + headerHeight / 2, {
       color: index < 3 ? '#fff' : '#17221f',
-      font: 'bold 22px Arial, Microsoft YaHei, sans-serif',
+      font: 'bold 19px Arial, Microsoft YaHei, sans-serif',
       maxWidth: columns[index] - 12
     });
     x += columns[index];
@@ -3932,91 +4022,21 @@ async function createLandlordScorecardAsset(round) {
       ctx.strokeRect(x, y, columns[columnIndex], rowHeight);
       if (columnIndex >= 3 && result) {
         const playerIndex = columnIndex - 3;
-        drawScorecardText(ctx, value, x + columns[columnIndex] / 2, y + 19, { font: 'bold 21px Arial' });
-        drawScorecardText(ctx, `${t('Net')} ${result.net[playerIndex]} · ${signedPoints(result.points[playerIndex])}`, x + columns[columnIndex] / 2, y + 42, {
+        drawScorecardText(ctx, value, x + columns[columnIndex] / 2, y + 22, { font: 'bold 23px Arial' });
+        drawScorecardText(ctx, `${t('Net')} ${result.net[playerIndex]} · ${signedPoints(result.points[playerIndex])}`, x + columns[columnIndex] / 2, y + 49, {
           color: result.points[playerIndex] > 0 ? '#118747' : (result.points[playerIndex] < 0 ? '#b3453f' : '#62706a'),
-          font: 'bold 14px Arial, Microsoft YaHei, sans-serif',
+          font: 'bold 16px Arial, Microsoft YaHei, sans-serif',
           maxWidth: columns[columnIndex] - 8
         });
       } else {
         drawScorecardText(ctx, value, x + columns[columnIndex] / 2, y + rowHeight / 2, {
-          font: columnIndex === 2 ? 'bold 17px Arial, Microsoft YaHei, sans-serif' : '20px Arial, Microsoft YaHei, sans-serif',
+          font: columnIndex === 2 ? 'bold 16px Arial, Microsoft YaHei, sans-serif' : '19px Arial, Microsoft YaHei, sans-serif',
           maxWidth: columns[columnIndex] - 8
         });
       }
       x += columns[columnIndex];
     });
   }
-  const resultY = tableTop + headerHeight + 18 * rowHeight + 35;
-  const resultHeight = logicalHeight - resultY - 45;
-  ctx.fillStyle = '#fff';
-  ctx.strokeStyle = '#8c5a19';
-  ctx.lineWidth = 3;
-  ctx.fillRect(margin, resultY, 1110, resultHeight);
-  ctx.strokeRect(margin, resultY, 1110, resultHeight);
-  drawScorecardText(ctx, `${t('Leaderboard')} · ${roundModeLine(normalized)}`, margin + 24, resultY + 38, {
-    align: 'left', color: '#8c5a19', font: 'bold 30px Arial, Microsoft YaHei, sans-serif'
-  });
-  normalized.players.slice(0, playerCount).forEach((player, index) => {
-    const y = resultY + 82 + index * 38;
-    drawScorecardText(ctx, `${player}   ${t('Gross')} ${totalsValue.gross[index]}   ${t('Net')} ${totalsValue.net[index]}`, margin + 30, y, {
-      align: 'left', font: '22px Arial, Microsoft YaHei, sans-serif'
-    });
-    drawScorecardText(ctx, signedPoints(totalsValue.points[index]), margin + 1050, y, {
-      align: 'right',
-      color: totalsValue.points[index] > 0 ? '#118747' : (totalsValue.points[index] < 0 ? '#b3453f' : '#17221f'),
-      font: 'bold 26px Arial'
-    });
-  });
-  const statisticsTop = resultY + 90 + playerCount * 38;
-  const cardWidth = 520;
-  const cardHeight = 164;
-  const cardGapX = 20;
-  const cardGapY = 18;
-  const lineItems = 6;
-  roleStatistics.forEach((statistics, playerIndex) => {
-    const column = playerIndex % 2;
-    const row = Math.floor(playerIndex / 2);
-    const cardX = margin + 25 + column * (cardWidth + cardGapX);
-    const cardY = statisticsTop + row * (cardHeight + cardGapY);
-    ctx.fillStyle = '#f7f3e9';
-    ctx.strokeStyle = '#d5c39d';
-    ctx.lineWidth = 2;
-    ctx.fillRect(cardX, cardY, cardWidth, cardHeight);
-    ctx.strokeRect(cardX, cardY, cardWidth, cardHeight);
-    drawScorecardText(ctx, statistics.player, cardX + 18, cardY + 25, {
-      align: 'left', color: '#315e51', font: 'bold 24px Arial, Microsoft YaHei, sans-serif',
-      maxWidth: cardWidth - 36
-    });
-    const roleLines = [
-      {
-        icon: '👲',
-        label: t('Landlord {count} times', { count: statistics.landlord.length }),
-        items: statistics.landlord
-      },
-      {
-        icon: '👨‍🌾',
-        label: t('Peasant {count} times', { count: statistics.peasant.length }),
-        items: statistics.peasant
-      }
-    ];
-    let lineY = cardY + 60;
-    roleLines.forEach(role => {
-      const chunks = role.items.length
-        ? Array.from({ length: Math.ceil(role.items.length / lineItems) }, (_, index) => role.items.slice(index * lineItems, (index + 1) * lineItems))
-        : [[]];
-      chunks.forEach((chunk, chunkIndex) => {
-        const prefix = chunkIndex === 0 ? `${role.icon} ${role.label}: ` : '　';
-        drawScorecardText(ctx, `${prefix}${chunk.join(' · ') || '--'}`, cardX + 18, lineY, {
-          align: 'left',
-          color: role.icon === '👲' ? '#8c5a19' : '#315e51',
-          font: `${chunkIndex === 0 ? 'bold ' : ''}17px Arial, Microsoft YaHei, Segoe UI Emoji, sans-serif`,
-          maxWidth: cardWidth - 36
-        });
-        lineY += 24;
-      });
-    });
-  });
   const blob = await new Promise((resolve, reject) => canvas.toBlob(value => value ? resolve(value) : reject(new Error('PNG export failed')), 'image/png'));
   const fileName = scorecardFileName(normalized);
   return { blob, fileName, file: new File([blob], fileName, { type: 'image/png' }), url: URL.createObjectURL(blob) };

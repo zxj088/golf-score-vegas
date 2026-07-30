@@ -265,6 +265,7 @@
     ,'Gross mode uses actual strokes. Net mode allocates handicap strokes by hole. The landlord’s score is multiplied by the number of peasants and compared with the peasants’ total score.': '总杆按实际杆数计算；净杆采用差点分洞让杆。地主杆数乘以农民人数后，与所有农民的合计杆数比较。'
     ,'The player with the lowest Gross or Net score becomes landlord on the next hole. If the best score is tied, the current landlord continues.': '总杆或净杆最低的球员成为下一洞地主；最好成绩并列时，本洞地主连庄。'
     ,'Bomb rule: Only a special score by the winning side earns a multiplier. A winning-side birdie is x2; a winning-side eagle or hole-in-one is x4. If both sides have special scores, they cancel and the hole is x1. A special score by only the losing side is also x1.': '炸弹规则：只有胜方的特殊好成绩获得倍数。胜方小鸟为x2，胜方老鹰或一杆进洞为x4。双方都有特殊好成绩时相互抵消，按x1；只有负方出现特殊好成绩时也按x1。'
+    ,'Special-score multipliers use gross strokes and multiply together with the manually selected x1, x2, or x4.': '特殊杆倍数按总杆判断，并与手动选择的x1、x2或x4串接相乘。'
     ,'Tap a player to change the landlord, or tap x1, x2, or x4 to change the multiplier.': '点击球员可更换地主；点击x1、x2或x4可更改倍数。'
     ,'Per-hole cap: Each peasant cannot win or lose more than the selected cap on one hole. The landlord’s limit is the cap multiplied by the number of peasants.': '单洞封顶：每位农民单洞输赢不超过所设上限；地主上限为封顶分数乘以农民人数。'
     ,'Tied hole: Normally everyone scores zero. If the higher-handicap-landlord option is enabled, an eligible landlord wins the tie at the current multiplier.': '平局：通常所有人得0分。启用高差点地主平局获胜后，符合条件的地主按当前倍数获胜。'
