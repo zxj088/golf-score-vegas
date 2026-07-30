@@ -3785,9 +3785,20 @@ async function createLandlordScorecardAsset(round) {
   const config = normalizeLandlordState(normalized.landlord, normalized.players.length);
   const playerCount = config.playerCount;
   const totalsValue = landlordTotals(normalized);
+  const roleStatistics = normalized.players.slice(0, playerCount).map((player, playerIndex) => {
+    const landlord = [];
+    const peasant = [];
+    for (let holeIndex = 0; holeIndex < 18; holeIndex += 1) {
+      const result = landlordHoleResult(normalized, holeIndex);
+      if (!result) continue;
+      const item = t('H{hole} {score}', { hole: holeIndex + 1, score: signedPoints(result.points[playerIndex]) });
+      (config.landlords[holeIndex] === playerIndex ? landlord : peasant).push(item);
+    }
+    return { player, landlord, peasant };
+  });
   const exportScale = 2;
   const logicalWidth = 1200;
-  const logicalHeight = 1680;
+  const logicalHeight = 2100;
   const canvas = document.createElement('canvas');
   canvas.width = logicalWidth * exportScale;
   canvas.height = logicalHeight * exportScale;
@@ -3856,11 +3867,12 @@ async function createLandlordScorecardAsset(round) {
     });
   }
   const resultY = tableTop + headerHeight + 18 * rowHeight + 35;
+  const resultHeight = logicalHeight - resultY - 45;
   ctx.fillStyle = '#fff';
   ctx.strokeStyle = '#8c5a19';
   ctx.lineWidth = 3;
-  ctx.fillRect(margin, resultY, 1110, 245);
-  ctx.strokeRect(margin, resultY, 1110, 245);
+  ctx.fillRect(margin, resultY, 1110, resultHeight);
+  ctx.strokeRect(margin, resultY, 1110, resultHeight);
   drawScorecardText(ctx, `${t('Leaderboard')} · ${roundModeLine(normalized)}`, margin + 24, resultY + 38, {
     align: 'left', color: '#8c5a19', font: 'bold 30px Arial, Microsoft YaHei, sans-serif'
   });
@@ -3873,6 +3885,55 @@ async function createLandlordScorecardAsset(round) {
       align: 'right',
       color: totalsValue.points[index] > 0 ? '#118747' : (totalsValue.points[index] < 0 ? '#b3453f' : '#17221f'),
       font: 'bold 26px Arial'
+    });
+  });
+  const statisticsTop = resultY + 90 + playerCount * 38;
+  const cardWidth = 520;
+  const cardHeight = 164;
+  const cardGapX = 20;
+  const cardGapY = 18;
+  const lineItems = 6;
+  roleStatistics.forEach((statistics, playerIndex) => {
+    const column = playerIndex % 2;
+    const row = Math.floor(playerIndex / 2);
+    const cardX = margin + 25 + column * (cardWidth + cardGapX);
+    const cardY = statisticsTop + row * (cardHeight + cardGapY);
+    ctx.fillStyle = '#f7f3e9';
+    ctx.strokeStyle = '#d5c39d';
+    ctx.lineWidth = 2;
+    ctx.fillRect(cardX, cardY, cardWidth, cardHeight);
+    ctx.strokeRect(cardX, cardY, cardWidth, cardHeight);
+    drawScorecardText(ctx, statistics.player, cardX + 18, cardY + 25, {
+      align: 'left', color: '#315e51', font: 'bold 24px Arial, Microsoft YaHei, sans-serif',
+      maxWidth: cardWidth - 36
+    });
+    const roleLines = [
+      {
+        icon: '👲',
+        label: t('Landlord {count} times', { count: statistics.landlord.length }),
+        items: statistics.landlord
+      },
+      {
+        icon: '👨‍🌾',
+        label: t('Peasant {count} times', { count: statistics.peasant.length }),
+        items: statistics.peasant
+      }
+    ];
+    let lineY = cardY + 60;
+    roleLines.forEach(role => {
+      const chunks = role.items.length
+        ? Array.from({ length: Math.ceil(role.items.length / lineItems) }, (_, index) => role.items.slice(index * lineItems, (index + 1) * lineItems))
+        : [[]];
+      chunks.forEach((chunk, chunkIndex) => {
+        const prefix = chunkIndex === 0 ? `${role.icon} ${role.label}: ` : '　';
+        drawScorecardText(ctx, `${prefix}${chunk.join(' · ') || '--'}`, cardX + 18, lineY, {
+          align: 'left',
+          color: role.icon === '👲' ? '#8c5a19' : '#315e51',
+          font: `${chunkIndex === 0 ? 'bold ' : ''}17px Arial, Microsoft YaHei, Segoe UI Emoji, sans-serif`,
+          maxWidth: cardWidth - 36
+        });
+        lineY += 24;
+      });
     });
   });
   const blob = await new Promise((resolve, reject) => canvas.toBlob(value => value ? resolve(value) : reject(new Error('PNG export failed')), 'image/png'));
