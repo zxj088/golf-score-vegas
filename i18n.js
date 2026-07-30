@@ -256,6 +256,18 @@
     ,'Group': '组别'
     ,'Tee color': '发球台颜色'
     ,'Golf Game Rules': '高尔夫玩法规则'
+    ,'Fight the Landlord Rules': '斗地主规则'
+    ,'Show Fight the Landlord rules': '查看斗地主规则'
+    ,'Show golf game rules': '查看高尔夫玩法规则'
+    ,'Players and roles: 3 or 4 players participate. Each hole has one landlord, shown with 👲; all other players are peasants, shown with 👨‍🌾.': '球员与角色：支持3人或4人。每洞一名地主，以👲显示；其余球员为农民，以👨‍🌾显示。'
+    ,'Scoring: In Gross mode, compare actual strokes. In Net mode, use the same full-handicap allocation as Las Vegas. The landlord score is multiplied by the number of peasants and compared with the peasants’ combined score. The winning side receives points at the selected multiplier.': '计分方式：总杆模式比较实际杆数；净杆模式采用与拉斯一致的完整差点分洞让杆。地主杆数乘以农民人数后，与所有农民的组合杆数比较，胜方按所选倍数得分。'
+    ,'Automatic settlement: After every player has entered a score, the hole is settled automatically and the leaderboard is updated immediately. Changing a score, landlord, or multiplier recalculates the result from the latest data without adding the old result again.': '自动结算：所有球员录入杆数后，本洞自动结算并立即更新排行榜。修改杆数、地主或倍数时，系统按最新数据重新计算，不会重复累计旧结果。'
+    ,'Automatic landlord rotation: After a hole is complete, the player with the lowest score in the selected Gross or Net mode becomes landlord on the next hole. If the best score is tied, the current landlord remains landlord.': '自动轮庄：本洞完成后，按照所选总杆或净杆模式，杆数最低的球员自动成为下一洞地主。最好成绩并列时，由本洞地主连庄。'
+    ,'Automatic bombs: A birdie automatically selects Double x2. An eagle or hole-in-one automatically selects Bomb x4. If no special score is present, x1 is selected.': '自动炸弹：小鸟球自动选择加倍x2；老鹰球或一杆进洞自动选择炸弹x4；没有特殊好成绩时选择x1。'
+    ,'Manual adjustment: The landlord and multiplier buttons can still be changed manually. If a score is changed afterward, the automatic rules evaluate the hole again.': '手动调整：地主和倍数按钮仍可人工修改。之后若杆数发生变化，系统会按照自动规则重新判断。'
+    ,'Per-hole cap: The cap limits each peasant’s maximum win or loss after doubles or bombs. The landlord’s limit equals the cap multiplied by the number of peasants. It limits points, not recorded strokes.': '单洞封顶：限制加倍或炸弹后每位农民在单洞最多赢或输的分数。地主上限等于封顶分数乘以农民人数。它只限制得分，不限制记录的杆数。'
+    ,'Tie advantage: Normally a tied hole scores zero. If enabled, a landlord whose handicap is higher than the group’s lowest handicap wins a tied hole at the current multiplier.': '平局地主优势：通常平局时所有人得0分。启用后，如果地主差点高于本组最低差点球员，平局改判地主获胜，并按当前倍数计分。'
+    ,'Double-par protection: A recorded gross score cannot exceed twice the hole par.': '双倍标准杆保护：录入的单洞总杆数最高不超过该洞标准杆的两倍。'
     ,'Choose one landlord on each hole. The other players are peasants. In Gross mode, compare actual strokes; in Net mode, use the same full-handicap allocation as Las Vegas. The landlord score is multiplied by the number of peasants and compared with their combined score. The winning side receives the selected multiplier, subject to the per-hole cap. Scores are capped at double par.': '每洞选择一名地主，其余球员为农民。总杆模式按实际杆数比较；净杆模式采用与拉斯一致的完整差点分洞让杆。地主净杆乘以农民人数后，与所有农民净杆之和比较。胜方按所选倍数得分，并受单洞封顶限制；单洞最高记录为双倍标准杆。'
   };
 

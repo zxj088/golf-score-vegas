@@ -26,6 +26,17 @@ const LAS_VEGAS_RULES_TEXT = [
   'Scoring: put the lower stroke count first as the tens digit. For example, Team A scores 4 and 5 = 45; Team B scores 5 and 7 = 57. Team B loses 12 points (57 - 45).',
   'Under Par Flip: if any player makes birdie or eagle, the losing team must reverse its number from high to low, such as 57 becoming 75. The lost points jump quickly. If both teams have a player under par, no flip is used.'
 ].join('\n\n');
+const LANDLORD_RULES_SECTIONS = [
+  'Players and roles: 3 or 4 players participate. Each hole has one landlord, shown with 👲; all other players are peasants, shown with 👨‍🌾.',
+  'Scoring: In Gross mode, compare actual strokes. In Net mode, use the same full-handicap allocation as Las Vegas. The landlord score is multiplied by the number of peasants and compared with the peasants’ combined score. The winning side receives points at the selected multiplier.',
+  'Automatic settlement: After every player has entered a score, the hole is settled automatically and the leaderboard is updated immediately. Changing a score, landlord, or multiplier recalculates the result from the latest data without adding the old result again.',
+  'Automatic landlord rotation: After a hole is complete, the player with the lowest score in the selected Gross or Net mode becomes landlord on the next hole. If the best score is tied, the current landlord remains landlord.',
+  'Automatic bombs: A birdie automatically selects Double x2. An eagle or hole-in-one automatically selects Bomb x4. If no special score is present, x1 is selected.',
+  'Manual adjustment: The landlord and multiplier buttons can still be changed manually. If a score is changed afterward, the automatic rules evaluate the hole again.',
+  'Per-hole cap: The cap limits each peasant’s maximum win or loss after doubles or bombs. The landlord’s limit equals the cap multiplied by the number of peasants. It limits points, not recorded strokes.',
+  'Tie advantage: Normally a tied hole scores zero. If enabled, a landlord whose handicap is higher than the group’s lowest handicap wins a tied hole at the current multiplier.',
+  'Double-par protection: A recorded gross score cannot exceed twice the hole par.'
+];
 const COURSE_SEARCH_AREAS = [
     {
         "country":  "Australia",
@@ -454,6 +465,7 @@ const els = {
   scoreStrip: document.querySelector('#scoreStrip'),
   syncBar: document.querySelector('#syncBar'),
   appTitle: document.querySelector('#appTitle'),
+  rulesLabel: document.querySelector('#rulesLabel'),
   playEntryMode: document.querySelector('#playEntryMode'),
   playEntryTitle: document.querySelector('#playEntryTitle'),
   playEntryCourse: document.querySelector('#playEntryCourse'),
@@ -3173,11 +3185,26 @@ function renderInputs() {
   });
 }
 
+function renderRulesEntry() {
+  const activeGame = currentGame();
+  const gameType = activeGame?.gameType;
+  const label = gameType === 'landlord'
+    ? t('Fight the Landlord Rules')
+    : (gameType === 'vegas' ? t('Las Vegas Rule') : t('Golf Game Rules'));
+  const accessibleLabel = gameType === 'landlord'
+    ? t('Show Fight the Landlord rules')
+    : (gameType === 'vegas' ? t('Show Las Vegas rules') : t('Show golf game rules'));
+  els.rulesLabel.textContent = label;
+  els.rulesButton.setAttribute('aria-label', accessibleLabel);
+  els.rulesButton.title = accessibleLabel;
+}
+
 async function showRulesDialog() {
+  const landlordRules = LANDLORD_RULES_SECTIONS.map(section => t(section)).join('\n\n');
   await openAppDialog({
     eyebrow: t('Notice'),
     title: t('Golf Game Rules'),
-    message: `${t('Las Vegas Rules')}\n\n${t(LAS_VEGAS_RULES_TEXT)}\n\n────────────\n\n${t('Fight the Landlord')}\n\n${t('Choose one landlord on each hole. The other players are peasants. In Gross mode, compare actual strokes; in Net mode, use the same full-handicap allocation as Las Vegas. The landlord score is multiplied by the number of peasants and compared with their combined score. The winning side receives the selected multiplier, subject to the per-hole cap. Scores are capped at double par.')}`,
+    message: `${t('Las Vegas Rules')}\n\n${t(LAS_VEGAS_RULES_TEXT)}\n\n────────────\n\n${t('Fight the Landlord Rules')}\n\n${landlordRules}`,
     input: false,
     showOk: false,
     cancelText: t('Close')
@@ -4358,6 +4385,7 @@ function render() {
   renderPlayEntry();
   renderCourses();
   renderStart();
+  renderRulesEntry();
   renderSyncStatus();
 }
 
