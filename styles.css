@@ -1954,6 +1954,10 @@ button:disabled {
   gap: 6px;
 }
 
+html[lang="en"] .landlord-action-group {
+  grid-template-columns: 88px minmax(0, 1fr);
+}
+
 .landlord-choice-list,
 .multiplier-buttons {
   display: grid;
@@ -2119,6 +2123,10 @@ button:disabled {
 
   .landlord-action-group {
     grid-template-columns: 42px minmax(0, 1fr);
+  }
+
+  html[lang="en"] .landlord-action-group {
+    grid-template-columns: 78px minmax(0, 1fr);
   }
 
   .landlord-table-wrap table {
