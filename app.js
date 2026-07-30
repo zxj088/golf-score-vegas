@@ -3600,7 +3600,7 @@ function roundScoreSummaryHtml(round) {
   const players = Array.isArray(round.players) ? round.players : [];
   if (round.gameType === 'landlord') {
     const total = landlordTotals(normalizeRound(round));
-    return `<span class="score-mode-line">
+    return `<span class="score-mode-line landlord-score-line player-count-${players.length}">
       <span class="mode-chip">${escapeHtml(t('Fight the Landlord'))} · ${escapeHtml(roundModeLine(round))}</span>
       ${players.map((player, index) => `<span class="team-result${total.points[index] > 0 ? ' winner' : (total.points[index] < 0 ? ' loser' : '')}">${escapeHtml(player)} ${signedPoints(total.points[index])}</span>`).join('')}
     </span>`;

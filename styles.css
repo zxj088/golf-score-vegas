@@ -979,6 +979,41 @@ textarea {
   gap: 5px;
 }
 
+.landlord-score-line {
+  grid-template-columns: minmax(104px, auto) repeat(3, minmax(0, 1fr));
+  width: 100%;
+}
+
+.landlord-score-line.player-count-4 {
+  grid-template-columns: minmax(104px, auto) repeat(4, minmax(0, 1fr));
+}
+
+.landlord-score-line .mode-chip,
+.landlord-score-line .team-result {
+  justify-content: center;
+  padding-inline: 6px;
+  white-space: nowrap;
+}
+
+@media (max-width: 620px) {
+  .landlord-score-line,
+  .landlord-score-line.player-count-4 {
+    grid-template-columns: minmax(78px, auto) repeat(var(--landlord-player-columns, 3), minmax(0, 1fr));
+    gap: 3px;
+    font-size: 11px;
+  }
+
+  .landlord-score-line.player-count-4 {
+    --landlord-player-columns: 4;
+  }
+
+  .landlord-score-line .mode-chip,
+  .landlord-score-line .team-result {
+    min-height: 24px;
+    padding-inline: 3px;
+  }
+}
+
 .mode-chip,
 .team-result {
   display: inline-flex;
