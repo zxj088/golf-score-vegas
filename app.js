@@ -2467,7 +2467,8 @@ function renderLandlordActions() {
     const button = document.createElement('button');
     button.type = 'button';
     button.className = index === landlordIndex ? 'active' : '';
-    button.innerHTML = `${index === landlordIndex ? '<span class="landlord-person-icon" aria-hidden="true">👲</span>' : ''}<span>${escapeHtml(player)}</span>`;
+    const roleIcon = index === landlordIndex ? '👲' : '👨‍🌾';
+    button.innerHTML = `<span class="landlord-person-icon" aria-hidden="true">${roleIcon}</span><span>${escapeHtml(player)}</span>`;
     button.disabled = !isEditing;
     button.addEventListener('click', () => setLandlordForHole(index));
     els.landlordChoices.append(button);
@@ -2487,7 +2488,8 @@ function renderLandlordActions() {
   }
   const playerResults = state.players.slice(0, config.playerCount).map((player, index) => {
     const role = index === landlordIndex ? t('Landlord') : t('Peasant');
-    return `<span class="${result.points[index] > 0 ? 'point-positive' : (result.points[index] < 0 ? 'point-negative' : '')}">${escapeHtml(player)} · ${escapeHtml(role)} <strong>${signedPoints(result.points[index])}</strong></span>`;
+    const roleIcon = index === landlordIndex ? '👲' : '👨‍🌾';
+    return `<span class="${result.points[index] > 0 ? 'point-positive' : (result.points[index] < 0 ? 'point-negative' : '')}">${roleIcon} ${escapeHtml(player)} · ${escapeHtml(role)} <strong>${signedPoints(result.points[index])}</strong></span>`;
   }).join('');
   els.landlordHoleResult.innerHTML = `<strong class="landlord-auto-status">${escapeHtml(t('This hole has been settled automatically.'))}</strong>${playerResults}`;
 }
@@ -2542,7 +2544,7 @@ function renderPlayEntry() {
     `;
     row.querySelector('.play-player-copy strong').textContent = player || t('Player');
     const role = state.gameType === 'landlord'
-      ? (scoreIndex === landlordConfig.landlords[activePlayHoleIndex] ? t('Landlord') : t('Peasant'))
+      ? (scoreIndex === landlordConfig.landlords[activePlayHoleIndex] ? `👲 ${t('Landlord')}` : `👨‍🌾 ${t('Peasant')}`)
       : '';
     row.querySelector('.play-player-copy span').textContent = `${t('HCP {value}', { value: state.handicaps?.[scoreIndex] || 0 })}${role ? ` · ${role}` : ''}`;
     const meta = row.querySelector('.play-score-meta');
