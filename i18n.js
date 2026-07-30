@@ -247,6 +247,7 @@
     ,'Enter all scores to settle this hole.': '输入所有球员杆数后自动结算本洞。'
     ,'Scores still needed for {count} players.': '还需录入 {count} 位球员'
     ,'This hole has been settled automatically.': '本洞已自动结算'
+    ,'Hole result': '本洞战果'
     ,'Landlord {count} times': '地主 {count}次'
     ,'Peasant {count} times': '农民 {count}次'
     ,'H{hole} {score}': '{hole}洞 {score}'
@@ -269,10 +270,30 @@
     ,'Tied hole: Normally everyone scores zero. If the higher-handicap-landlord option is enabled, an eligible landlord wins the tie at the current multiplier.': '平局：通常所有人得0分。启用高差点地主平局获胜后，符合条件的地主按当前倍数获胜。'
   };
 
+  const en = {
+    'Fight the Landlord': 'Wolf & Pack Scoring',
+    'Landlord': 'The Wolf',
+    'Peasant': 'The Pack',
+    'Fight the Landlord Rules': 'Wolf & Pack Scoring Rules',
+    'Show Fight the Landlord rules': 'Show Wolf & Pack Scoring rules',
+    'Landlord {count} times': 'The Wolf {count} times',
+    'Peasant {count} times': 'The Pack {count} times',
+    'Tie: higher-handicap landlord wins': 'Tie: higher-handicap Wolf wins',
+    'About tied-hole advantage': 'About the Wolf tie advantage',
+    'Caps each peasant\'s win or loss on one hole after doubles, bombs, or birdies. The landlord\'s maximum is this cap multiplied by the number of peasants. It limits points only, not recorded strokes.': 'Caps each Pack player\'s win or loss on one hole. The Wolf\'s maximum is this cap multiplied by the number of Pack players. It limits points only, not recorded strokes.',
+    'Normally, a tied hole scores zero. When enabled, if the landlord has a higher handicap than the group\'s lowest-handicap player, the tie is awarded to the landlord at the current multiplier.': 'Normally, a tied hole scores zero. When enabled, an eligible higher-handicap Wolf wins the tie at the current multiplier.',
+    'Players: 3 or 4 players. Each hole has one landlord 👲; the other players are peasants 👨‍🌾.': 'Players: 3 or 4 players. Each hole has one Wolf 👲; the other players form The Pack 👨‍🌾.',
+    'Gross mode uses actual strokes. Net mode allocates handicap strokes by hole. The landlord’s score is multiplied by the number of peasants and compared with the peasants’ total score.': 'Gross mode uses actual strokes. Net mode allocates handicap strokes by hole. The Wolf’s score is multiplied by the number of Pack players and compared with The Pack’s total score.',
+    'The player with the lowest Gross or Net score becomes landlord on the next hole. If the best score is tied, the current landlord continues.': 'The player with the lowest Gross or Net score becomes The Wolf on the next hole. If the best score is tied, the current Wolf continues.',
+    'Tap a player to change the landlord, or tap x1, x2, or x4 to change the multiplier.': 'Tap a player to change The Wolf, or tap x1, x2, or x4 to change the multiplier.',
+    'Per-hole cap: Each peasant cannot win or lose more than the selected cap on one hole. The landlord’s limit is the cap multiplied by the number of peasants.': 'Per-hole cap: Each Pack player cannot win or lose more than the selected cap. The Wolf’s limit is the cap multiplied by the number of Pack players.',
+    'Tied hole: Normally everyone scores zero. If the higher-handicap-landlord option is enabled, an eligible landlord wins the tie at the current multiplier.': 'Tied hole: Normally everyone scores zero. If the higher-handicap-Wolf option is enabled, an eligible Wolf wins the tie at the current multiplier.'
+  };
+
   let language = localStorage.getItem(LANGUAGE_KEY) === 'zh-CN' ? 'zh-CN' : 'en';
 
   function t(text, values = {}) {
-    let result = language === 'zh-CN' ? (zh[text] || text) : text;
+    let result = language === 'zh-CN' ? (zh[text] || text) : (en[text] || text);
     Object.entries(values).forEach(([key, value]) => {
       result = result.replaceAll(`{${key}}`, String(value));
     });

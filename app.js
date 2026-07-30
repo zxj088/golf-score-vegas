@@ -759,7 +759,7 @@ function safeFilePart(value) {
 
 function roundDisplayName(course = currentCourse(), players = state.players) {
   if (state.gameType === 'landlord') {
-    return `${course.name}_Fight the Landlord(${players.join('+')})`;
+    return `${course.name}_Wolf & Pack Scoring(${players.join('+')})`;
   }
   return `${course.name}_Team A(${players[0]}+ ${players[1]}) vs. Team B(${players[2]}+${players[3]})`;
 }
@@ -2547,7 +2547,7 @@ function renderLandlordActions() {
     const roleIcon = index === landlordIndex ? '👲' : '👨‍🌾';
     return `<span class="${result.points[index] > 0 ? 'point-positive' : (result.points[index] < 0 ? 'point-negative' : '')}">${roleIcon} ${escapeHtml(player)} · ${escapeHtml(role)} <strong>${signedPoints(result.points[index])}</strong></span>`;
   }).join('');
-  els.landlordHoleResult.innerHTML = `<strong class="landlord-auto-status">${escapeHtml(t('This hole has been settled automatically.'))}</strong>${playerResults}`;
+  els.landlordHoleResult.innerHTML = `<strong class="landlord-auto-status">${escapeHtml(t('Hole result'))}</strong>${playerResults}`;
 }
 
 function renderPlayEntry() {
@@ -3240,6 +3240,7 @@ function renderScoreStrip() {
   const game = currentGame();
   const total = totals();
   const parTotal = course.pars.reduce((a, b) => a + b, 0);
+  els.scoreStrip.classList.toggle('landlord-mode', state.gameType === 'landlord');
   if (state.gameType === 'landlord') {
     const points = total.landlordPoints || [];
     const ranked = state.players.map((player, index) => ({ player, points: points[index] || 0 }))
@@ -3247,7 +3248,7 @@ function renderScoreStrip() {
     els.teamAPlayers.textContent = ranked[0]?.player || t('Player');
     els.teamBPlayers.textContent = ranked.slice(1).map(item => item.player).join(' · ');
     els.teamATotal.textContent = signedPoints(ranked[0]?.points || 0);
-    els.teamBTotal.textContent = `${t('Completed')} ${total.complete}/18`;
+    els.teamBTotal.textContent = '';
     els.teamATotal.closest('.team-total')?.querySelector('.label')?.replaceChildren(document.createTextNode(t('Leader')));
     els.teamBTotal.closest('.team-total')?.querySelector('.label')?.replaceChildren(document.createTextNode(t('Fight the Landlord')));
     applySignedClass(els.teamATotal, ranked[0]?.points || 0);
