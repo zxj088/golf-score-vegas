@@ -27,15 +27,15 @@ const LAS_VEGAS_RULES_TEXT = [
   'Under Par Flip: if any player makes birdie or eagle, the losing team must reverse its number from high to low, such as 57 becoming 75. The lost points jump quickly. If both teams have a player under par, no flip is used.'
 ].join('\n\n');
 const LANDLORD_RULES_SECTIONS = [
-  'Players and roles: 3 or 4 players participate. Each hole has one landlord, shown with 👲; all other players are peasants, shown with 👨‍🌾.',
-  'Scoring: In Gross mode, compare actual strokes. In Net mode, use the same full-handicap allocation as Las Vegas. The landlord score is multiplied by the number of peasants and compared with the peasants’ combined score. The winning side receives points at the selected multiplier.',
-  'Automatic settlement: After every player has entered a score, the hole is settled automatically and the leaderboard is updated immediately. Changing a score, landlord, or multiplier recalculates the result from the latest data without adding the old result again.',
-  'Automatic landlord rotation: After a hole is complete, the player with the lowest score in the selected Gross or Net mode becomes landlord on the next hole. If the best score is tied, the current landlord remains landlord.',
-  'Automatic bombs: A birdie automatically selects Double x2. An eagle or hole-in-one automatically selects Bomb x4. If no special score is present, x1 is selected.',
-  'Manual adjustment: The landlord and multiplier buttons can still be changed manually. If a score is changed afterward, the automatic rules evaluate the hole again.',
-  'Per-hole cap: The cap limits each peasant’s maximum win or loss after doubles or bombs. The landlord’s limit equals the cap multiplied by the number of peasants. It limits points, not recorded strokes.',
-  'Tie advantage: Normally a tied hole scores zero. If enabled, a landlord whose handicap is higher than the group’s lowest handicap wins a tied hole at the current multiplier.',
-  'Double-par protection: A recorded gross score cannot exceed twice the hole par.'
+  'Players: 3 or 4 players. Each hole has one landlord 👲; the other players are peasants 👨‍🌾.',
+  'Gross mode uses actual strokes. Net mode applies the same full-handicap strokes as Las Vegas. The landlord’s score is multiplied by the number of peasants and compared with their combined score.',
+  'The hole is settled after every player enters a score, and each player’s win or loss is shown immediately.',
+  'The player with the lowest Gross or Net score becomes landlord on the next hole. If the best score is tied, the current landlord continues.',
+  'Bomb rule: Only a special score by the winning side earns a multiplier. A winning-side birdie is x2; a winning-side eagle or hole-in-one is x4. If both sides have special scores, they cancel and the hole is x1. A special score by only the losing side is also x1.',
+  'Tap a player to change the landlord, or tap x1, x2, or x4 to change the multiplier.',
+  'Per-hole cap: Each peasant cannot win or lose more than the selected cap on one hole. The landlord’s limit is the cap multiplied by the number of peasants.',
+  'Tied hole: Normally everyone scores zero. If the higher-handicap-landlord option is enabled, an eligible landlord wins the tie at the current multiplier.',
+  'The maximum recorded score on a hole is double par.'
 ];
 const COURSE_SEARCH_AREAS = [
     {
@@ -2345,11 +2345,25 @@ function autoLandlordMultiplierForHole(holeIndex) {
   const par = Number(currentCourse().pars[holeIndex] || 4);
   const scores = (state.scores[holeIndex] || [])
     .slice(0, config.playerCount)
-    .map(parseScore)
-    .filter(score => score !== null);
-  const hasSuperBomb = scores.some(score => score === 1 || score <= par - 2);
-  const hasBirdie = scores.some(score => score === par - 1);
-  state.landlord.multipliers[holeIndex] = hasSuperBomb ? 4 : (hasBirdie ? 2 : 1);
+    .map(parseScore);
+  if (scores.some(score => score === null)) {
+    state.landlord.multipliers[holeIndex] = 1;
+    return;
+  }
+  const result = landlordHoleResult(state, holeIndex);
+  if (!result || result.tied) {
+    state.landlord.multipliers[holeIndex] = 1;
+    return;
+  }
+  const specialLevel = score => score === 1 || score <= par - 2 ? 4 : (score === par - 1 ? 2 : 1);
+  const landlordLevel = specialLevel(scores[result.landlordIndex]);
+  const peasantLevel = Math.max(...result.peasantIndexes.map(playerIndex => specialLevel(scores[playerIndex])));
+  const bothSidesSpecial = landlordLevel > 1 && peasantLevel > 1;
+  const winningLevel = result.landlordWon ? landlordLevel : peasantLevel;
+  const losingLevel = result.landlordWon ? peasantLevel : landlordLevel;
+  state.landlord.multipliers[holeIndex] = !bothSidesSpecial && winningLevel > 1 && losingLevel === 1
+    ? winningLevel
+    : 1;
 }
 
 function autoAssignNextLandlord(holeIndex) {
@@ -3201,10 +3215,12 @@ function renderRulesEntry() {
 
 async function showRulesDialog() {
   const landlordRules = LANDLORD_RULES_SECTIONS.map(section => t(section)).join('\n\n');
+  const gameType = currentGame()?.gameType || state.gameType;
+  const isLandlord = gameType === 'landlord';
   await openAppDialog({
     eyebrow: t('Notice'),
-    title: t('Golf Game Rules'),
-    message: `${t('Las Vegas Rules')}\n\n${t(LAS_VEGAS_RULES_TEXT)}\n\n────────────\n\n${t('Fight the Landlord Rules')}\n\n${landlordRules}`,
+    title: t(isLandlord ? 'Fight the Landlord Rules' : 'Las Vegas Rules'),
+    message: isLandlord ? landlordRules : t(LAS_VEGAS_RULES_TEXT),
     input: false,
     showOk: false,
     cancelText: t('Close')
