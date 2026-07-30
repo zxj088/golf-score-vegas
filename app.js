@@ -34,8 +34,7 @@ const LANDLORD_RULES_SECTIONS = [
   'Bomb rule: Only a special score by the winning side earns a multiplier. A winning-side birdie is x2; a winning-side eagle or hole-in-one is x4. If both sides have special scores, they cancel and the hole is x1. A special score by only the losing side is also x1.',
   'Tap a player to change the landlord, or tap x1, x2, or x4 to change the multiplier.',
   'Per-hole cap: Each peasant cannot win or lose more than the selected cap on one hole. The landlord’s limit is the cap multiplied by the number of peasants.',
-  'Tied hole: Normally everyone scores zero. If the higher-handicap-landlord option is enabled, an eligible landlord wins the tie at the current multiplier.',
-  'The maximum recorded score on a hole is double par.'
+  'Tied hole: Normally everyone scores zero. If the higher-handicap-landlord option is enabled, an eligible landlord wins the tie at the current multiplier.'
 ];
 const COURSE_SEARCH_AREAS = [
     {

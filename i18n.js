@@ -267,8 +267,6 @@
     ,'Tap a player to change the landlord, or tap x1, x2, or x4 to change the multiplier.': '点击球员可更换地主；点击x1、x2或x4可更改倍数。'
     ,'Per-hole cap: Each peasant cannot win or lose more than the selected cap on one hole. The landlord’s limit is the cap multiplied by the number of peasants.': '单洞封顶：每位农民单洞输赢不超过所设上限；地主上限为封顶分数乘以农民人数。'
     ,'Tied hole: Normally everyone scores zero. If the higher-handicap-landlord option is enabled, an eligible landlord wins the tie at the current multiplier.': '平局：通常所有人得0分。启用高差点地主平局获胜后，符合条件的地主按当前倍数获胜。'
-    ,'The maximum recorded score on a hole is double par.': '单洞记录的最高杆数为双倍标准杆。'
-    ,'Choose one landlord on each hole. The other players are peasants. In Gross mode, compare actual strokes; in Net mode, use the same full-handicap allocation as Las Vegas. The landlord score is multiplied by the number of peasants and compared with their combined score. The winning side receives the selected multiplier, subject to the per-hole cap. Scores are capped at double par.': '每洞选择一名地主，其余球员为农民。总杆模式按实际杆数比较；净杆模式采用与拉斯一致的完整差点分洞让杆。地主净杆乘以农民人数后，与所有农民净杆之和比较。胜方按所选倍数得分，并受单洞封顶限制；单洞最高记录为双倍标准杆。'
   };
 
   let language = localStorage.getItem(LANGUAGE_KEY) === 'zh-CN' ? 'zh-CN' : 'en';
