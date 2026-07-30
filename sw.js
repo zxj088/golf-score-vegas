@@ -1,3 +1,5 @@
+self.__SIMPLE_GOLF_BUILD__ = 'v145';
+
 self.addEventListener('install', event => {
   self.skipWaiting();
 });
@@ -10,5 +12,9 @@ self.addEventListener('activate', event => {
 });
 
 self.addEventListener('fetch', event => {
-  return;
+  if (event.request.mode !== 'navigate') return;
+  event.respondWith(
+    fetch(event.request, { cache: 'reload' })
+      .catch(() => fetch(event.request))
+  );
 });
