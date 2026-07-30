@@ -610,7 +610,7 @@ function defaultLandlordState(playerCount = 3) {
   return {
     playerCount: playerCount === 4 ? 4 : 3,
     handicapEnabled: true,
-    maxPoints: 3,
+    maxPoints: 10,
     tieHigherHandicapLandlordWins: false,
     landlords: Array.from({ length: 18 }, () => 0),
     multipliers: Array.from({ length: 18 }, () => 1),
@@ -626,7 +626,7 @@ function normalizeLandlordState(value, playerCount = 3) {
   return {
     playerCount: count,
     handicapEnabled: source.handicapEnabled !== false,
-    maxPoints: Math.max(1, Math.min(20, Math.round(Number(source.maxPoints) || 3))),
+    maxPoints: Math.max(1, Math.min(20, Math.round(Number(source.maxPoints) || 10))),
     tieHigherHandicapLandlordWins: Boolean(source.tieHigherHandicapLandlordWins),
     landlords: Array.from({ length: 18 }, (_, index) => {
       const landlord = Math.round(Number(source.landlords?.[index]) || 0);
@@ -2244,7 +2244,7 @@ function openGameModal() {
   els.newGameType.value = 'vegas';
   els.newGameType.disabled = false;
   els.newLandlordPlayerCount.value = '3';
-  els.newLandlordMaxPoints.value = '3';
+  els.newLandlordMaxPoints.value = '10';
   els.newLandlordTieWins.checked = false;
   els.newGameTeeTime.value = dateTimeInputValue(new Date());
   els.newPlayerA1.value = 'Player 1';
@@ -2355,33 +2355,14 @@ function autoLandlordMultiplierForHole(holeIndex) {
   if (state.gameType !== 'landlord') return;
   state.landlord = normalizeLandlordState(state.landlord, state.players.length);
   const config = state.landlord;
-  const par = Number(currentCourse().pars[holeIndex] || 4);
-  const scores = (state.scores[holeIndex] || [])
-    .slice(0, config.playerCount)
-    .map(parseScore);
-  if (scores.some(score => score === null)) {
-    state.landlord.specialMultipliers[holeIndex] = 1;
-    state.landlord.multipliers[holeIndex] = config.manualMultipliers[holeIndex];
-    return;
-  }
   const result = landlordHoleResult(state, holeIndex);
-  if (!result || result.tied) {
+  if (!result) {
     state.landlord.specialMultipliers[holeIndex] = 1;
     state.landlord.multipliers[holeIndex] = config.manualMultipliers[holeIndex];
     return;
   }
-  // Special-score detection always uses the entered gross strokes, never net strokes.
-  const specialLevel = score => score === 1 || score <= par - 2 ? 4 : (score === par - 1 ? 2 : 1);
-  const landlordLevel = specialLevel(scores[result.landlordIndex]);
-  const peasantLevel = Math.max(...result.peasantIndexes.map(playerIndex => specialLevel(scores[playerIndex])));
-  const bothSidesSpecial = landlordLevel > 1 && peasantLevel > 1;
-  const winningLevel = result.landlordWon ? landlordLevel : peasantLevel;
-  const losingLevel = result.landlordWon ? peasantLevel : landlordLevel;
-  const specialMultiplier = !bothSidesSpecial && winningLevel > 1 && losingLevel === 1
-    ? winningLevel
-    : 1;
-  state.landlord.specialMultipliers[holeIndex] = specialMultiplier;
-  state.landlord.multipliers[holeIndex] = config.manualMultipliers[holeIndex] * specialMultiplier;
+  state.landlord.specialMultipliers[holeIndex] = result.specialMultiplier;
+  state.landlord.multipliers[holeIndex] = result.multiplier;
 }
 
 function autoAssignNextLandlord(holeIndex) {
@@ -2524,6 +2505,15 @@ function signedPoints(value) {
   return number > 0 ? `+${number}` : String(number);
 }
 
+function landlordSettingsSummary(source = state) {
+  const config = normalizeLandlordState(source.landlord, source.players?.length || 3);
+  return t('{count} players · Cap {cap} · Tie advantage {status}', {
+    count: config.playerCount,
+    cap: config.maxPoints,
+    status: t(config.tieHigherHandicapLandlordWins ? 'On' : 'Off')
+  });
+}
+
 function setLandlordForHole(playerIndex) {
   if (!isEditing || state.gameType !== 'landlord') return;
   state.landlord.landlords[activePlayHoleIndex] = playerIndex;
@@ -2550,6 +2540,7 @@ function renderLandlordActions() {
   const active = state.gameType === 'landlord' && Boolean(currentGame());
   els.landlordActions.hidden = !active;
   if (!active) return;
+  autoLandlordMultiplierForHole(activePlayHoleIndex);
   const config = normalizeLandlordState(state.landlord, state.players.length);
   els.landlordHoleResult.style.setProperty('--landlord-result-columns', config.playerCount);
   const landlordIndex = config.landlords[activePlayHoleIndex];
@@ -2573,7 +2564,7 @@ function renderLandlordActions() {
     button.disabled = !isEditing;
   });
   const result = landlordHoleResult(state, activePlayHoleIndex);
-  const displayedSpecialMultiplier = result ? config.specialMultipliers[activePlayHoleIndex] : null;
+  const displayedSpecialMultiplier = result ? result.specialMultiplier : null;
   els.landlordAutomaticBomb.textContent = displayedSpecialMultiplier
     ? t('Bomb x{value}', { value: displayedSpecialMultiplier })
     : t('Bomb --');
@@ -2591,12 +2582,11 @@ function renderLandlordActions() {
     const roleIcon = index === landlordIndex ? '👲' : '👨‍🌾';
     return `<span class="${result.points[index] > 0 ? 'point-positive' : (result.points[index] < 0 ? 'point-negative' : '')}">${roleIcon} ${escapeHtml(player)} · ${escapeHtml(role)} <strong>${signedPoints(result.points[index])}</strong></span>`;
   }).join('');
-  const manualMultiplier = config.manualMultipliers[activePlayHoleIndex];
-  const specialMultiplier = config.specialMultipliers[activePlayHoleIndex];
-  const multiplierSummary = manualMultiplier > 1 || specialMultiplier > 1
-    ? ` · x${manualMultiplier} × x${specialMultiplier} = x${config.multipliers[activePlayHoleIndex]}`
-    : '';
-  els.landlordHoleResult.innerHTML = `<strong class="landlord-auto-status">${escapeHtml(t('Hole result'))}${multiplierSummary}</strong>${playerResults}`;
+  const multiplierSummary = t('Hole result: Manual multiplier {manual} x Bomb multiplier {bomb}', {
+    manual: result.manualMultiplier,
+    bomb: result.specialMultiplier
+  });
+  els.landlordHoleResult.innerHTML = `<strong class="landlord-auto-status">${escapeHtml(multiplierSummary)}</strong>${playerResults}`;
 }
 
 function renderPlayEntry() {
@@ -2610,7 +2600,7 @@ function renderPlayEntry() {
   const holeValues = holeGrossAndNet(scores, activePlayHoleIndex);
 
   els.playEntryMode.textContent = state.gameType === 'landlord'
-    ? `${t('Fight the Landlord')} · ${state.scoreMode === 'net' ? t('Net') : t('Gross')}`
+    ? `${t('Fight the Landlord')} · ${state.scoreMode === 'net' ? t('Net') : t('Gross')} · ${landlordSettingsSummary(state)}`
     : t('Score Entry');
   els.playEntryTitle.textContent = game ? roundListDate(game) : t('No games currently playing');
   els.playEntryCourse.textContent = course.name || t('Course');
@@ -2661,6 +2651,7 @@ function renderPlayEntry() {
     const meta = row.querySelector('.play-score-meta');
     if (meta) meta.innerHTML = previousHoleScoreHtml(scoreIndex);
     const button = row.querySelector('.play-score-button');
+    button.classList.toggle('under-par', parseScore(grossValue) !== null && Number(grossValue) < par);
     button.innerHTML = grossValue
       ? `<span>${grossValue}</span>${state.scoreMode === 'net' && netValue ? `<small>${t('Net')} ${netValue}</small>` : ''}`
       : '<span>--</span>';
@@ -2737,16 +2728,33 @@ function landlordHoleResult(roundOrState, holeIndex) {
     const parsed = parseScore(value);
     return parsed === null ? null : Math.min(parsed, par * 2);
   });
-  return scoreLandlordHole({
+  const commonOptions = {
     grossScores: cappedGross,
     handicaps: normalizeHandicaps(source.handicaps).slice(0, playerCount),
     strokeIndex: Number(indexes?.[holeIndex] || holeIndex + 1),
     landlordIndex: config.landlords[holeIndex],
-    multiplier: config.multipliers[holeIndex],
     maxPoints: config.maxPoints,
     handicapEnabled: source.scoreMode === 'net',
     tieHigherHandicapLandlordWins: config.tieHigherHandicapLandlordWins
-  });
+  };
+  const baseResult = scoreLandlordHole({ ...commonOptions, multiplier: 1 });
+  if (!baseResult) return null;
+
+  // Birdie/eagle detection always uses gross strokes. A special score only
+  // becomes a bomb when it belongs exclusively to the side that wins the hole.
+  const specialLevel = score => score === 1 || score <= par - 2 ? 4 : (score === par - 1 ? 2 : 1);
+  const landlordLevel = specialLevel(baseResult.gross[baseResult.landlordIndex]);
+  const packLevel = Math.max(...baseResult.peasantIndexes.map(playerIndex => specialLevel(baseResult.gross[playerIndex])));
+  const bothSidesSpecial = landlordLevel > 1 && packLevel > 1;
+  const winningLevel = baseResult.landlordWon ? landlordLevel : packLevel;
+  const losingLevel = baseResult.landlordWon ? packLevel : landlordLevel;
+  const specialMultiplier = !baseResult.tied && !bothSidesSpecial && winningLevel > 1 && losingLevel === 1
+    ? winningLevel
+    : 1;
+  const manualMultiplier = config.manualMultipliers[holeIndex];
+  const multiplier = manualMultiplier * specialMultiplier;
+  const result = scoreLandlordHole({ ...commonOptions, multiplier });
+  return { ...result, manualMultiplier, specialMultiplier, multiplier };
 }
 
 function landlordTotals(roundOrState = state) {
@@ -3341,6 +3349,9 @@ function renderLandlordLeaderboard() {
   document.querySelector('.leaderboard-tools').hidden = active;
   els.landlordLeaderboard.hidden = !active;
   if (!active) return;
+  for (let holeIndex = 0; holeIndex < 18; holeIndex += 1) {
+    if (landlordHoleResult(state, holeIndex)) autoLandlordMultiplierForHole(holeIndex);
+  }
   const config = normalizeLandlordState(state.landlord, state.players.length);
   const totalsValue = landlordTotals(state);
   const course = currentCourse();
@@ -3361,7 +3372,7 @@ function renderLandlordLeaderboard() {
     return `<tr>
       <td>${holeIndex + 1}/${course.indexes[holeIndex]}</td>
       <td>${course.pars[holeIndex]}</td>
-      <td>${isComplete ? `${escapeHtml(state.players[landlordIndex] || '')}<small>x${config.multipliers[holeIndex]}</small>` : '--'}</td>
+      <td>${isComplete ? `${escapeHtml(state.players[landlordIndex] || '')}<small>x${result.multiplier}</small>` : '--'}</td>
       ${scoreCells}
     </tr>`;
   }).join('');
@@ -3373,7 +3384,7 @@ function renderLandlordLeaderboard() {
     </th>`).join('');
   els.landlordLeaderboard.innerHTML = `
     <div class="landlord-ranking">
-      <p class="eyebrow">${escapeHtml(t('Fight the Landlord'))}</p>
+      <p class="eyebrow">${escapeHtml(`${t('Fight the Landlord')} · ${state.scoreMode === 'net' ? t('Net') : t('Gross')} · ${landlordSettingsSummary(state)}`)}</p>
       <div class="landlord-ranking-title-row">
         <h2>${escapeHtml(course.name)}</h2>
         <span>${escapeHtml(roundListDate(currentGame() || {}))}</span>
@@ -4018,7 +4029,7 @@ async function createLandlordScorecardAsset(round) {
     const values = [
       `${holeIndex + 1}/${normalized.indexes[holeIndex]}`,
       normalized.pars[holeIndex],
-      `${normalized.players[landlordIndex]} x${config.multipliers[holeIndex]}`,
+      `${normalized.players[landlordIndex]} x${result?.multiplier || 1}`,
       ...normalized.players.slice(0, playerCount).map((_, index) => normalized.scores[holeIndex][index] || '--')
     ];
     x = margin;
@@ -4359,6 +4370,7 @@ function renderGameList(container, rounds, emptyText, status) {
   rounds.forEach(round => {
     const row = document.createElement('div');
     row.className = 'history-row game-row';
+    row.classList.toggle('landlord-game-row', round.gameType === 'landlord');
     row.classList.toggle('playing-game-row', status === 'playing');
     row.classList.toggle('history-game-row', status === 'history');
     row.classList.toggle('active-game', round.id === activeGameId);

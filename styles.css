@@ -691,6 +691,12 @@ h3 {
   font-weight: 800;
 }
 
+.play-score-button.under-par {
+  color: #ffffff;
+  background: #c33f38;
+  box-shadow: 0 0 0 4px rgba(195, 63, 56, 0.14);
+}
+
 label {
   display: grid;
   gap: 6px;
@@ -1197,6 +1203,27 @@ textarea {
 .game-row.active-game {
   border-color: var(--green);
   background: var(--green-2);
+}
+
+.game-row.landlord-game-row {
+  border-color: #d5b36d;
+  background: #fff8e5;
+}
+
+.game-row.landlord-game-row.active-game {
+  border-color: #9b6418;
+  background: #ffefc9;
+}
+
+.game-row.landlord-game-row .mode-chip {
+  border-color: #c99a46;
+  color: #71470f;
+  background: #ffe7b3;
+}
+
+.game-row.landlord-game-row .playing-icon {
+  background: #9b6418;
+  box-shadow: 0 0 0 4px rgba(155, 100, 24, 0.16);
 }
 
 .scorecard {
