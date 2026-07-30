@@ -4488,8 +4488,8 @@ function addListeners() {
 
   els.shareButton.addEventListener('click', async () => {
     const shareData = {
-      title: t('Vegas Golf Scorecard'),
-      text: t('Vegas Golf Scorecard'),
+      title: t('Simple Golf Scorecard'),
+      text: t('Simple Golf Scorecard'),
       url: window.location.href.split('?')[0]
     };
     try {

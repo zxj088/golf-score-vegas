@@ -1,13 +1,13 @@
 {
-  "name": "Vegas Golf Scorecard",
-  "short_name": "Vegas Golf",
+  "name": "Simple Golf Scorecard",
+  "short_name": "Golf Scorecard",
   "id": "/golf-score-vegas/",
   "start_url": "./?source=pwa",
   "scope": "./",
   "display": "standalone",
   "background_color": "#f6f4ef",
   "theme_color": "#1f6f5b",
-  "description": "A mobile Las Vegas rule golf scorecard.",
+  "description": "A simple mobile golf scorecard for multiple game formats.",
   "icons": [
     {
       "src": "./assets/icon-192.png",

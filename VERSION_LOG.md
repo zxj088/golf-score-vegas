@@ -19,7 +19,7 @@ What is new in this version:
 - Gross or net mode controls Fight the Landlord settlement; net mode uses the same full-handicap hole allocation as Las Vegas.
 - Dedicated mobile score entry, hole settlement results, leaderboard, history summaries, and shareable PNG scorecard.
 - Rules dialog explains both games, and History can be filtered by game type.
-- PWA asset query version is `v133`.
+- PWA asset query version is `v134`.
 
 ### v4.2 - Shareable scorecard baseline
 
