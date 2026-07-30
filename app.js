@@ -2517,6 +2517,7 @@ function renderLandlordActions() {
   els.landlordActions.hidden = !active;
   if (!active) return;
   const config = normalizeLandlordState(state.landlord, state.players.length);
+  els.landlordHoleResult.style.setProperty('--landlord-result-columns', config.playerCount);
   const landlordIndex = config.landlords[activePlayHoleIndex];
   els.landlordChoices.innerHTML = '';
   state.players.slice(0, config.playerCount).forEach((player, index) => {
@@ -2539,7 +2540,7 @@ function renderLandlordActions() {
       .slice(0, config.playerCount)
       .filter(score => parseScore(score) === null)
       .length;
-    els.landlordHoleResult.textContent = t('Scores still needed for {count} players.', { count: missingCount });
+    els.landlordHoleResult.innerHTML = `<strong class="landlord-auto-status">${escapeHtml(t('Scores still needed for {count} players.', { count: missingCount }))}</strong>`;
     return;
   }
   const playerResults = state.players.slice(0, config.playerCount).map((player, index) => {
@@ -3319,7 +3320,11 @@ function renderLandlordLeaderboard() {
   els.landlordLeaderboard.innerHTML = `
     <div class="landlord-ranking">
       <p class="eyebrow">${escapeHtml(t('Fight the Landlord'))}</p>
-      <h2>${escapeHtml(course.name)}</h2>
+      <div class="landlord-ranking-title-row">
+        <h2>${escapeHtml(course.name)}</h2>
+        <span>${escapeHtml(roundListDate(currentGame() || {}))}</span>
+        <strong>${totalsValue.complete}/18</strong>
+      </div>
       <div class="rank-chips">${state.players.slice(0, config.playerCount)
         .map((player, index) => `<span>${escapeHtml(player)} <strong class="${totalsValue.points[index] > 0 ? 'point-positive' : (totalsValue.points[index] < 0 ? 'point-negative' : '')}">${signedPoints(totalsValue.points[index])}</strong></span>`)
         .join('')}</div>

@@ -238,18 +238,7 @@ h3 {
 }
 
 .score-strip.landlord-mode {
-  grid-template-columns: minmax(0, 1fr) auto;
-}
-
-.score-strip.landlord-mode .team-total.team-b {
   display: none;
-}
-
-.score-strip.landlord-mode #holesComplete {
-  color: var(--ink);
-  font-size: 20px;
-  font-weight: 900;
-  line-height: 1;
 }
 
 .team-total,
@@ -1995,25 +1984,26 @@ html[lang="en"] .landlord-action-group {
 }
 
 .landlord-hole-result {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(var(--landlord-result-columns, 3), minmax(0, 1fr));
   align-items: center;
   gap: 5px;
-  overflow-x: auto;
   border-top: 1px solid #d5c39d;
   padding-top: 6px;
-  white-space: nowrap;
 }
 
 .landlord-hole-result span {
-  flex: 0 0 auto;
+  min-width: 0;
   border-radius: 8px;
   padding: 6px;
   background: #fff;
-  font-size: 13px;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+  text-align: center;
 }
 
 .landlord-auto-status {
-  flex: 0 0 auto;
+  grid-column: 1 / -1;
   color: #17684f;
   font-size: 15px;
 }
@@ -2041,7 +2031,27 @@ html[lang="en"] .landlord-action-group {
 }
 
 .landlord-ranking h2 {
+  margin: 0;
+}
+
+.landlord-ranking-title-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 10px;
   margin: 4px 0 12px;
+}
+
+.landlord-ranking-title-row span {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.landlord-ranking-title-row > strong {
+  color: var(--ink);
+  font-size: 22px;
+  font-weight: 900;
 }
 
 .rank-chips {
@@ -2148,6 +2158,18 @@ html[lang="en"] .landlord-action-group {
 
   .landlord-table-wrap th:nth-child(3) {
     width: 64px;
+  }
+
+  .landlord-ranking-title-row {
+    gap: 6px;
+  }
+
+  .landlord-ranking-title-row span {
+    font-size: 11px;
+  }
+
+  .landlord-ranking-title-row > strong {
+    font-size: 19px;
   }
 }
 
