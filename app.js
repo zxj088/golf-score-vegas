@@ -3943,10 +3943,10 @@ async function createLandlordScorecardAsset(round) {
     return { player, landlord, peasant };
   });
   const exportScale = 2;
-  const logicalWidth = 900;
-  const margin = 25;
+  const logicalWidth = 800;
+  const margin = 20;
   const contentWidth = logicalWidth - margin * 2;
-  const playerCardHeight = 210;
+  const playerCardHeight = 220;
   const playerCardGap = 10;
   const statisticsTop = 225;
   const tableTop = statisticsTop + 48 + playerCount * (playerCardHeight + playerCardGap) + 18;
@@ -3995,7 +3995,7 @@ async function createLandlordScorecardAsset(round) {
       { icon: '👨‍🌾', label: t('Peasant {count} times', { count: statistics.peasant.length }), items: statistics.peasant, color: '#315e51' }
     ].forEach(role => {
       const chunks = role.items.length
-        ? Array.from({ length: Math.ceil(role.items.length / 6) }, (_, index) => role.items.slice(index * 6, index * 6 + 6))
+        ? Array.from({ length: Math.ceil(role.items.length / 5) }, (_, index) => role.items.slice(index * 5, index * 5 + 5))
         : [[]];
       chunks.forEach((chunk, chunkIndex) => {
         const prefix = chunkIndex === 0 ? `${role.icon} ${role.label}: ` : '　';
@@ -4008,7 +4008,7 @@ async function createLandlordScorecardAsset(round) {
     });
   });
 
-  const fixedColumns = [62, 52, 120];
+  const fixedColumns = [50, 42, 96];
   const playerWidth = (contentWidth - fixedColumns.reduce((sum, value) => sum + value, 0)) / playerCount;
   const columns = [...fixedColumns, ...Array.from({ length: playerCount }, () => playerWidth)];
   const headers = ['H/I', t('Par'), t('Landlord'), ...normalized.players.slice(0, playerCount)];
