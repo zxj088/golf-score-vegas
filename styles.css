@@ -794,6 +794,28 @@ textarea {
   background: linear-gradient(180deg, var(--gold-2), var(--panel));
 }
 
+.teams-grid.landlord-mode {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 14px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+  box-shadow: var(--shadow);
+}
+
+.teams-grid.landlord-mode .team-card {
+  display: contents;
+}
+
+.teams-grid.landlord-mode .team-card > h3 {
+  display: none;
+}
+
+.teams-grid.landlord-mode .team-card > label {
+  min-width: 0;
+}
+
 .action-row,
 .section-heading {
   display: flex;
@@ -816,6 +838,12 @@ textarea {
 .history-list {
   display: grid;
   gap: 10px;
+}
+
+@media (max-width: 520px) {
+  .teams-grid.landlord-mode {
+    grid-template-columns: 1fr;
+  }
 }
 
 .course-list-filters {

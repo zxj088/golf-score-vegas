@@ -543,18 +543,6 @@ const els = {
   newHandicapA2: document.querySelector('#newHandicapA2'),
   newHandicapB1: document.querySelector('#newHandicapB1'),
   newHandicapB2: document.querySelector('#newHandicapB2'),
-  newPlayerGroups: [
-    document.querySelector('#newGroupA1'),
-    document.querySelector('#newGroupA2'),
-    document.querySelector('#newGroupB1'),
-    document.querySelector('#newGroupB2')
-  ],
-  newPlayerTees: [
-    document.querySelector('#newTeeA1'),
-    document.querySelector('#newTeeA2'),
-    document.querySelector('#newTeeB1'),
-    document.querySelector('#newTeeB2')
-  ],
   playerHistoryOptions: document.querySelector('#playerHistoryOptions'),
   newGameCountry: document.querySelector('#newGameCountry'),
   newGameRegion: document.querySelector('#newGameRegion'),
@@ -2198,6 +2186,8 @@ function closeCourseModal() {
 
 function updateGameTypeFields() {
   const isLandlord = els.newGameType.value === 'landlord';
+  document.querySelector('.teams-grid')?.classList.toggle('landlord-mode', isLandlord);
+  document.querySelectorAll('.teams-grid .team-card > h3').forEach(heading => { heading.hidden = isLandlord; });
   document.querySelectorAll('.landlord-setup').forEach(element => { element.hidden = !isLandlord; });
   const playerCount = isLandlord ? Number(els.newLandlordPlayerCount.value || 3) : 4;
   document.querySelectorAll('.player-four-setup').forEach(element => {
@@ -2241,8 +2231,6 @@ function openGameModal() {
   [els.newHandicapA1, els.newHandicapA2, els.newHandicapB1, els.newHandicapB2].forEach(input => {
     input.value = '0';
   });
-  els.newPlayerGroups.forEach(input => { input.value = ''; });
-  els.newPlayerTees.forEach(input => { input.value = ''; });
   els.newGameCode.disabled = false;
   document.querySelector('#gameModal h2').textContent = t('New Game');
   els.gameForm.querySelector('button[type="submit"]').textContent = t('Start Game');
@@ -2275,8 +2263,6 @@ function openEditGameInfoModal(round) {
   [els.newHandicapA1, els.newHandicapA2, els.newHandicapB1, els.newHandicapB2].forEach((input, index) => {
     input.value = normalized.handicaps[index] || 0;
   });
-  els.newPlayerGroups.forEach((input, index) => { input.value = normalized.playerMeta[index]?.group || ''; });
-  els.newPlayerTees.forEach((input, index) => { input.value = normalized.playerMeta[index]?.teeColor || ''; });
   els.newGameCode.value = normalized.totals.editCode || '';
   els.newGameCode.disabled = true;
   document.querySelector('#gameModal h2').textContent = t('Edit Info');
@@ -2552,9 +2538,7 @@ function renderPlayEntry() {
     const role = state.gameType === 'landlord'
       ? (scoreIndex === landlordConfig.landlords[activePlayHoleIndex] ? t('Landlord') : t('Peasant'))
       : '';
-    const playerDetails = state.playerMeta?.[scoreIndex] || {};
-    const extraMeta = state.gameType === 'landlord' ? [playerDetails.group, playerDetails.teeColor].filter(Boolean).join(' / ') : '';
-    row.querySelector('.play-player-copy span').textContent = `${t('HCP {value}', { value: state.handicaps?.[scoreIndex] || 0 })}${role ? ` · ${role}` : ''}${extraMeta ? ` · ${extraMeta}` : ''}`;
+    row.querySelector('.play-player-copy span').textContent = `${t('HCP {value}', { value: state.handicaps?.[scoreIndex] || 0 })}${role ? ` · ${role}` : ''}`;
     const meta = row.querySelector('.play-score-meta');
     if (meta) meta.innerHTML = previousHoleScoreHtml(scoreIndex);
     const button = row.querySelector('.play-score-button');
@@ -4666,10 +4650,6 @@ function addListeners() {
       els.newHandicapB1.value,
       els.newHandicapB2.value
     ]);
-    const playerMeta = normalizePlayerMeta(els.newPlayerGroups.map((input, index) => ({
-      group: input.value.trim(),
-      teeColor: els.newPlayerTees[index].value.trim()
-    })), playerCount);
     const code = els.newGameCode.value.trim();
     if (!editingGameInfoId && !/^\d{2}$/.test(code)) {
       els.newGameCode.setCustomValidity(t('Enter a 2 digit code.'));
@@ -4689,7 +4669,6 @@ function addListeners() {
       gameType,
       courseId: course.id,
       players,
-      playerMeta,
       handicaps,
       scoreMode: els.newGameScoreMode.value === 'net' ? 'net' : 'gross',
       underParFlip: els.newGameBirdieFlip.checked,
