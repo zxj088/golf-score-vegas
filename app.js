@@ -2223,15 +2223,41 @@ function updateGameTypeFields() {
 
 function renderPlayerHistoryOptions() {
   if (!els.playerHistoryOptions) return;
-  const names = new Set();
-  savedRounds.forEach(round => round.players?.forEach(name => {
-    const value = String(name || '').trim();
-    if (value) names.add(value);
-  }));
-  els.playerHistoryOptions.innerHTML = Array.from(names)
-    .sort((a, b) => a.localeCompare(b))
-    .map(name => `<option value="${escapeHtml(name)}"></option>`)
+  const profiles = historicalPlayerProfiles();
+  els.playerHistoryOptions.innerHTML = Array.from(profiles.values())
+    .sort((a, b) => a.name.localeCompare(b.name))
+    .map(profile => `<option value="${escapeHtml(profile.name)}" label="${escapeHtml(`HCP ${profile.handicap}`)}"></option>`)
     .join('');
+}
+
+function historicalPlayerProfiles() {
+  const profiles = new Map();
+  savedRounds.forEach(round => {
+    const handicaps = normalizeHandicaps(round.handicaps || round.totals?.handicaps);
+    const timestamp = Date.parse(round.totals?.teeTime || round.savedAt || 0) || 0;
+    round.players?.forEach((name, index) => {
+      const value = String(name || '').trim();
+      if (!value) return;
+      const key = value.toLocaleLowerCase();
+      const existing = profiles.get(key);
+      if (existing && existing.timestamp > timestamp) return;
+      profiles.set(key, {
+        name: value,
+        handicap: handicaps[index] || 0,
+        timestamp
+      });
+    });
+  });
+  return profiles;
+}
+
+function fillHistoricalPlayerHandicap(playerInput, handicapInput) {
+  const key = String(playerInput.value || '').trim().toLocaleLowerCase();
+  if (!key) return;
+  const profile = historicalPlayerProfiles().get(key);
+  if (!profile) return;
+  playerInput.value = profile.name;
+  handicapInput.value = String(profile.handicap);
 }
 
 function openGameModal() {
@@ -4844,6 +4870,15 @@ function addListeners() {
   els.newGameRegion.addEventListener('change', () => renderNewGameCourses(''));
   els.newGameType.addEventListener('change', updateGameTypeFields);
   els.newLandlordPlayerCount.addEventListener('change', updateGameTypeFields);
+  [
+    [els.newPlayerA1, els.newHandicapA1],
+    [els.newPlayerA2, els.newHandicapA2],
+    [els.newPlayerB1, els.newHandicapB1],
+    [els.newPlayerB2, els.newHandicapB2]
+  ].forEach(([playerInput, handicapInput]) => {
+    playerInput.addEventListener('input', () => fillHistoricalPlayerHandicap(playerInput, handicapInput));
+    playerInput.addEventListener('change', () => fillHistoricalPlayerHandicap(playerInput, handicapInput));
+  });
   els.landlordMultipliers.addEventListener('click', event => {
     const button = event.target.closest('[data-multiplier]');
     if (button) setLandlordMultiplier(button.dataset.multiplier);
@@ -5033,12 +5068,12 @@ async function init() {
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js?v=145', { updateViaCache: 'none' })
+    navigator.serviceWorker.register('./sw.js?v=146', { updateViaCache: 'none' })
       .then(registration => registration.update())
       .catch(() => {});
   });
   navigator.serviceWorker.addEventListener('controllerchange', () => {
-    const reloadKey = 'simpleGolfSwReload.v145';
+    const reloadKey = 'simpleGolfSwReload.v146';
     if (sessionStorage.getItem(reloadKey)) return;
     sessionStorage.setItem(reloadKey, '1');
     window.location.reload();
