@@ -2085,6 +2085,12 @@ html[lang="en"] .landlord-action-group {
 
 .landlord-ranking h2 {
   margin: 0;
+  font-size: 24px;
+}
+
+.landlord-ranking .eyebrow {
+  font-size: 16px;
+  line-height: 1.35;
 }
 
 .landlord-ranking-title-row {
@@ -2118,7 +2124,7 @@ html[lang="en"] .landlord-action-group {
   border-radius: 999px;
   padding: 8px 12px;
   background: #fff;
-  font-size: 15px;
+  font-size: 17px;
   font-weight: 800;
 }
 
@@ -2134,7 +2140,7 @@ html[lang="en"] .landlord-action-group {
   min-width: 0;
   table-layout: fixed;
   border-collapse: collapse;
-  font-size: 13px;
+  font-size: 15px;
   text-align: center;
 }
 
@@ -2170,6 +2176,22 @@ html[lang="en"] .landlord-action-group {
   margin-top: 3px;
 }
 
+.landlord-table-wrap td > strong,
+.landlord-table-wrap th > strong {
+  font-size: 17px;
+}
+
+.landlord-table-wrap td small,
+.landlord-table-wrap th small {
+  font-size: 12px;
+}
+
+.landlord-table-wrap td span,
+.landlord-table-wrap th span {
+  font-size: 14px;
+  font-weight: 800;
+}
+
 .landlord-table-wrap .landlord-cell {
   background: #fff1d6;
 }
@@ -2194,7 +2216,7 @@ html[lang="en"] .landlord-action-group {
   }
 
   .landlord-table-wrap table {
-    font-size: 11px;
+    font-size: 13px;
   }
 
   .landlord-table-wrap th,
@@ -2203,15 +2225,47 @@ html[lang="en"] .landlord-action-group {
   }
 
   .landlord-table-wrap th:nth-child(1) {
-    width: 42px;
+    width: 39px;
   }
 
   .landlord-table-wrap th:nth-child(2) {
-    width: 38px;
+    width: 34px;
   }
 
   .landlord-table-wrap th:nth-child(3) {
-    width: 64px;
+    width: 58px;
+  }
+
+  .landlord-ranking {
+    padding: 13px;
+  }
+
+  .landlord-ranking .eyebrow {
+    font-size: 14px;
+  }
+
+  .landlord-ranking h2 {
+    font-size: 21px;
+  }
+
+  .rank-chips span {
+    padding: 7px 10px;
+    font-size: 16px;
+  }
+
+  .landlord-table-wrap td > strong,
+  .landlord-table-wrap th > strong {
+    font-size: 15px;
+  }
+
+  .landlord-table-wrap td small,
+  .landlord-table-wrap th small {
+    font-size: 11px;
+  }
+
+  .landlord-table-wrap td span,
+  .landlord-table-wrap th span {
+    font-size: 13px;
   }
 
   .landlord-ranking-title-row {
