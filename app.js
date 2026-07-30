@@ -468,7 +468,6 @@ const els = {
   landlordChoices: document.querySelector('#landlordChoices'),
   landlordMultipliers: document.querySelector('#landlordMultipliers'),
   landlordHoleResult: document.querySelector('#landlordHoleResult'),
-  settleLandlordHole: document.querySelector('#settleLandlordHole'),
   landlordLeaderboard: document.querySelector('#landlordLeaderboard'),
   rulesButton: document.querySelector('#rulesButton'),
   languageButton: document.querySelector('#languageButton'),
@@ -2341,6 +2340,7 @@ function commitScorePadValue(value) {
   renderStart();
   renderHoles();
   renderPlayEntry();
+  renderLandlordLeaderboard();
   updateScorePad();
 }
 
@@ -2353,6 +2353,7 @@ function clearScorePadValue() {
   renderStart();
   renderHoles();
   renderPlayEntry();
+  renderLandlordLeaderboard();
   updateScorePad();
 }
 
@@ -2477,13 +2478,18 @@ function renderLandlordActions() {
   });
   const result = landlordHoleResult(state, activePlayHoleIndex);
   if (!result) {
-    els.landlordHoleResult.textContent = t('Enter all scores to settle this hole.');
+    const missingCount = (state.scores[activePlayHoleIndex] || [])
+      .slice(0, config.playerCount)
+      .filter(score => parseScore(score) === null)
+      .length;
+    els.landlordHoleResult.textContent = t('Scores still needed for {count} players.', { count: missingCount });
     return;
   }
-  els.landlordHoleResult.innerHTML = state.players.slice(0, config.playerCount).map((player, index) => {
+  const playerResults = state.players.slice(0, config.playerCount).map((player, index) => {
     const role = index === landlordIndex ? t('Landlord') : t('Peasant');
     return `<span class="${result.points[index] > 0 ? 'point-positive' : (result.points[index] < 0 ? 'point-negative' : '')}">${escapeHtml(player)} · ${escapeHtml(role)} <strong>${signedPoints(result.points[index])}</strong></span>`;
   }).join('');
+  els.landlordHoleResult.innerHTML = `<strong class="landlord-auto-status">${escapeHtml(t('This hole has been settled automatically.'))}</strong>${playerResults}`;
 }
 
 function renderPlayEntry() {
@@ -4618,14 +4624,6 @@ function addListeners() {
   els.landlordMultipliers.addEventListener('click', event => {
     const button = event.target.closest('[data-multiplier]');
     if (button) setLandlordMultiplier(button.dataset.multiplier);
-  });
-  els.settleLandlordHole.addEventListener('click', async () => {
-    const result = landlordHoleResult(state, activePlayHoleIndex);
-    if (!result) {
-      await showMessage(t('Fight the Landlord'), t('Enter all scores to settle this hole.'));
-      return;
-    }
-    renderLandlordActions();
   });
   els.cancelGame.addEventListener('click', closeGameModal);
   els.cancelGameBottom.addEventListener('click', closeGameModal);

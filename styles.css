@@ -1967,18 +1967,17 @@ button:disabled {
   padding-top: 10px;
 }
 
-.landlord-settle-button {
-  width: 100%;
-  min-height: 54px;
-  font-size: 18px;
-  font-weight: 900;
-}
-
 .landlord-hole-result span {
   border-radius: 8px;
   padding: 8px;
   background: #fff;
   font-size: 15px;
+}
+
+.landlord-auto-status {
+  grid-column: 1 / -1;
+  color: #17684f;
+  font-size: 17px;
 }
 
 .play-player-row.landlord-player {
