@@ -28,8 +28,7 @@ const LAS_VEGAS_RULES_TEXT = [
 ].join('\n\n');
 const LANDLORD_RULES_SECTIONS = [
   'Players: 3 or 4 players. Each hole has one landlord 👲; the other players are peasants 👨‍🌾.',
-  'Gross mode uses actual strokes. Net mode applies the same full-handicap strokes as Las Vegas. The landlord’s score is multiplied by the number of peasants and compared with their combined score.',
-  'The hole is settled after every player enters a score, and each player’s win or loss is shown immediately.',
+  'Gross mode uses actual strokes. Net mode allocates handicap strokes by hole. The landlord’s score is multiplied by the number of peasants and compared with the peasants’ total score.',
   'The player with the lowest Gross or Net score becomes landlord on the next hole. If the best score is tied, the current landlord continues.',
   'Bomb rule: Only a special score by the winning side earns a multiplier. A winning-side birdie is x2; a winning-side eagle or hole-in-one is x4. If both sides have special scores, they cancel and the hole is x1. A special score by only the losing side is also x1.',
   'Tap a player to change the landlord, or tap x1, x2, or x4 to change the multiplier.',
