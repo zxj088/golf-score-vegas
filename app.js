@@ -3209,6 +3209,7 @@ function renderLandlordLeaderboard() {
   const course = currentCourse();
   const rows = state.scores.map((scores, holeIndex) => {
     const result = landlordHoleResult(state, holeIndex);
+    const isComplete = Boolean(result);
     const landlordIndex = config.landlords[holeIndex];
     const scoreCells = state.players.slice(0, config.playerCount).map((player, playerIndex) => {
       const gross = parseScore(scores[playerIndex]);
@@ -3217,13 +3218,13 @@ function renderLandlordLeaderboard() {
       return `<td class="${playerIndex === landlordIndex ? 'landlord-cell' : ''}">
         <strong>${gross ?? '--'}</strong>
         ${gross !== null && config.handicapEnabled ? `<small>${escapeHtml(t('Net'))} ${net ?? '--'}</small>` : ''}
-        <span class="${points > 0 ? 'point-positive' : (points < 0 ? 'point-negative' : '')}">${signedPoints(points)}</span>
+        ${isComplete ? `<span class="${points > 0 ? 'point-positive' : (points < 0 ? 'point-negative' : '')}">${signedPoints(points)}</span>` : ''}
       </td>`;
     }).join('');
     return `<tr>
       <td>${holeIndex + 1}/${course.indexes[holeIndex]}</td>
       <td>${course.pars[holeIndex]}</td>
-      <td>${escapeHtml(state.players[landlordIndex] || '')}<small>x${config.multipliers[holeIndex]}</small></td>
+      <td>${isComplete ? `${escapeHtml(state.players[landlordIndex] || '')}<small>x${config.multipliers[holeIndex]}</small>` : '--'}</td>
       ${scoreCells}
     </tr>`;
   }).join('');
