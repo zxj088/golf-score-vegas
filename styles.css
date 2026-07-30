@@ -759,6 +759,74 @@ textarea {
   accent-color: var(--green);
 }
 
+.field-control {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.field-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.option-with-hint {
+  gap: 8px;
+}
+
+.option-with-hint > label {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--muted);
+}
+
+.hint-popover {
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.hint-popover summary {
+  display: grid;
+  width: 28px;
+  min-height: 28px;
+  place-items: center;
+  border: 1px solid var(--green);
+  border-radius: 50%;
+  color: var(--green);
+  background: #ffffff;
+  font-size: 17px;
+  font-weight: 900;
+  cursor: pointer;
+  list-style: none;
+}
+
+.hint-popover summary::-webkit-details-marker {
+  display: none;
+}
+
+.hint-popover p {
+  position: absolute;
+  z-index: 40;
+  top: calc(100% + 7px);
+  right: 0;
+  width: min(340px, 78vw);
+  margin: 0;
+  border: 1px solid var(--green);
+  border-radius: 10px;
+  padding: 12px;
+  color: var(--ink);
+  background: #ffffff;
+  box-shadow: 0 10px 30px rgba(19, 45, 37, 0.2);
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
 .teams-grid {
   grid-template-columns: repeat(2, 1fr);
   margin-bottom: 10px;
