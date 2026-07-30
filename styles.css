@@ -891,10 +891,21 @@ textarea {
   font-size: 0.9em;
 }
 
-@media (max-width: 520px) {
+@media (max-width: 700px) {
   .player-name-picker {
-    grid-template-columns: minmax(0, 1fr) minmax(7.2rem, 36%);
+    grid-template-columns: minmax(0, 1fr);
     gap: 5px;
+  }
+
+  .hint-popover p {
+    position: fixed;
+    top: auto;
+    right: max(12px, env(safe-area-inset-right));
+    bottom: max(16px, env(safe-area-inset-bottom));
+    left: max(12px, env(safe-area-inset-left));
+    width: auto;
+    max-width: none;
+    font-size: 16px;
   }
 }
 
