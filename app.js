@@ -29,7 +29,7 @@ const LAS_VEGAS_RULES_TEXT = [
 const LANDLORD_RULES_SECTIONS = [
   'Players: 3 or 4 players. Each hole has one landlord 👲; the other players are peasants 👨‍🌾.',
   'Gross mode uses actual strokes. Net mode allocates handicap strokes by hole. The landlord’s score is multiplied by the number of peasants and compared with the peasants’ total score.',
-  'The player with the lowest Gross or Net score becomes landlord on the next hole. If the best score is tied, the current landlord continues.',
+  'If the landlord wins, the landlord continues on the next hole. If the peasants win, the peasant with the lowest Gross or Net score becomes the next landlord. If multiple winning peasants tie, choose the player with fewer previous turns as landlord; if still tied, rotate forward from the current landlord through the player order. The landlord can still be changed manually on the next hole.',
   'Bomb rule: Only a special score by the winning side earns a multiplier. A winning-side birdie is x2; a winning-side eagle or hole-in-one is x4. If both sides have special scores, they cancel and the hole is x1. A special score by only the losing side is also x1.',
   'Special-score multipliers use gross strokes and multiply together with the manually selected x1, x2, or x4.',
   'Tap a player to change the landlord. Manual x2 and x4 can be selected; tap the selected multiplier again to return to x1. Bomb x2 or x4 is determined automatically from the winning side’s gross scores.',
@@ -2370,19 +2370,27 @@ function autoAssignNextLandlord(holeIndex) {
   const result = landlordHoleResult(state, holeIndex);
   if (!result) return;
   const currentLandlord = result.landlordIndex;
-  if (result.tied) {
+  if (result.tied || result.landlordWon) {
     state.landlord.landlords[holeIndex + 1] = currentLandlord;
     return;
   }
-  // A losing Wolf cannot remain Wolf merely because an individual score is tied.
-  const candidates = result.landlordWon
-    ? result.scoringValues.map((_, playerIndex) => playerIndex)
-    : result.peasantIndexes;
-  const bestScore = Math.min(...candidates.map(playerIndex => result.scoringValues[playerIndex]));
-  const bestPlayers = candidates.filter(playerIndex => result.scoringValues[playerIndex] === bestScore);
-  state.landlord.landlords[holeIndex + 1] = bestPlayers.includes(currentLandlord)
-    ? currentLandlord
-    : bestPlayers[0];
+
+  const bestScore = Math.min(...result.peasantIndexes.map(playerIndex => result.scoringValues[playerIndex]));
+  const bestPeasants = result.peasantIndexes.filter(playerIndex => result.scoringValues[playerIndex] === bestScore);
+  const landlordCounts = Array.from({ length: result.scoringValues.length }, (_, playerIndex) =>
+    state.landlord.landlords
+      .slice(0, holeIndex + 1)
+      .filter(landlordIndex => landlordIndex === playerIndex)
+      .length
+  );
+  const fewestTurns = Math.min(...bestPeasants.map(playerIndex => landlordCounts[playerIndex]));
+  const eligiblePeasants = new Set(bestPeasants.filter(playerIndex => landlordCounts[playerIndex] === fewestTurns));
+  for (let offset = 1; offset <= result.scoringValues.length; offset += 1) {
+    const playerIndex = (currentLandlord + offset) % result.scoringValues.length;
+    if (!eligiblePeasants.has(playerIndex)) continue;
+    state.landlord.landlords[holeIndex + 1] = playerIndex;
+    return;
+  }
 }
 
 function commitScorePadValue(value) {
