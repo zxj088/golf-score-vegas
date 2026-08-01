@@ -41,6 +41,8 @@ v5.0.8 uses PWA asset query `v158` and gives Wolf & Pack game cards a balanced t
 
 v5.0.9 uses PWA asset query `v159` and makes scoring transfer resilient to background lock-refresh races, so releasing edit control no longer reports a false phone-version conflict.
 
+v5.0.10 uses PWA asset query `v160`, gives the scoring-device system bar a smaller, compact type scale with a distinct cool blue-gray status palette, and simplifies the language button to show only the target language.
+
 ### v4.4 - Stable Wolf & Pack mobile baseline
 
 Date: 2026-07-31

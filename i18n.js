@@ -393,7 +393,7 @@
     const button = document.querySelector('#languageButton');
     if (button) {
       const target = language === 'en' ? t('Switch to Chinese') : t('Switch to English');
-      button.textContent = language === 'en' ? 'English/中文' : '中文/English';
+      button.textContent = language === 'en' ? '中文' : 'English';
       button.setAttribute('aria-label', target);
       button.title = target;
     }
