@@ -29,10 +29,12 @@ const LAS_VEGAS_RULES_TEXT = [
 const LANDLORD_RULES_SECTIONS = [
   'Players: 3 or 4 players. Each hole has one landlord 👲; the other players are peasants 👨‍🌾.',
   'Gross mode uses actual strokes. Net mode allocates handicap strokes by hole. The landlord’s score is multiplied by the number of peasants and compared with the peasants’ total score.',
+  'Recorded strokes have no maximum limit.',
+  'Wolf selection: Rotating Wolf follows the result of each hole. Fixed Wolf stays the same for all 18 holes and cannot be changed during the round.',
   'If the landlord wins, the landlord continues on the next hole. If the peasants win, the peasant with the lowest Gross or Net score becomes the next landlord. If multiple winning peasants tie, choose the player with fewer previous turns as landlord; if still tied, rotate forward from the current landlord through the player order. The landlord can still be changed manually on the next hole.',
   'Bomb rule: Only a special score by the winning side earns a multiplier. A winning-side birdie is x2; a winning-side eagle or hole-in-one is x4. If both sides have special scores, they cancel and the hole is x1. A special score by only the losing side is also x1.',
   'Special-score multipliers use gross strokes and multiply together with the manually selected x1, x2, or x4.',
-  'Tap a player to change the landlord. Manual x2 and x4 can be selected; tap the selected multiplier again to return to x1. Bomb x2 or x4 is determined automatically from the winning side’s gross scores.',
+  'In Rotating Wolf mode, tap a player to change the landlord. Manual x2 and x4 can be selected; tap the selected multiplier again to return to x1. Bomb x2 or x4 is determined automatically from the winning side’s gross scores.',
   'Per-hole cap: Each peasant cannot win or lose more than the selected cap on one hole. The landlord’s limit is the cap multiplied by the number of peasants.',
   'Tied hole: Normally everyone scores zero. If the higher-handicap-landlord option is enabled, an eligible landlord wins the tie at the current multiplier.'
 ];
@@ -459,6 +461,7 @@ let syncState = {
   title: t('Supabase is not connected.')
 };
 let shareCardAsset = null;
+let gameWizardStep = 1;
 
 const els = {
   scoreStrip: document.querySelector('#scoreStrip'),
@@ -569,6 +572,13 @@ const els = {
   newLandlordPlayerCount: document.querySelector('#newLandlordPlayerCount'),
   newLandlordMaxPoints: document.querySelector('#newLandlordMaxPoints'),
   newLandlordTieWins: document.querySelector('#newLandlordTieWins'),
+  newLandlordMode: document.querySelector('#newLandlordMode'),
+  newFixedLandlordPlayer: document.querySelector('#newFixedLandlordPlayer'),
+  gameWizardProgress: document.querySelector('#gameWizardProgress'),
+  gameWizardBack: document.querySelector('#gameWizardBack'),
+  gameWizardNext: document.querySelector('#gameWizardNext'),
+  gameWizardSave: document.querySelector('#gameWizardSave'),
+  gameReview: document.querySelector('#gameReview'),
   searchCourse: document.querySelector('#searchCourse'),
   playingList: document.querySelector('#playingList'),
   historyList: document.querySelector('#historyList'),
@@ -615,6 +625,8 @@ function defaultLandlordState(playerCount = 3) {
     handicapEnabled: true,
     maxPoints: 10,
     tieHigherHandicapLandlordWins: false,
+    selectionMode: 'rotating',
+    fixedLandlordIndex: 0,
     landlords: Array.from({ length: 18 }, () => 0),
     multipliers: Array.from({ length: 18 }, () => 1),
     manualMultipliers: Array.from({ length: 18 }, () => 1),
@@ -626,12 +638,18 @@ function normalizeLandlordState(value, playerCount = 3) {
   const source = value && typeof value === 'object' ? value : {};
   const count = Number(source.playerCount || playerCount) === 4 ? 4 : 3;
   const hasChainedMultipliers = Array.isArray(source.manualMultipliers);
+  const selectionMode = source.selectionMode === 'fixed' ? 'fixed' : 'rotating';
+  const requestedFixedIndex = Math.round(Number(source.fixedLandlordIndex) || 0);
+  const fixedLandlordIndex = requestedFixedIndex >= 0 && requestedFixedIndex < count ? requestedFixedIndex : 0;
   return {
     playerCount: count,
     handicapEnabled: source.handicapEnabled !== false,
     maxPoints: Math.max(1, Math.min(20, Math.round(Number(source.maxPoints) || 10))),
     tieHigherHandicapLandlordWins: Boolean(source.tieHigherHandicapLandlordWins),
+    selectionMode,
+    fixedLandlordIndex,
     landlords: Array.from({ length: 18 }, (_, index) => {
+      if (selectionMode === 'fixed') return fixedLandlordIndex;
       const landlord = Math.round(Number(source.landlords?.[index]) || 0);
       return landlord >= 0 && landlord < count ? landlord : 0;
     }),
@@ -2222,6 +2240,73 @@ function updateGameTypeFields() {
   els.newPlayerB2.required = playerCount === 4;
   els.newHandicapB2.required = playerCount === 4;
   els.newGameBirdieFlip.closest('label').hidden = isLandlord;
+  const fixedMode = isLandlord && els.newLandlordMode?.value === 'fixed';
+  document.querySelector('.fixed-landlord-player')?.toggleAttribute('hidden', !fixedMode);
+  renderFixedLandlordPlayers();
+}
+
+function gameFormPlayers() {
+  return [els.newPlayerA1, els.newPlayerA2, els.newPlayerB1, els.newPlayerB2]
+    .map((input, index) => input.value.trim() || `Player ${index + 1}`);
+}
+
+function renderFixedLandlordPlayers() {
+  if (!els.newFixedLandlordPlayer) return;
+  const selected = els.newFixedLandlordPlayer.value;
+  const playerCount = Number(els.newLandlordPlayerCount?.value || 3) === 4 ? 4 : 3;
+  els.newFixedLandlordPlayer.innerHTML = gameFormPlayers().slice(0, playerCount)
+    .map((player, index) => `<option value="${index}">${escapeHtml(player)}</option>`)
+    .join('');
+  els.newFixedLandlordPlayer.value = String(Math.min(playerCount - 1, Math.max(0, Number(selected) || 0)));
+}
+
+function renderGameReview() {
+  if (!els.gameReview) return;
+  const isLandlord = els.newGameType.value === 'landlord';
+  const playerCount = isLandlord && Number(els.newLandlordPlayerCount.value) === 3 ? 3 : 4;
+  const players = gameFormPlayers().slice(0, playerCount);
+  const handicaps = [els.newHandicapA1, els.newHandicapA2, els.newHandicapB1, els.newHandicapB2]
+    .slice(0, playerCount).map(input => Number(input.value) || 0);
+  const course = allCourses().find(item => item.id === els.newGameCourse.value);
+  const fixedIndex = Math.min(playerCount - 1, Math.max(0, Number(els.newFixedLandlordPlayer?.value) || 0));
+  const rows = [
+    [t('Course'), course?.name || '--'],
+    [t('Tee time'), els.newGameTeeTime.value.replace('T', ' ') || '--'],
+    [t('Game type'), t(isLandlord ? 'Fight the Landlord' : 'Las Vegas')],
+    [t('Scoring Mode'), t(els.newGameScoreMode.value === 'net' ? 'Net' : 'Gross')],
+    [t('Players'), players.map((player, index) => `${player} (HCP ${handicaps[index]})`).join(' · ')]
+  ];
+  if (isLandlord) {
+    rows.push([t('Wolf selection'), t(els.newLandlordMode.value === 'fixed' ? 'Fixed Wolf' : 'Rotating Wolf')]);
+    if (els.newLandlordMode.value === 'fixed') rows.push([t('Fixed Wolf'), players[fixedIndex]]);
+    rows.push([t('Maximum points per hole'), els.newLandlordMaxPoints.value]);
+  }
+  els.gameReview.innerHTML = rows.map(([label, value]) => `<div><strong>${escapeHtml(label)}</strong><span>${escapeHtml(value)}</span></div>`).join('');
+}
+
+function showGameWizardStep(step) {
+  gameWizardStep = Math.max(1, Math.min(4, Number(step) || 1));
+  document.querySelectorAll('[data-game-step]').forEach(section => {
+    section.hidden = Number(section.dataset.gameStep) !== gameWizardStep;
+  });
+  const labels = [t('Course'), t('Game type'), t('Players'), t('Review')];
+  if (els.gameWizardProgress) els.gameWizardProgress.innerHTML = labels.map((label, index) => `<span class="${index + 1 === gameWizardStep ? 'active' : (index + 1 < gameWizardStep ? 'done' : '')}">${index + 1}<small>${escapeHtml(label)}</small></span>`).join('');
+  els.gameWizardBack.hidden = gameWizardStep === 1;
+  els.gameWizardNext.hidden = gameWizardStep === 4;
+  els.gameWizardSave.hidden = gameWizardStep !== 4;
+  if (gameWizardStep === 4) renderGameReview();
+}
+
+function validateGameWizardStep() {
+  const section = document.querySelector(`[data-game-step="${gameWizardStep}"]`);
+  const required = Array.from(section?.querySelectorAll('input[required], select[required]') || [])
+    .filter(input => !input.closest('[hidden]'));
+  const invalid = required.find(input => !input.checkValidity());
+  if (invalid) {
+    invalid.reportValidity();
+    return false;
+  }
+  return true;
 }
 
 function renderPlayerHistoryOptions() {
@@ -2284,6 +2369,8 @@ function openGameModal() {
   els.newLandlordPlayerCount.value = '3';
   els.newLandlordMaxPoints.value = '10';
   els.newLandlordTieWins.checked = false;
+  els.newLandlordMode.value = 'rotating';
+  els.newFixedLandlordPlayer.value = '0';
   els.newGameTeeTime.value = dateTimeInputValue(new Date());
   els.newPlayerA1.value = 'Player 1';
   els.newPlayerA2.value = 'Player 2';
@@ -2297,8 +2384,9 @@ function openGameModal() {
   els.gameForm.querySelector('button[type="submit"]').textContent = t('Start Game');
   renderPlayerHistoryOptions();
   updateGameTypeFields();
+  showGameWizardStep(1);
   els.gameModal.hidden = false;
-  els.newPlayerA1.focus();
+  els.newGameCountry.focus();
 }
 
 function openEditGameInfoModal(round) {
@@ -2316,6 +2404,7 @@ function openEditGameInfoModal(round) {
   els.newLandlordPlayerCount.value = String(normalized.landlord.playerCount);
   els.newLandlordMaxPoints.value = String(normalized.landlord.maxPoints);
   els.newLandlordTieWins.checked = normalized.landlord.tieHigherHandicapLandlordWins;
+  els.newLandlordMode.value = normalized.landlord.selectionMode;
   els.newGameTeeTime.value = normalized.totals.teeTime || dateTimeInputValue(new Date(normalized.savedAt));
   els.newPlayerA1.value = normalized.players[0];
   els.newPlayerA2.value = normalized.players[1];
@@ -2330,8 +2419,10 @@ function openEditGameInfoModal(round) {
   els.gameForm.querySelector('button[type="submit"]').textContent = t('Save Changes');
   renderPlayerHistoryOptions();
   updateGameTypeFields();
+  els.newFixedLandlordPlayer.value = String(normalized.landlord.fixedLandlordIndex);
+  showGameWizardStep(1);
   els.gameModal.hidden = false;
-  els.newPlayerA1.focus();
+  els.newGameCountry.focus();
 }
 
 function closeGameModal() {
@@ -2367,7 +2458,7 @@ function parseScore(value) {
 function clampScore(value) {
   const score = Number(value);
   if (!Number.isFinite(score)) return '';
-  return String(Math.max(1, Math.min(20, Math.round(score))));
+  return String(Math.max(1, Math.round(score)));
 }
 
 function scoreTargetLabel(target) {
@@ -2405,6 +2496,11 @@ function autoLandlordMultiplierForHole(holeIndex) {
 
 function autoAssignNextLandlord(holeIndex) {
   if (state.gameType !== 'landlord' || holeIndex >= 17) return;
+  const config = normalizeLandlordState(state.landlord, state.players.length);
+  if (config.selectionMode === 'fixed') {
+    state.landlord.landlords[holeIndex + 1] = config.fixedLandlordIndex;
+    return;
+  }
   const result = landlordHoleResult(state, holeIndex);
   if (!result) return;
   const currentLandlord = result.landlordIndex;
@@ -2434,10 +2530,7 @@ function autoAssignNextLandlord(holeIndex) {
 function commitScorePadValue(value) {
   if (!activeScoreTarget) return;
   const { holeIndex, scoreIndex } = activeScoreTarget;
-  const par = currentCourse().pars[holeIndex] || 4;
-  const score = state.gameType === 'landlord'
-    ? String(Math.min(Number(clampScore(value)) || 1, par * 2))
-    : clampScore(value);
+  const score = clampScore(value);
   state.scores[holeIndex][scoreIndex] = score;
   if (state.gameType === 'landlord') {
     autoLandlordMultiplierForHole(holeIndex);
@@ -2489,15 +2582,45 @@ function advanceScoreTargetOrClose({ allowNextHole = false } = {}) {
   updateScorePad();
 }
 
-function commitScorePadValueAndAdvance(value) {
+async function commitScorePadValueAndAdvance(value) {
+  if (!activeScoreTarget) return;
+  const completedHoleIndex = activeScoreTarget.holeIndex;
+  const playerCount = state.gameType === 'landlord'
+    ? normalizeLandlordState(state.landlord, state.players.length).playerCount
+    : 4;
+  const isLastPlayer = activeScoreTarget.scoreIndex === playerCount - 1;
   commitScorePadValue(value);
-  advanceScoreTargetOrClose({ allowNextHole: true });
+  if (!isLastPlayer) {
+    advanceScoreTargetOrClose();
+    return;
+  }
+  closeScorePad();
+  const isComplete = state.scores[completedHoleIndex]
+    .slice(0, playerCount)
+    .every(score => parseScore(score) !== null);
+  if (!isComplete) return;
+  if (completedHoleIndex >= 17) {
+    const shouldFinish = await confirmDialog(
+      t('Round complete'),
+      t('All player scores are entered. Finish this game?')
+    );
+    if (shouldFinish) await finishCurrentGame();
+    return;
+  }
+  const goNext = await confirmDialog(
+    t('Hole complete'),
+    t('All player scores are entered. Go to the next hole?')
+  );
+  if (!goNext) return;
+  activePlayHoleIndex = completedHoleIndex + 1;
+  saveState();
+  renderPlayEntry();
 }
 
-function commitDisplayedScorePadValueAndAdvance() {
+async function commitDisplayedScorePadValueAndAdvance() {
   const value = parseScore(els.scorePadInput.textContent);
   if (value === null) return;
-  commitScorePadValueAndAdvance(value);
+  await commitScorePadValueAndAdvance(value);
 }
 
 function openScorePad(holeIndex, scoreIndex) {
@@ -2546,6 +2669,15 @@ function previousHoleScoreHtml(scoreIndex) {
   return `<small>${escapeHtml(t('Previous'))}</small><strong>${escapeHtml(previousHoleScoreText(scoreIndex))}</strong>`;
 }
 
+function landlordRunningPoints(scoreIndex, throughHoleIndex = activePlayHoleIndex) {
+  let total = 0;
+  for (let holeIndex = 0; holeIndex <= throughHoleIndex; holeIndex += 1) {
+    const result = landlordHoleResult(state, holeIndex);
+    if (result) total += Number(result.points[scoreIndex] || 0);
+  }
+  return total;
+}
+
 function signedPoints(value) {
   const number = Number(value) || 0;
   return number > 0 ? `+${number}` : String(number);
@@ -2553,15 +2685,18 @@ function signedPoints(value) {
 
 function landlordSettingsSummary(source = state) {
   const config = normalizeLandlordState(source.landlord, source.players?.length || 3);
-  return t('{count} players · Cap {cap} · Tie advantage {status}', {
+  const base = t('{count} players · Cap {cap} · Tie advantage {status}', {
     count: config.playerCount,
     cap: config.maxPoints,
     status: t(config.tieHigherHandicapLandlordWins ? 'On' : 'Off')
   });
+  return `${base} · ${t(config.selectionMode === 'fixed' ? 'Fixed Wolf' : 'Rotating Wolf')}`;
 }
 
 function setLandlordForHole(playerIndex) {
   if (!isEditing || state.gameType !== 'landlord') return;
+  const config = normalizeLandlordState(state.landlord, state.players.length);
+  if (config.selectionMode === 'fixed') return;
   state.landlord.landlords[activePlayHoleIndex] = playerIndex;
   autoAssignNextLandlord(activePlayHoleIndex);
   persistActiveGame(true);
@@ -2602,6 +2737,7 @@ function renderLandlordActions() {
     const roleIcon = index === displayedLandlordIndex ? '👲' : '👨‍🌾';
     button.innerHTML = `<span class="landlord-person-icon" aria-hidden="true">${roleIcon}</span><span>${escapeHtml(player)}</span>`;
     button.disabled = !isEditing;
+    if (config.selectionMode === 'fixed') button.disabled = true;
     button.addEventListener('click', () => setLandlordForHole(index));
     els.landlordChoices.append(button);
   });
@@ -2681,15 +2817,23 @@ function renderPlayEntry() {
       ? `play-player-row landlord-player ${scoreIndex === displayedLandlordIndex ? 'is-landlord' : 'is-peasant'}`
       : `play-player-row ${scoreIndex < 2 ? 'team-a' : 'team-b'}`;
     row.classList.toggle('has-previous-score', activePlayHoleIndex > 0);
-    row.innerHTML = `
-      <div class="play-player-copy">
-        <strong></strong>
-        <span></span>
+      row.innerHTML = `
+        <div class="play-player-copy">
+          ${state.gameType === 'landlord' ? '<small class="landlord-running-total"></small>' : ''}
+          <strong></strong>
+          <span></span>
       </div>
       ${activePlayHoleIndex > 0 ? '<div class="play-score-meta previous-hole-score"></div>' : ''}
       <button class="play-score-button" type="button"></button>
     `;
-    row.querySelector('.play-player-copy strong').textContent = player || t('Player');
+      row.querySelector('.play-player-copy strong').textContent = player || t('Player');
+      const runningTotal = row.querySelector('.landlord-running-total');
+      if (runningTotal) {
+        const points = landlordRunningPoints(scoreIndex);
+        runningTotal.textContent = `${t('Cumulative')} ${signedPoints(points)}`;
+        runningTotal.classList.toggle('point-positive', points > 0);
+        runningTotal.classList.toggle('point-negative', points < 0);
+      }
     const role = state.gameType === 'landlord'
       ? (displayedLandlordIndex < 0 ? '' : (scoreIndex === displayedLandlordIndex ? `👲 ${t('Landlord')}` : `👨‍🌾 ${t('Peasant')}`))
       : '';
@@ -2770,12 +2914,12 @@ function landlordHoleResult(roundOrState, holeIndex) {
   const indexes = source.indexes || course.indexes;
   const grossScores = (source.scores?.[holeIndex] || []).slice(0, playerCount);
   const par = Number(pars?.[holeIndex] || 4);
-  const cappedGross = grossScores.map(value => {
-    const parsed = parseScore(value);
-    return parsed === null ? null : Math.min(parsed, par * 2);
-  });
+    const recordedGross = grossScores.map(value => {
+      const parsed = parseScore(value);
+      return parsed;
+    });
   const commonOptions = {
-    grossScores: cappedGross,
+      grossScores: recordedGross,
     handicaps: normalizeHandicaps(source.handicaps).slice(0, playerCount),
     strokeIndex: Number(indexes?.[holeIndex] || holeIndex + 1),
     landlordIndex: config.landlords[holeIndex],
@@ -3204,6 +3348,23 @@ async function confirmFinishWithCode(round) {
     if (codeMatchesRound(round, answer.value)) return { share: answer.checked };
     errorMessage = t('The edit code is not correct. Try again.');
   }
+}
+
+async function finishCurrentGame() {
+  const round = currentGame();
+  if (!round || !isEditing) return false;
+  const finishAnswer = await confirmFinishWithCode(round);
+  if (!finishAnswer) return false;
+  const finished = replaceRound(roundFromState(round, 'history'));
+  finished.totals.editLock = null;
+  saveHistoryLocal();
+  isEditing = false;
+  saveState();
+  scheduleAutoSync(finished);
+  render();
+  switchView('start');
+  if (finishAnswer.share) await openShareCard(finished);
+  return true;
 }
 
 async function confirmDeleteWithCode(round) {
@@ -3983,7 +4144,8 @@ async function createLandlordScorecardAsset(round) {
     for (let holeIndex = 0; holeIndex < 18; holeIndex += 1) {
       const result = landlordHoleResult(normalized, holeIndex);
       if (!result) continue;
-      const item = t('H{hole} {score}', { hole: holeIndex + 1, score: signedPoints(result.points[playerIndex]) });
+      const points = Number(result.points[playerIndex] || 0);
+      const item = { text: t('H{hole} {score}', { hole: holeIndex + 1, score: signedPoints(points) }), points };
       (config.landlords[holeIndex] === playerIndex ? landlord : peasant).push(item);
     }
     return { player, landlord, peasant };
@@ -3992,7 +4154,7 @@ async function createLandlordScorecardAsset(round) {
   const logicalWidth = 800;
   const margin = 20;
   const contentWidth = logicalWidth - margin * 2;
-  const playerCardHeight = 270;
+  const playerCardHeight = 720;
   const playerCardGap = 10;
   const statisticsTop = 225;
   const tableTop = statisticsTop + 48 + playerCount * (playerCardHeight + playerCardGap) + 18;
@@ -4041,14 +4203,21 @@ async function createLandlordScorecardAsset(round) {
       { icon: '👨‍🌾', label: t('Peasant {count} times', { count: statistics.peasant.length }), items: statistics.peasant, color: '#315e51' }
     ].forEach(role => {
       const chunks = role.items.length
-        ? Array.from({ length: Math.ceil(role.items.length / 5) }, (_, index) => role.items.slice(index * 5, index * 5 + 5))
+        ? role.items.map(item => [item])
         : [[]];
       chunks.forEach((chunk, chunkIndex) => {
         const prefix = chunkIndex === 0 ? `${role.icon} ${role.label}: ` : '　';
-        drawScorecardText(ctx, `${prefix}${chunk.join(' · ') || '--'}`, margin + 18, roleY, {
-          align: 'left', color: role.color, font: 'bold 26px Arial, Microsoft YaHei, Segoe UI Emoji, sans-serif',
-          maxWidth: contentWidth - 36
-        });
+        const item = chunk[0];
+        const font = 'bold 26px Arial, Microsoft YaHei, Segoe UI Emoji, sans-serif';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'middle';
+        ctx.font = font;
+        ctx.fillStyle = role.color;
+        ctx.fillText(prefix, margin + 18, roleY);
+        const prefixWidth = ctx.measureText(prefix).width;
+        const detail = item?.text || '--';
+        ctx.fillStyle = item?.points > 0 ? '#118747' : (item?.points < 0 ? '#b3453f' : '#62706a');
+        ctx.fillText(detail, margin + 18 + prefixWidth, roleY, contentWidth - 36 - prefixWidth);
         roleY += 34;
       });
     });
@@ -4597,17 +4766,7 @@ function addListeners() {
       return;
     }
 
-    const finishAnswer = await confirmFinishWithCode(currentGame());
-    if (!finishAnswer) return;
-    const finished = replaceRound(roundFromState(currentGame(), 'history'));
-    finished.totals.editLock = null;
-    saveHistoryLocal();
-    isEditing = false;
-    saveState();
-    scheduleAutoSync(finished);
-    render();
-    switchView('start');
-    if (finishAnswer.share) await openShareCard(finished);
+    await finishCurrentGame();
   });
 
   els.shareButton.addEventListener('click', async () => {
@@ -4882,6 +5041,11 @@ function addListeners() {
   els.newGameRegion.addEventListener('change', () => renderNewGameCourses(''));
   els.newGameType.addEventListener('change', updateGameTypeFields);
   els.newLandlordPlayerCount.addEventListener('change', updateGameTypeFields);
+  els.newLandlordMode.addEventListener('change', updateGameTypeFields);
+  els.gameWizardBack.addEventListener('click', () => showGameWizardStep(gameWizardStep - 1));
+  els.gameWizardNext.addEventListener('click', () => {
+    if (validateGameWizardStep()) showGameWizardStep(gameWizardStep + 1);
+  });
   [
     [els.newPlayerA1, els.newHandicapA1, els.historyPlayerA1],
     [els.newPlayerA2, els.newHandicapA2, els.historyPlayerA2],
@@ -4890,10 +5054,12 @@ function addListeners() {
   ].forEach(([playerInput, handicapInput, historySelect]) => {
     playerInput.addEventListener('input', () => fillHistoricalPlayerHandicap(playerInput, handicapInput));
     playerInput.addEventListener('change', () => fillHistoricalPlayerHandicap(playerInput, handicapInput));
+    playerInput.addEventListener('input', renderFixedLandlordPlayers);
     historySelect?.addEventListener('change', () => {
       if (!historySelect.value) return;
       playerInput.value = historySelect.value;
       fillHistoricalPlayerHandicap(playerInput, handicapInput);
+      renderFixedLandlordPlayers();
       historySelect.value = '';
     });
   });
@@ -4952,7 +5118,9 @@ function addListeners() {
         ...(editingGameInfoId ? savedRounds.find(round => round.id === editingGameInfoId)?.landlord : null),
         playerCount,
         maxPoints: els.newLandlordMaxPoints.value,
-        tieHigherHandicapLandlordWins: els.newLandlordTieWins.checked
+        tieHigherHandicapLandlordWins: els.newLandlordTieWins.checked,
+        selectionMode: els.newLandlordMode.value === 'fixed' ? 'fixed' : 'rotating',
+        fixedLandlordIndex: Number(els.newFixedLandlordPlayer.value) || 0
       }, playerCount)
     };
 
@@ -5091,7 +5259,7 @@ if ('serviceWorker' in navigator) {
       .catch(() => {});
   });
   navigator.serviceWorker.addEventListener('controllerchange', () => {
-    const reloadKey = 'simpleGolfSwReload.v149';
+    const reloadKey = 'simpleGolfSwReload.v150';
     if (sessionStorage.getItem(reloadKey)) return;
     sessionStorage.setItem(reloadKey, '1');
     window.location.reload();

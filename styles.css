@@ -638,6 +638,20 @@ h3 {
   font-weight: 700;
 }
 
+.play-player-copy .landlord-running-total {
+  display: inline-block;
+  margin: 0 0 4px;
+  border-radius: 999px;
+  padding: 3px 8px;
+  color: var(--ink);
+  background: #fff;
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.play-player-copy .landlord-running-total.point-positive { color: var(--green-strong); }
+.play-player-copy .landlord-running-total.point-negative { color: var(--red); }
+
 .play-score-meta {
   display: grid;
   place-items: center;
@@ -1708,6 +1722,50 @@ input:disabled {
 
 .game-form {
   width: min(760px, 100%);
+}
+
+.game-wizard-progress {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.game-wizard-progress span {
+  display: grid;
+  min-height: 48px;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  color: var(--muted);
+  background: #f4f1ea;
+  font-weight: 900;
+}
+
+.game-wizard-progress span.active,
+.game-wizard-progress span.done {
+  border-color: var(--green);
+  color: #fff;
+  background: var(--green);
+}
+
+.game-wizard-progress span.done {
+  color: var(--green);
+  background: var(--green-2);
+}
+
+.game-wizard-progress small { font-size: 11px; }
+.game-wizard-step { display: grid; gap: 12px; }
+.game-wizard-step[hidden] { display: none; }
+.game-wizard-step > h3 { margin: 2px 0 0; color: var(--green); font-size: 22px; }
+.fixed-landlord-player { display: grid; gap: 6px; margin-top: 10px; }
+.game-review { display: grid; gap: 8px; }
+.game-review > div { display: grid; grid-template-columns: minmax(110px, 32%) minmax(0, 1fr); gap: 10px; border: 1px solid var(--line); border-radius: 8px; padding: 10px; background: #fff; }
+.game-review span { overflow-wrap: anywhere; }
+.game-wizard-actions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+
+@media (max-width: 520px) {
+  .game-wizard-progress small { font-size: 9px; }
+  .game-review > div { grid-template-columns: 1fr; gap: 3px; }
 }
 
 .game-options {

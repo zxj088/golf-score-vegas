@@ -4,6 +4,25 @@ This file records the good baseline versions of the app and how to switch back t
 
 ## Good Baselines
 
+### v5.0 - Guided setup and fixed Wolf baseline
+
+Date: 2026-08-01
+
+Tag: `v5.0`
+
+Live URL:
+
+`https://zxj088.github.io/golf-score-vegas/?v=150`
+
+What is new in this version:
+
+- New games use a four-step mobile wizard: course, game type, players, then review and edit-code confirmation.
+- Wolf & Pack supports Rotating Wolf and Fixed Wolf modes; the fixed player is selected during setup and cannot change during the round.
+- Recorded strokes are no longer capped, while the selected per-hole points cap still applies to winnings and losses.
+- The scoring page shows each player's cumulative points through the current hole and asks before advancing after a completed hole; hole 18 asks whether to finish the game.
+- Shared Wolf & Pack cards show detailed, color-coded hole results for every player's Wolf and Pack roles.
+- PWA asset query version is `v150`.
+
 ### v4.4 - Stable Wolf & Pack mobile baseline
 
 Date: 2026-07-31

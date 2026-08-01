@@ -99,6 +99,27 @@
     'Course Search': '球场搜索',
     'Game Setup': '比赛设置',
     'Start Game': '开始比赛',
+    'Select course': '选择球场',
+    'Select game type': '选择玩法',
+    'Select players': '选择球员',
+    'Review and confirm': '检查并确认',
+    '1. Select course': '1. 选择球场',
+    '2. Select game type': '2. 选择玩法',
+    '3. Select players': '3. 选择球员',
+    '4. Review and confirm': '4. 检查并确认',
+    'Review': '确认',
+    'Back': '上一步',
+    'Next': '下一步',
+    'Game type': '比赛玩法',
+    'Players': '球员',
+    'Wolf selection': '地主方式',
+    'Rotating Wolf': '轮换地主',
+    'Fixed Wolf': '固定地主',
+    'Cumulative': '累计',
+    'Hole complete': '本洞已完成',
+    'All player scores are entered. Go to the next hole?': '所有球员杆数已录入，是否进入下一洞？',
+    'Round complete': '全场已完成',
+    'All player scores are entered. Finish this game?': '第18洞所有球员杆数已录入，是否结束比赛？',
     'Eagle': '老鹰',
     'Birdie': '小鸟',
     'Bogey': '柏忌',
@@ -272,12 +293,15 @@
     ,'Show golf game rules': '查看高尔夫玩法规则'
     ,'Players: 3 or 4 players. Each hole has one landlord 👲; the other players are peasants 👨‍🌾.': '3人或4人参加。每洞一名地主👲，其余球员为农民👨‍🌾。'
     ,'Gross mode uses actual strokes. Net mode allocates handicap strokes by hole. The landlord’s score is multiplied by the number of peasants and compared with the peasants’ total score.': '总杆按实际杆数计算；净杆采用差点分洞让杆。地主杆数乘以农民人数后，与所有农民的合计杆数比较。'
+    ,'Recorded strokes have no maximum limit.': '球员实际杆数不设最高上限。'
+    ,'Wolf selection: Rotating Wolf follows the result of each hole. Fixed Wolf stays the same for all 18 holes and cannot be changed during the round.': '地主方式：轮换地主根据每洞结果自动决定下一洞地主；固定地主在18洞内保持不变，比赛中不可更换。'
     ,'The player with the lowest Gross or Net score becomes landlord on the next hole. If the best score is tied, the current landlord continues.': '总杆或净杆最低的球员成为下一洞地主；最好成绩并列时，本洞地主连庄。'
     ,'If the landlord wins, the landlord continues on the next hole. If the peasants win, the peasant with the lowest Gross or Net score becomes the next landlord. If multiple winning peasants tie, choose the player with fewer previous turns as landlord; if still tied, rotate forward from the current landlord through the player order. The landlord can still be changed manually on the next hole.': '地主获胜时，下一洞继续当地主。农民获胜时，农民中上一洞总杆或净杆最低者成为下一洞地主。多名获胜农民最低杆并列时，优先选择本场地主次数较少者；次数仍相同时，从当前地主的下一位开始，按球员顺序循环选择。进入下一洞后仍可手动点击其他球员更换地主。'
     ,'Bomb rule: Only a special score by the winning side earns a multiplier. A winning-side birdie is x2; a winning-side eagle or hole-in-one is x4. If both sides have special scores, they cancel and the hole is x1. A special score by only the losing side is also x1.': '炸弹规则：只有胜方的特殊好成绩获得倍数。胜方小鸟为x2，胜方老鹰或一杆进洞为x4。双方都有特殊好成绩时相互抵消，按x1；只有负方出现特殊好成绩时也按x1。'
     ,'Special-score multipliers use gross strokes and multiply together with the manually selected x1, x2, or x4.': '特殊杆倍数按总杆判断，并与手动选择的x1、x2或x4串接相乘。'
     ,'Tap a player to change the landlord, or tap x1, x2, or x4 to change the multiplier.': '点击球员可更换地主；点击x1、x2或x4可更改倍数。'
     ,'Tap a player to change the landlord. Manual x2 and x4 can be selected; tap the selected multiplier again to return to x1. Bomb x2 or x4 is determined automatically from the winning side’s gross scores.': '点击球员可更换地主。手动可选x2或x4；再次点击已选倍数可回到x1。炸弹x2或x4根据胜方的总杆特殊成绩自动判断。'
+    ,'In Rotating Wolf mode, tap a player to change the landlord. Manual x2 and x4 can be selected; tap the selected multiplier again to return to x1. Bomb x2 or x4 is determined automatically from the winning side’s gross scores.': '轮换地主模式下，点击球员可更换地主。手动可选x2或x4；再次点击已选倍数可回到x1。炸弹x2或x4根据胜方的总杆特殊成绩自动判断。'
     ,'Per-hole cap: Each peasant cannot win or lose more than the selected cap on one hole. The landlord’s limit is the cap multiplied by the number of peasants.': '单洞封顶：每位农民单洞输赢不超过所设上限；地主上限为封顶分数乘以农民人数。'
     ,'Tied hole: Normally everyone scores zero. If the higher-handicap-landlord option is enabled, an eligible landlord wins the tie at the current multiplier.': '平局：通常所有人得0分。启用高差点地主平局获胜后，符合条件的地主按当前倍数获胜。'
   };
@@ -296,10 +320,12 @@
     'Normally, a tied hole scores zero. When enabled, if the landlord has a higher handicap than the group\'s lowest-handicap player, the tie is awarded to the landlord at the current multiplier.': 'Normally, a tied hole scores zero. When enabled, an eligible higher-handicap Wolf wins the tie at the current multiplier.',
     'Players: 3 or 4 players. Each hole has one landlord 👲; the other players are peasants 👨‍🌾.': 'Players: 3 or 4 players. Each hole has one Wolf 👲; the other players form The Pack 👨‍🌾.',
     'Gross mode uses actual strokes. Net mode allocates handicap strokes by hole. The landlord’s score is multiplied by the number of peasants and compared with the peasants’ total score.': 'Gross mode uses actual strokes. Net mode allocates handicap strokes by hole. The Wolf’s score is multiplied by the number of Pack players and compared with The Pack’s total score.',
+    'Wolf selection: Rotating Wolf follows the result of each hole. Fixed Wolf stays the same for all 18 holes and cannot be changed during the round.': 'Wolf selection: Rotating Wolf follows each hole result. Fixed Wolf stays the same for all 18 holes and cannot be changed during the round.',
     'The player with the lowest Gross or Net score becomes landlord on the next hole. If the best score is tied, the current landlord continues.': 'The player with the lowest Gross or Net score becomes The Wolf on the next hole. If the best score is tied, the current Wolf continues.',
     'If the landlord wins, the landlord continues on the next hole. If the peasants win, the peasant with the lowest Gross or Net score becomes the next landlord. If multiple winning peasants tie, choose the player with fewer previous turns as landlord; if still tied, rotate forward from the current landlord through the player order. The landlord can still be changed manually on the next hole.': 'If The Wolf wins, The Wolf continues on the next hole. If The Pack wins, the Pack player with the lowest Gross or Net score becomes the next Wolf. If multiple Pack players tie, choose the player with fewer previous turns as The Wolf; if still tied, rotate forward from the current Wolf through the player order. The Wolf can still be changed manually on the next hole.',
     'Tap a player to change the landlord, or tap x1, x2, or x4 to change the multiplier.': 'Tap a player to change The Wolf, or tap x1, x2, or x4 to change the multiplier.',
     'Tap a player to change the landlord. Manual x2 and x4 can be selected; tap the selected multiplier again to return to x1. Bomb x2 or x4 is determined automatically from the winning side’s gross scores.': 'Tap a player to change The Wolf. Manual x2 and x4 can be selected; tap the selected multiplier again to return to x1. Bomb x2 or x4 is determined automatically from the winning side’s gross scores.',
+    'In Rotating Wolf mode, tap a player to change the landlord. Manual x2 and x4 can be selected; tap the selected multiplier again to return to x1. Bomb x2 or x4 is determined automatically from the winning side’s gross scores.': 'In Rotating Wolf mode, tap a player to change The Wolf. Manual x2 and x4 can be selected; tap the selected multiplier again to return to x1. Bomb x2 or x4 is determined automatically from the winning side’s gross scores.',
     'Per-hole cap: Each peasant cannot win or lose more than the selected cap on one hole. The landlord’s limit is the cap multiplied by the number of peasants.': 'Per-hole cap: Each Pack player cannot win or lose more than the selected cap. The Wolf’s limit is the cap multiplied by the number of Pack players.',
     'Tied hole: Normally everyone scores zero. If the higher-handicap-landlord option is enabled, an eligible landlord wins the tie at the current multiplier.': 'Tied hole: Normally everyone scores zero. If the higher-handicap-Wolf option is enabled, an eligible Wolf wins the tie at the current multiplier.'
   };
