@@ -3,6 +3,7 @@ const STORAGE_KEY = 'vegasGolfState.v1';
 const HISTORY_KEY = 'vegasGolfHistory.v1';
 const COURSE_KEY = 'vegasGolfCourses.v1';
 const CLIENT_KEY = 'vegasGolfClientId.v1';
+const SCORING_PLAYER_KEY = 'vegasGolfScoringPlayer.v1';
 const DELETE_KEY = 'vegasGolfDeletedRounds.v1';
 const COURSE_DELETE_KEY = 'vegasGolfDeletedCourses.v1';
 const GAME_LIMIT = 200;
@@ -597,7 +598,6 @@ const els = {
   scoringDeviceStatus: document.querySelector('#scoringDeviceStatus'),
   lastSyncStatus: document.querySelector('#lastSyncStatus'),
   takeOverScoring: document.querySelector('#takeOverScoring'),
-  transferScoring: document.querySelector('#transferScoring'),
   welcomeScreen: document.querySelector('#welcomeScreen'),
   appDialog: document.querySelector('#appDialog'),
   dialogForm: document.querySelector('#dialogForm'),
@@ -607,6 +607,9 @@ const els = {
   dialogInputWrap: document.querySelector('#dialogInputWrap'),
   dialogInputLabel: document.querySelector('#dialogInputLabel'),
   dialogInput: document.querySelector('#dialogInput'),
+  dialogSelectWrap: document.querySelector('#dialogSelectWrap'),
+  dialogSelectLabel: document.querySelector('#dialogSelectLabel'),
+  dialogSelect: document.querySelector('#dialogSelect'),
   dialogCheckboxWrap: document.querySelector('#dialogCheckboxWrap'),
   dialogCheckboxLabel: document.querySelector('#dialogCheckboxLabel'),
   dialogCheckbox: document.querySelector('#dialogCheckbox'),
@@ -686,6 +689,45 @@ function getClientId() {
   const value = `client-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
   localStorage.setItem(CLIENT_KEY, value);
   return value;
+}
+
+function scoringPlayerName() {
+  return String(localStorage.getItem(SCORING_PLAYER_KEY) || '').trim();
+}
+
+function playerDisplayIndexes(playerCount = state.players.length) {
+  const indexes = Array.from({ length: playerCount }, (_, index) => index);
+  const myIndex = state.players.slice(0, playerCount).findIndex(player => player === scoringPlayerName());
+  if (myIndex < 0) return indexes;
+  if (state.gameType === 'vegas' && playerCount === 4) {
+    const teammateIndex = myIndex < 2 ? 1 - myIndex : 5 - myIndex;
+    return [myIndex, teammateIndex, ...indexes.filter(index => index !== myIndex && index !== teammateIndex)];
+  }
+  return myIndex > 0 ? [myIndex, ...indexes.filter(index => index !== myIndex)] : indexes;
+}
+
+async function confirmScoringPlayer(round) {
+  const sourcePlayers = round?.players || state.players;
+  const count = round?.gameType === 'landlord'
+    ? normalizeLandlordState(round?.landlord, sourcePlayers.length).playerCount
+    : Math.min(4, sourcePlayers.length);
+  const players = sourcePlayers.slice(0, count).filter(Boolean);
+  if (!players.length) return '';
+  const saved = scoringPlayerName();
+  const selected = await openAppDialog({
+    eyebrow: t('Scoring identity'),
+    title: t('Who am I?'),
+    message: t('Choose the player using this phone. This player will be shown first on this phone.'),
+    select: true,
+    selectLabel: t('Player'),
+    selectOptions: players,
+    selectValue: players.includes(saved) ? saved : players[0],
+    okText: t('Confirm'),
+    cancelText: t('Cancel')
+  });
+  if (!selected) return '';
+  localStorage.setItem(SCORING_PLAYER_KEY, selected);
+  return selected;
 }
 
 function normalizeScores(scores) {
@@ -870,6 +912,7 @@ function editLockOwner(round) {
 }
 
 function deviceLabel(id = clientId) {
+  if (id === clientId && scoringPlayerName()) return scoringPlayerName();
   const suffix = String(id || '').split('-').pop().slice(-4).toUpperCase();
   return suffix ? `${t('Scoring phone')} ${suffix}` : t('Scoring phone');
 }
@@ -1259,7 +1302,7 @@ function renderScoringDeviceBar() {
   if (finished) {
     els.scoringDeviceStatus.textContent = t('Completed game · locked');
   } else if (isEditing && hasCurrentEditLock(round)) {
-    els.scoringDeviceStatus.textContent = t('Scoring on this phone');
+    els.scoringDeviceStatus.textContent = t('Scored by {device}', { device: editLockDevice(round) });
   } else if (lockLive) {
     els.scoringDeviceStatus.textContent = t('Scored by {device}', { device: editLockDevice(round) });
   } else {
@@ -1274,7 +1317,6 @@ function renderScoringDeviceBar() {
   const protection = cloudVersionSupported ? t('Version protected') : t('Version protection needs cloud upgrade');
   els.lastSyncStatus.textContent = `${syncText} · ${protection}`;
   els.takeOverScoring.hidden = finished || isEditing;
-  els.transferScoring.hidden = finished || !isEditing;
 }
 
 async function fetchCloudCourses() {
@@ -2889,7 +2931,8 @@ function renderLandlordActions() {
     .some(score => parseScore(score) !== null);
   const displayedLandlordIndex = holeStarted || config.selectionMode === 'fixed' ? landlordIndex : -1;
   els.landlordChoices.innerHTML = '';
-  state.players.slice(0, config.playerCount).forEach((player, index) => {
+  playerDisplayIndexes(config.playerCount).forEach(index => {
+    const player = state.players[index];
     const button = document.createElement('button');
     button.type = 'button';
     button.className = index === displayedLandlordIndex ? 'active' : '';
@@ -2918,7 +2961,8 @@ function renderLandlordActions() {
     els.landlordHoleResult.innerHTML = `<strong class="landlord-auto-status">${escapeHtml(t('Scores still needed for {count} players.', { count: missingCount }))}</strong>`;
     return;
   }
-  const playerResults = state.players.slice(0, config.playerCount).map((player, index) => {
+  const playerResults = playerDisplayIndexes(config.playerCount).map(index => {
+    const player = state.players[index];
     const role = index === landlordIndex ? t('Landlord') : t('Peasant');
     const roleIcon = index === landlordIndex ? '👲' : '👨‍🌾';
     return `<span class="${result.points[index] > 0 ? 'point-positive' : (result.points[index] < 0 ? 'point-negative' : '')}">${roleIcon} ${escapeHtml(player)} · ${escapeHtml(role)} <strong>${signedPoints(result.points[index])}</strong></span>`;
@@ -2968,7 +3012,8 @@ function renderPlayEntry() {
   const displayedLandlordIndex = landlordHoleStarted || landlordConfig.selectionMode === 'fixed'
     ? landlordConfig.landlords[activePlayHoleIndex]
     : -1;
-  state.players.slice(0, state.gameType === 'landlord' ? landlordConfig.playerCount : 4).forEach((player, scoreIndex) => {
+  playerDisplayIndexes(state.gameType === 'landlord' ? landlordConfig.playerCount : 4).forEach(scoreIndex => {
+    const player = state.players[scoreIndex];
     const grossValue = scores[scoreIndex] || '';
     const netValue = holeValues.net[scoreIndex];
     const row = document.createElement('div');
@@ -3256,6 +3301,7 @@ function replaceRound(round) {
 
 async function acquireEditLock(round) {
   if (!round || gameStatus(round) !== 'playing') return null;
+  if (!(await confirmScoringPlayer(round))) return null;
   const latest = await fetchCloudRoundById(round.id).catch(() => null);
   const base = latest || round;
   const locked = replaceRound(withCurrentEditLock(base));
@@ -3358,64 +3404,6 @@ async function takeOverScoring() {
   }
 }
 
-async function transferScoring() {
-  const round = currentGame();
-  if (!round || !isEditing || gameStatus(round) !== 'playing') return;
-  const confirmed = await confirmDialog(
-    t('Transfer scoring'),
-    t('Release scoring now? This phone will become read-only until scoring is taken over again.')
-  );
-  if (!confirmed) return;
-  window.clearTimeout(autoSyncTimer);
-  const wasEditing = isEditing;
-  // Stop the polling/auto-save paths from refreshing the lock while it is
-  // being released. A refresh racing this PATCH would otherwise increment
-  // the cloud version and make a normal transfer look like a phone conflict.
-  isEditing = false;
-  try {
-    let latest = await fetchCloudRoundById(round.id).catch(() => null) || round;
-    let released = normalizeRound(roundFromState(latest));
-    released.totals.editLock = null;
-    released.totals.cloudVersion = Number(latest.totals?.cloudVersion || 0);
-    replaceRound(released);
-    try {
-      await upsertCloudRound(released);
-    } catch (error) {
-      if (error?.code !== 'VERSION_CONFLICT') throw error;
-      latest = await fetchCloudRoundById(round.id);
-      const owner = editLockOwner(latest);
-      if (owner && owner !== clientId) throw error;
-      released = normalizeRound(roundFromState(latest));
-      released.totals.editLock = null;
-      released.totals.cloudVersion = Number(latest.totals?.cloudVersion || 0);
-      replaceRound(released);
-      await upsertCloudRound(released);
-    }
-    saveState();
-    setSyncState({
-      ready: true,
-      busy: false,
-      ok: true,
-      label: t('Cloud sync ok'),
-      title: t('Scoring released for transfer.'),
-      lastSyncedAt: Date.now()
-    });
-    render();
-    switchView('leaderboard');
-  } catch (error) {
-    isEditing = wasEditing;
-    const latest = await fetchCloudRoundById(round.id).catch(() => null);
-    if (latest) {
-      replaceRound(latest);
-      applyGameToState(latest);
-      isEditing = hasCurrentEditLock(latest);
-      saveState();
-      render();
-    }
-    await showMessage(t('Could not transfer scoring'), error.message);
-  }
-}
-
 function loadGame(gameId, editable = false, goToPlay = true, preferredHoleIndex = null) {
   const round = savedRounds.find(item => item.id === gameId);
   if (!round) return;
@@ -3448,6 +3436,10 @@ function openAppDialog({
   inputMode = 'text',
   maxLength = '',
   pattern = '',
+  select = false,
+  selectLabel = t('Player'),
+  selectOptions = [],
+  selectValue = '',
   checkbox = false,
   checkboxLabel = '',
   checkboxChecked = false,
@@ -3471,11 +3463,21 @@ function openAppDialog({
     els.dialogInput.inputMode = inputMode;
     els.dialogInput.maxLength = maxLength;
     els.dialogInput.pattern = pattern;
+    els.dialogSelectWrap.hidden = !select;
+    els.dialogSelectLabel.textContent = selectLabel;
+    els.dialogSelect.replaceChildren(...selectOptions.map(option => {
+      const element = document.createElement('option');
+      element.value = option;
+      element.textContent = option;
+      element.selected = option === selectValue;
+      return element;
+    }));
     els.dialogCheckboxWrap.hidden = !checkbox;
     els.dialogCheckboxLabel.textContent = checkboxLabel;
     els.dialogCheckbox.checked = Boolean(checkboxChecked);
     els.appDialog.hidden = false;
     if (input) els.dialogInput.focus();
+    else if (select) els.dialogSelect.focus();
     else if (showOk) els.dialogOk.focus();
     else if (showCancel) els.dialogCancel.focus();
   });
@@ -3803,13 +3805,14 @@ function renderLandlordLeaderboard() {
     if (landlordHoleResult(state, holeIndex)) autoLandlordMultiplierForHole(holeIndex);
   }
   const config = normalizeLandlordState(state.landlord, state.players.length);
+  const displayIndexes = playerDisplayIndexes(config.playerCount);
   const totalsValue = landlordTotals(state);
   const course = currentCourse();
   const rows = state.scores.map((scores, holeIndex) => {
     const result = landlordHoleResult(state, holeIndex);
     const isComplete = Boolean(result);
     const landlordIndex = config.landlords[holeIndex];
-    const scoreCells = state.players.slice(0, config.playerCount).map((player, playerIndex) => {
+    const scoreCells = displayIndexes.map(playerIndex => {
       const gross = parseScore(scores[playerIndex]);
       const net = result?.net?.[playerIndex];
       const points = result?.points?.[playerIndex] || 0;
@@ -3826,7 +3829,7 @@ function renderLandlordLeaderboard() {
       ${scoreCells}
     </tr>`;
   }).join('');
-  const totalCells = state.players.slice(0, config.playerCount).map((player, index) => `
+  const totalCells = displayIndexes.map(index => `
     <th>
       <strong>${totalsValue.gross[index]}</strong>
       ${config.handicapEnabled ? `<small>${escapeHtml(t('Net'))} ${totalsValue.net[index]}</small>` : ''}
@@ -3840,13 +3843,13 @@ function renderLandlordLeaderboard() {
         <span>${escapeHtml(roundListDate(currentGame() || {}))}</span>
         <strong>${totalsValue.complete}/18</strong>
       </div>
-      <div class="rank-chips">${state.players.slice(0, config.playerCount)
-        .map((player, index) => `<span>${escapeHtml(player)} <strong class="${totalsValue.points[index] > 0 ? 'point-positive' : (totalsValue.points[index] < 0 ? 'point-negative' : '')}">${signedPoints(totalsValue.points[index])}</strong></span>`)
+      <div class="rank-chips">${displayIndexes
+        .map(index => `<span>${escapeHtml(state.players[index])} <strong class="${totalsValue.points[index] > 0 ? 'point-positive' : (totalsValue.points[index] < 0 ? 'point-negative' : '')}">${signedPoints(totalsValue.points[index])}</strong></span>`)
         .join('')}</div>
     </div>
     <div class="landlord-table-wrap">
       <table>
-        <thead><tr><th>H/I</th><th>${escapeHtml(t('Par'))}</th><th>${escapeHtml(t('Landlord'))}</th>${state.players.slice(0, config.playerCount).map(player => `<th>${escapeHtml(player)}</th>`).join('')}</tr></thead>
+        <thead><tr><th>H/I</th><th>${escapeHtml(t('Par'))}</th><th>${escapeHtml(t('Landlord'))}</th>${displayIndexes.map(index => `<th>${escapeHtml(state.players[index])}</th>`).join('')}</tr></thead>
         <tbody>${rows}</tbody>
         <tfoot><tr><th>${escapeHtml(t('Total'))}</th><th>${course.pars.reduce((sum, par) => sum + par, 0)}</th><th>${totalsValue.complete}/18</th>${totalCells}</tr></tfoot>
       </table>
@@ -4982,7 +4985,6 @@ function addListeners() {
     tab.addEventListener('click', () => switchView(tab.dataset.view));
   });
   els.takeOverScoring?.addEventListener('click', takeOverScoring);
-  els.transferScoring?.addEventListener('click', transferScoring);
 
   els.appTitle.addEventListener('click', promptInstallApp);
   els.historyTimeFilter.addEventListener('change', () => {
@@ -5019,7 +5021,8 @@ function addListeners() {
     if (!currentGame()) return;
     if (!isEditing) {
       if (!(await confirmEditWithCode(currentGame()))) return;
-      await acquireEditLock(currentGame());
+      const locked = await acquireEditLock(currentGame());
+      if (!locked) return;
       isEditing = true;
       saveState();
       render();
@@ -5053,6 +5056,10 @@ function addListeners() {
 
   els.dialogForm.addEventListener('submit', event => {
     event.preventDefault();
+    if (!els.dialogSelectWrap.hidden) {
+      closeAppDialog(els.dialogSelect.value);
+      return;
+    }
     if (!els.dialogInputWrap.hidden) {
       const value = els.dialogInput.value.trim();
       if (els.dialogInput.pattern && !new RegExp(`^${els.dialogInput.pattern}$`).test(value)) {
@@ -5447,6 +5454,9 @@ function addListeners() {
       scheduleAutoSync(updated);
       return;
     }
+
+    const scoringPlayer = await confirmScoringPlayer({ gameType, players, landlord: nextState.landlord });
+    if (!scoringPlayer) return;
 
     state = {
       ...nextState,

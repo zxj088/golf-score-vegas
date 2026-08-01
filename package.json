@@ -1,6 +1,6 @@
 {
   "name": "vegas-golf-scorecard",
-  "version": "5.0.10",
+  "version": "5.0.11",
   "private": true,
   "type": "module",
   "scripts": {
