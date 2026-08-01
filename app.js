@@ -3366,12 +3366,31 @@ async function transferScoring() {
     t('Release scoring now? This phone will become read-only until scoring is taken over again.')
   );
   if (!confirmed) return;
-  const released = normalizeRound(roundFromState(round));
-  released.totals.editLock = null;
+  window.clearTimeout(autoSyncTimer);
+  const wasEditing = isEditing;
+  // Stop the polling/auto-save paths from refreshing the lock while it is
+  // being released. A refresh racing this PATCH would otherwise increment
+  // the cloud version and make a normal transfer look like a phone conflict.
+  isEditing = false;
   try {
+    let latest = await fetchCloudRoundById(round.id).catch(() => null) || round;
+    let released = normalizeRound(roundFromState(latest));
+    released.totals.editLock = null;
+    released.totals.cloudVersion = Number(latest.totals?.cloudVersion || 0);
     replaceRound(released);
-    await upsertCloudRound(released);
-    isEditing = false;
+    try {
+      await upsertCloudRound(released);
+    } catch (error) {
+      if (error?.code !== 'VERSION_CONFLICT') throw error;
+      latest = await fetchCloudRoundById(round.id);
+      const owner = editLockOwner(latest);
+      if (owner && owner !== clientId) throw error;
+      released = normalizeRound(roundFromState(latest));
+      released.totals.editLock = null;
+      released.totals.cloudVersion = Number(latest.totals?.cloudVersion || 0);
+      replaceRound(released);
+      await upsertCloudRound(released);
+    }
     saveState();
     setSyncState({
       ready: true,
@@ -3384,6 +3403,15 @@ async function transferScoring() {
     render();
     switchView('leaderboard');
   } catch (error) {
+    isEditing = wasEditing;
+    const latest = await fetchCloudRoundById(round.id).catch(() => null);
+    if (latest) {
+      replaceRound(latest);
+      applyGameToState(latest);
+      isEditing = hasCurrentEditLock(latest);
+      saveState();
+      render();
+    }
     await showMessage(t('Could not transfer scoring'), error.message);
   }
 }

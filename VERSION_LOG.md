@@ -39,6 +39,8 @@ v5.0.7 uses PWA asset query `v157`, shortens both history filters to “All/全�
 
 v5.0.8 uses PWA asset query `v158` and gives Wolf & Pack game cards a balanced three-line layout: course/time, game mode, then all player results.
 
+v5.0.9 uses PWA asset query `v159` and makes scoring transfer resilient to background lock-refresh races, so releasing edit control no longer reports a false phone-version conflict.
+
 ### v4.4 - Stable Wolf & Pack mobile baseline
 
 Date: 2026-07-31
