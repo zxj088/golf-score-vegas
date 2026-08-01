@@ -23,6 +23,14 @@ What is new in this version:
 - Shared Wolf & Pack cards show detailed, color-coded hole results for every player's Wolf and Pack roles.
 - PWA asset query version is `v150`.
 
+v5.0.1 follow-up uses PWA asset query `v151` and combines player entry/history selection, shows Fixed Wolf from hole 1, hides disabled tie advantage text, cancels only equal-level special scores, and compacts shared player statistics.
+
+v5.0.2 uses PWA asset query `v152` and adds a consistent click-to-open historical-player menu inside the combined player-name control.
+
+v5.0.3 uses PWA asset query `v153` and renames the Chinese Rotating Wolf option to “输赢轮换”.
+
+v5.0.4 uses PWA asset query `v154`, displays “Result Rotation” in the compact English UI, uses “Result-Based Rotation” in the rules, and restores Chinese translations for the updated setup hints.
+
 ### v4.4 - Stable Wolf & Pack mobile baseline
 
 Date: 2026-07-31

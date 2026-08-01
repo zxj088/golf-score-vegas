@@ -112,8 +112,13 @@
     'Next': '下一步',
     'Game type': '比赛玩法',
     'Players': '球员',
+    'Enter or select player': '输入或选择球员',
+    'Show historical players': '显示历史球员',
+    'Game setup progress': '比赛设置进度',
+    '{count} players': '{count}人',
+    'Cap {cap}': '单洞封顶{cap}分',
     'Wolf selection': '地主方式',
-    'Rotating Wolf': '轮换地主',
+    'Rotating Wolf': '输赢轮换',
     'Fixed Wolf': '固定地主',
     'Cumulative': '累计',
     'Hole complete': '本洞已完成',
@@ -273,7 +278,9 @@
     ,'About maximum points per hole': '关于单洞封顶分数'
     ,'About tied-hole advantage': '关于平局地主优势'
     ,'Caps each peasant\'s win or loss on one hole after doubles, bombs, or birdies. The landlord\'s maximum is this cap multiplied by the number of peasants. It limits points only, not recorded strokes.': '限制加倍、炸弹或抓鸟之后，每位农民在单洞最多赢或输的分数。地主的单洞上限等于此封顶分数乘以农民人数。它只限制得分，不限制记录的高尔夫杆数。'
+    ,'Caps each Pack player\'s win or loss on one hole after multipliers. It limits points only and never limits recorded strokes.': '限制各种倍数计算后，每位农民在单洞最多赢或输的分数。它只限制输赢分数，不限制实际记录的高尔夫杆数。'
     ,'Normally, a tied hole scores zero. When enabled, if the landlord has a higher handicap than the group\'s lowest-handicap player, the tie is awarded to the landlord at the current multiplier.': '通常平局时所有人本洞得0分。启用后，如果地主差点高于本组最低差点球员，平局改判地主获胜，并按该洞当前倍数正常计分。'
+    ,'Normally, a tied hole scores zero. When enabled, if the Wolf has a higher handicap than the group\'s lowest-handicap player, the tie is awarded to the Wolf at the current multiplier.': '通常平局时所有人本洞得0分。启用后，如果地主差点高于本组最低差点球员，平局改判地主获胜，并按该洞当前倍数正常计分。'
     ,'Enter all scores to settle this hole.': '输入所有球员杆数后自动结算本洞。'
     ,'Scores still needed for {count} players.': '还需录入 {count} 位球员'
     ,'This hole has been settled automatically.': '本洞已自动结算'
@@ -295,9 +302,11 @@
     ,'Gross mode uses actual strokes. Net mode allocates handicap strokes by hole. The landlord’s score is multiplied by the number of peasants and compared with the peasants’ total score.': '总杆按实际杆数计算；净杆采用差点分洞让杆。地主杆数乘以农民人数后，与所有农民的合计杆数比较。'
     ,'Recorded strokes have no maximum limit.': '球员实际杆数不设最高上限。'
     ,'Wolf selection: Rotating Wolf follows the result of each hole. Fixed Wolf stays the same for all 18 holes and cannot be changed during the round.': '地主方式：轮换地主根据每洞结果自动决定下一洞地主；固定地主在18洞内保持不变，比赛中不可更换。'
+    ,'Wolf selection: Result-Based Rotation follows the result of each hole. Fixed Wolf stays the same for all 18 holes and cannot be changed during the round.': '地主方式：输赢轮换根据每洞结果自动决定下一洞地主；固定地主在18洞内保持不变，比赛中不可更换。'
     ,'The player with the lowest Gross or Net score becomes landlord on the next hole. If the best score is tied, the current landlord continues.': '总杆或净杆最低的球员成为下一洞地主；最好成绩并列时，本洞地主连庄。'
     ,'If the landlord wins, the landlord continues on the next hole. If the peasants win, the peasant with the lowest Gross or Net score becomes the next landlord. If multiple winning peasants tie, choose the player with fewer previous turns as landlord; if still tied, rotate forward from the current landlord through the player order. The landlord can still be changed manually on the next hole.': '地主获胜时，下一洞继续当地主。农民获胜时，农民中上一洞总杆或净杆最低者成为下一洞地主。多名获胜农民最低杆并列时，优先选择本场地主次数较少者；次数仍相同时，从当前地主的下一位开始，按球员顺序循环选择。进入下一洞后仍可手动点击其他球员更换地主。'
     ,'Bomb rule: Only a special score by the winning side earns a multiplier. A winning-side birdie is x2; a winning-side eagle or hole-in-one is x4. If both sides have special scores, they cancel and the hole is x1. A special score by only the losing side is also x1.': '炸弹规则：只有胜方的特殊好成绩获得倍数。胜方小鸟为x2，胜方老鹰或一杆进洞为x4。双方都有特殊好成绩时相互抵消，按x1；只有负方出现特殊好成绩时也按x1。'
+    ,'Bomb rule: Only a special score by the winning side earns a multiplier. A winning-side birdie is x2; a winning-side eagle or hole-in-one is x4. Special scores cancel only when both sides have the same level. If their levels differ, the winning side uses its own special-score multiplier. A special score by only the losing side is x1.': '炸弹规则：只有胜方的特殊好成绩获得倍数。胜方小鸟为x2，胜方老鹰或一杆进洞为x4。只有双方特殊杆等级相同时才互相抵消；等级不同时，按胜方自己的特殊杆倍数计算。只有负方出现特殊好成绩时按x1。'
     ,'Special-score multipliers use gross strokes and multiply together with the manually selected x1, x2, or x4.': '特殊杆倍数按总杆判断，并与手动选择的x1、x2或x4串接相乘。'
     ,'Tap a player to change the landlord, or tap x1, x2, or x4 to change the multiplier.': '点击球员可更换地主；点击x1、x2或x4可更改倍数。'
     ,'Tap a player to change the landlord. Manual x2 and x4 can be selected; tap the selected multiplier again to return to x1. Bomb x2 or x4 is determined automatically from the winning side’s gross scores.': '点击球员可更换地主。手动可选x2或x4；再次点击已选倍数可回到x1。炸弹x2或x4根据胜方的总杆特殊成绩自动判断。'
@@ -308,6 +317,7 @@
 
   const en = {
     'Fight the Landlord': 'Wolf & Pack Scoring',
+    'Rotating Wolf': 'Result Rotation',
     'Landlord': 'The Wolf',
     'Peasant': 'The Pack',
     'Fight the Landlord Rules': 'Wolf & Pack Scoring Rules',
@@ -352,8 +362,8 @@
       if (!trimmed || !(trimmed in zh)) return;
       node.nodeValue = value.replace(trimmed, t(trimmed));
     });
-    document.querySelectorAll('[aria-label], [title]').forEach(element => {
-      ['aria-label', 'title'].forEach(attribute => {
+    document.querySelectorAll('[aria-label], [title], [placeholder]').forEach(element => {
+      ['aria-label', 'title', 'placeholder'].forEach(attribute => {
         const value = element.getAttribute(attribute);
         if (value && value in zh) element.setAttribute(attribute, t(value));
       });

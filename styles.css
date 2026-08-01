@@ -887,9 +887,9 @@ textarea {
 }
 
 .player-name-picker {
+  position: relative;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(8.5rem, 38%);
-  gap: 7px;
+  grid-template-columns: minmax(0, 1fr) 48px;
   margin-top: 4px;
 }
 
@@ -900,17 +900,56 @@ textarea {
   margin: 0;
 }
 
-.history-player-select {
-  color: var(--muted);
-  font-size: 0.9em;
+.player-name-picker > input {
+  border-radius: 8px 0 0 8px;
+  border-right: 0;
 }
 
-@media (max-width: 700px) {
-  .player-name-picker {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 5px;
-  }
+.history-picker-button {
+  min-width: 48px;
+  padding: 0;
+  border-radius: 0 8px 8px 0;
+  color: var(--green);
+  background: #fff;
+  font-size: 25px;
+}
 
+.history-player-menu {
+  position: absolute;
+  z-index: 40;
+  top: calc(100% + 4px);
+  right: 0;
+  left: 0;
+  display: grid;
+  max-height: min(320px, 48vh);
+  overflow-y: auto;
+  padding: 5px;
+  border: 1px solid var(--green);
+  border-radius: 9px;
+  background: #fff;
+  box-shadow: 0 12px 28px rgba(26, 46, 39, 0.2);
+}
+
+.history-player-menu[hidden] { display: none; }
+
+.history-player-menu button {
+  justify-content: space-between;
+  min-height: 45px;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  text-align: left;
+}
+
+.history-player-menu button:hover,
+.history-player-menu button:focus-visible {
+  background: var(--green-2);
+}
+
+.history-player-menu small { color: var(--muted); }
+
+@media (max-width: 700px) {
   .hint-popover p {
     position: fixed;
     top: auto;
