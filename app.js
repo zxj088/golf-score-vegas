@@ -428,6 +428,8 @@ let isEditing = false;
 let editingGameInfoId = '';
 let editingCourseId = '';
 let autoSyncTimer = null;
+let pendingSyncRound = null;
+let pendingSyncPromise = null;
 let dialogResolver = null;
 let activeScoreTarget = null;
 let activePlayHoleIndex = 0;
@@ -1590,50 +1592,83 @@ async function syncFromCloud(pushLocal = true, quiet = false) {
   }
 }
 
+async function upsertRoundWithRetry(round) {
+  try {
+    await upsertCloudRound(round);
+    return round;
+  } catch (error) {
+    if (error?.code !== 'VERSION_CONFLICT') throw error;
+    const latest = await fetchCloudRoundById(round.id);
+    const owner = editLockOwner(latest);
+    if (owner && owner !== clientId) {
+      error.code = 'EDIT_OWNER_CHANGED';
+      error.latest = latest;
+      throw error;
+    }
+    let rebased = roundFromState(latest, gameStatus(round));
+    if (gameStatus(round) !== 'playing') rebased.totals.editLock = null;
+    else if (isEditing) rebased = withCurrentEditLock(rebased);
+    rebased.totals.cloudVersion = Math.max(0, Number(latest.totals?.cloudVersion || 0));
+    await upsertCloudRound(rebased);
+    return rebased;
+  }
+}
+
+async function flushPendingRoundSync() {
+  window.clearTimeout(autoSyncTimer);
+  if (pendingSyncPromise) return pendingSyncPromise;
+  if (!pendingSyncRound) return null;
+  if (!hasSupabaseConfig()) {
+    setSyncState({ ok: false, busy: false, label: t('Cloud sync Not ok'), title: t('Supabase is not configured.') });
+    return null;
+  }
+  pendingSyncPromise = (async () => {
+    while (pendingSyncRound) {
+      let round = pendingSyncRound;
+      pendingSyncRound = null;
+      try {
+        if (isEditing && round.id === activeGameId) {
+          round = replaceRound(withCurrentEditLock(roundFromState(currentGame())));
+        }
+        const saved = await upsertRoundWithRetry(round);
+        replaceRound(saved);
+        saveHistoryLocal();
+        setSyncState({
+          ready: true,
+          busy: Boolean(pendingSyncRound),
+          ok: true,
+          label: t('Cloud sync ok'),
+          title: `Saved ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`,
+          lastSyncedAt: Date.now()
+        });
+      } catch (error) {
+        if (error?.code === 'EDIT_OWNER_CHANGED' && error.latest) {
+          replaceRound(error.latest);
+          applyGameToState(error.latest);
+          isEditing = false;
+          saveState();
+          render();
+        } else if (!pendingSyncRound) {
+          pendingSyncRound = round;
+        }
+        setSyncState({ ready: true, busy: false, ok: false, label: t('Cloud sync Not ok'), title: error.message });
+        break;
+      }
+    }
+  })().finally(() => { pendingSyncPromise = null; });
+  return pendingSyncPromise;
+}
+
 function scheduleAutoSync(round) {
   if (!round) return;
+  pendingSyncRound = round;
   window.clearTimeout(autoSyncTimer);
   if (!hasSupabaseConfig()) {
     setSyncState({ ok: false, busy: false, label: t('Cloud sync Not ok'), title: t('Supabase is not configured.') });
     return;
   }
   setSyncState({ ready: true, busy: true, title: t('Saving scorecard changes.') });
-  autoSyncTimer = window.setTimeout(async () => {
-    try {
-      if (isEditing && round.id === activeGameId) {
-        const stillMine = await ensureEditLockStillMine();
-        if (!stillMine) return;
-        round = replaceRound(withCurrentEditLock(roundFromState(currentGame())));
-      }
-      await upsertCloudRound(round);
-      setSyncState({
-        ready: true,
-        busy: false,
-        ok: true,
-        label: t('Cloud sync ok'),
-        title: `Saved ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`,
-        lastSyncedAt: Date.now()
-      });
-    } catch (error) {
-      if (error?.code === 'VERSION_CONFLICT') {
-        const latest = await fetchCloudRoundById(round.id).catch(() => null);
-        if (latest) {
-          replaceRound(latest);
-          applyGameToState(latest);
-          isEditing = false;
-          saveState();
-          render();
-        }
-      }
-      setSyncState({
-        ready: true,
-        busy: false,
-        ok: false,
-        label: t('Cloud sync Not ok'),
-        title: error.message
-      });
-    }
-  }, 650);
+  autoSyncTimer = window.setTimeout(flushPendingRoundSync, 650);
 }
 
 function courseParInputs() {
@@ -2761,10 +2796,12 @@ function clearScorePadValue() {
 
 function advanceScoreTargetOrClose({ allowNextHole = false } = {}) {
   if (!activeScoreTarget) return;
-  const lastPlayerIndex = state.gameType === 'landlord'
-    ? normalizeLandlordState(state.landlord, state.players.length).playerCount - 1
-    : 3;
-  if (activeScoreTarget.scoreIndex >= lastPlayerIndex) {
+  const playerCount = state.gameType === 'landlord'
+    ? normalizeLandlordState(state.landlord, state.players.length).playerCount
+    : 4;
+  const displayOrder = playerDisplayIndexes(playerCount);
+  const currentPosition = displayOrder.indexOf(activeScoreTarget.scoreIndex);
+  if (currentPosition < 0 || currentPosition >= displayOrder.length - 1) {
     if (allowNextHole && activeScoreTarget.holeIndex < 17) {
       activePlayHoleIndex = activeScoreTarget.holeIndex + 1;
       saveState();
@@ -2777,7 +2814,7 @@ function advanceScoreTargetOrClose({ allowNextHole = false } = {}) {
   }
   activeScoreTarget = {
     ...activeScoreTarget,
-    scoreIndex: activeScoreTarget.scoreIndex + 1
+    scoreIndex: displayOrder[currentPosition + 1]
   };
   updateScorePad();
 }
@@ -2788,7 +2825,8 @@ async function commitScorePadValueAndAdvance(value) {
   const playerCount = state.gameType === 'landlord'
     ? normalizeLandlordState(state.landlord, state.players.length).playerCount
     : 4;
-  const isLastPlayer = activeScoreTarget.scoreIndex === playerCount - 1;
+  const displayOrder = playerDisplayIndexes(playerCount);
+  const isLastPlayer = activeScoreTarget.scoreIndex === displayOrder[displayOrder.length - 1];
   commitScorePadValue(value);
   if (!isLastPlayer) {
     advanceScoreTargetOrClose();
@@ -3600,16 +3638,48 @@ async function finishCurrentGame() {
   if (!round || !isEditing) return false;
   const finishAnswer = await confirmFinishWithCode(round);
   if (!finishAnswer) return false;
-  const finished = replaceRound(roundFromState(round, 'history'));
-  finished.totals.editLock = null;
-  saveHistoryLocal();
-  isEditing = false;
-  saveState();
-  scheduleAutoSync(finished);
-  render();
-  switchView('start');
-  if (finishAnswer.share) await openShareCard(finished);
-  return true;
+  window.clearTimeout(autoSyncTimer);
+  if (pendingSyncPromise) await pendingSyncPromise;
+  pendingSyncRound = null;
+  setSyncState({ ready: true, busy: true, title: t('Finishing game...') });
+  try {
+    let latest = await fetchCloudRoundById(round.id).catch(() => null) || round;
+    let finished;
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      finished = roundFromState(latest, 'history');
+      finished.totals.editLock = null;
+      finished.totals.cloudVersion = Math.max(0, Number(latest.totals?.cloudVersion || 0));
+      try {
+        await upsertCloudRound(finished);
+        break;
+      } catch (error) {
+        if (error?.code !== 'VERSION_CONFLICT' || attempt > 0) throw error;
+        latest = await fetchCloudRoundById(round.id);
+        const owner = editLockOwner(latest);
+        if (owner && owner !== clientId) throw error;
+      }
+    }
+    replaceRound(finished);
+    saveHistoryLocal();
+    isEditing = false;
+    saveState();
+    setSyncState({
+      ready: true,
+      busy: false,
+      ok: true,
+      label: t('Cloud sync ok'),
+      title: t('Game finished and locked.'),
+      lastSyncedAt: Date.now()
+    });
+    render();
+    switchView('start');
+    if (finishAnswer.share) await openShareCard(finished);
+    return true;
+  } catch (error) {
+    setSyncState({ ready: true, busy: false, ok: false, label: t('Cloud sync Not ok'), title: error.message });
+    await showMessage(t('Could not finish game'), t('The game was not finished. Check the connection and try again.'));
+    return false;
+  }
 }
 
 async function confirmDeleteWithCode(round) {
@@ -3823,8 +3893,9 @@ function renderLandlordLeaderboard() {
       </td>`;
     }).join('');
     return `<tr>
-      <td>${holeIndex + 1}/${course.indexes[holeIndex]}</td>
+      <td>${holeIndex + 1}</td>
       <td>${course.pars[holeIndex]}</td>
+      <td>${course.indexes[holeIndex]}</td>
       <td>${isComplete ? `${escapeHtml(state.players[landlordIndex] || '')}<small>x${result.multiplier}</small>` : '--'}</td>
       ${scoreCells}
     </tr>`;
@@ -3849,9 +3920,9 @@ function renderLandlordLeaderboard() {
     </div>
     <div class="landlord-table-wrap">
       <table>
-        <thead><tr><th>H/I</th><th>${escapeHtml(t('Par'))}</th><th>${escapeHtml(t('Landlord'))}</th>${displayIndexes.map(index => `<th>${escapeHtml(state.players[index])}</th>`).join('')}</tr></thead>
+        <thead><tr><th>${escapeHtml(t('Hole'))}</th><th>${escapeHtml(t('Par'))}</th><th>${escapeHtml(t('Index'))}</th><th>${escapeHtml(t('Landlord'))}</th>${displayIndexes.map(index => `<th>${escapeHtml(state.players[index])}</th>`).join('')}</tr></thead>
         <tbody>${rows}</tbody>
-        <tfoot><tr><th>${escapeHtml(t('Total'))}</th><th>${course.pars.reduce((sum, par) => sum + par, 0)}</th><th>${totalsValue.complete}/18</th>${totalCells}</tr></tfoot>
+        <tfoot><tr><th>${escapeHtml(t('Total'))}</th><th>${course.pars.reduce((sum, par) => sum + par, 0)}</th><th>--</th><th>${totalsValue.complete}/18</th>${totalCells}</tr></tfoot>
       </table>
     </div>`;
 }
@@ -4483,16 +4554,16 @@ async function createLandlordScorecardAsset(round) {
     });
   });
 
-  const fixedColumns = [50, 42, 96];
+  const fixedColumns = [40, 42, 42, 86];
   const playerWidth = (contentWidth - fixedColumns.reduce((sum, value) => sum + value, 0)) / playerCount;
   const columns = [...fixedColumns, ...Array.from({ length: playerCount }, () => playerWidth)];
-  const headers = ['H/I', t('Par'), t('Landlord'), ...normalized.players.slice(0, playerCount)];
+  const headers = [t('Hole'), t('Par'), t('Index'), t('Landlord'), ...normalized.players.slice(0, playerCount)];
   let x = margin;
   headers.forEach((header, index) => {
-    ctx.fillStyle = index < 3 ? '#315e51' : '#dceee8';
+    ctx.fillStyle = index < 4 ? '#315e51' : '#dceee8';
     ctx.fillRect(x, tableTop, columns[index], headerHeight);
     drawScorecardText(ctx, header, x + columns[index] / 2, tableTop + headerHeight / 2, {
-      color: index < 3 ? '#fff' : '#17221f',
+      color: index < 4 ? '#fff' : '#17221f',
       font: 'bold 27px Arial, Microsoft YaHei, sans-serif',
       maxWidth: columns[index] - 12
     });
@@ -4503,21 +4574,22 @@ async function createLandlordScorecardAsset(round) {
     const result = landlordHoleResult(normalized, holeIndex);
     const landlordIndex = config.landlords[holeIndex];
     const values = [
-      `${holeIndex + 1}/${normalized.indexes[holeIndex]}`,
+      holeIndex + 1,
       normalized.pars[holeIndex],
+      normalized.indexes[holeIndex],
       `${normalized.players[landlordIndex]} x${result?.multiplier || 1}`,
       ...normalized.players.slice(0, playerCount).map((_, index) => normalized.scores[holeIndex][index] || '--')
     ];
     x = margin;
     values.forEach((value, columnIndex) => {
-      ctx.fillStyle = columnIndex >= 3 && columnIndex - 3 === landlordIndex
+      ctx.fillStyle = columnIndex >= 4 && columnIndex - 4 === landlordIndex
         ? '#fff1d6'
         : (holeIndex % 2 ? '#fff' : '#f0eee8');
       ctx.fillRect(x, y, columns[columnIndex], rowHeight);
       ctx.strokeStyle = '#d6d1c6';
       ctx.strokeRect(x, y, columns[columnIndex], rowHeight);
-      if (columnIndex >= 3 && result) {
-        const playerIndex = columnIndex - 3;
+      if (columnIndex >= 4 && result) {
+        const playerIndex = columnIndex - 4;
         drawScorecardText(ctx, value, x + columns[columnIndex] / 2, y + 24, { font: 'bold 34px Arial' });
         drawScorecardText(ctx, `${t('Net')} ${result.net[playerIndex]} · ${signedPoints(result.points[playerIndex])}`, x + columns[columnIndex] / 2, y + 54, {
           color: result.points[playerIndex] > 0 ? '#118747' : (result.points[playerIndex] < 0 ? '#b3453f' : '#62706a'),
@@ -4526,7 +4598,7 @@ async function createLandlordScorecardAsset(round) {
         });
       } else {
         drawScorecardText(ctx, value, x + columns[columnIndex] / 2, y + rowHeight / 2, {
-          font: columnIndex === 2 ? 'bold 23px Arial, Microsoft YaHei, sans-serif' : '27px Arial, Microsoft YaHei, sans-serif',
+          font: columnIndex === 3 ? 'bold 23px Arial, Microsoft YaHei, sans-serif' : '27px Arial, Microsoft YaHei, sans-serif',
           maxWidth: columns[columnIndex] - 8
         });
       }
@@ -4537,17 +4609,18 @@ async function createLandlordScorecardAsset(round) {
   const totalValues = [
     t('Total'),
     normalized.pars.reduce((sum, par) => sum + Number(par || 0), 0),
+    '--',
     `${totalsValue.complete}/18`,
     ...normalized.players.slice(0, playerCount).map((_, index) => totalsValue.gross[index])
   ];
   x = margin;
   totalValues.forEach((value, columnIndex) => {
-    ctx.fillStyle = columnIndex < 3 ? '#315e51' : '#dceee8';
+    ctx.fillStyle = columnIndex < 4 ? '#315e51' : '#dceee8';
     ctx.fillRect(x, totalY, columns[columnIndex], totalRowHeight);
     ctx.strokeStyle = '#b8cfc7';
     ctx.strokeRect(x, totalY, columns[columnIndex], totalRowHeight);
-    if (columnIndex >= 3) {
-      const playerIndex = columnIndex - 3;
+    if (columnIndex >= 4) {
+      const playerIndex = columnIndex - 4;
       drawScorecardText(ctx, value, x + columns[columnIndex] / 2, totalY + 24, {
         font: 'bold 33px Arial, Microsoft YaHei, sans-serif'
       });
@@ -5449,9 +5522,10 @@ function addListeners() {
           teeTime
         }
       }, gameStatus(existing)));
+      scheduleAutoSync(updated);
+      await flushPendingRoundSync();
       closeGameModal();
       render();
-      scheduleAutoSync(updated);
       return;
     }
 
@@ -5473,10 +5547,11 @@ function addListeners() {
     isEditing = true;
     activePlayHoleIndex = 0;
     saveState();
+    scheduleAutoSync(game);
+    await flushPendingRoundSync();
     closeGameModal();
     render();
     switchView('play');
-    scheduleAutoSync(game);
   });
 
   els.gameForm.querySelectorAll('input').forEach(input => {
@@ -5556,9 +5631,16 @@ async function init() {
     }
   });
   document.addEventListener('visibilitychange', () => {
+    if (document.hidden && pendingSyncRound) {
+      flushPendingRoundSync();
+      return;
+    }
     if (!document.hidden && !isEditing && hasSupabaseConfig() && !syncState.busy) {
       syncFromCloud(false, true);
     }
+  });
+  window.addEventListener('pagehide', () => {
+    if (pendingSyncRound) flushPendingRoundSync();
   });
 }
 

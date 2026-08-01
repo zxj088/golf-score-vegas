@@ -2421,6 +2421,10 @@ html[lang="en"] .landlord-action-group {
 }
 
 .landlord-table-wrap th:nth-child(3) {
+  width: 48px;
+}
+
+.landlord-table-wrap th:nth-child(4) {
   width: 84px;
 }
 
@@ -2494,6 +2498,10 @@ html[lang="en"] .landlord-action-group {
   }
 
   .landlord-table-wrap th:nth-child(3) {
+    width: 34px;
+  }
+
+  .landlord-table-wrap th:nth-child(4) {
     width: 58px;
   }
 
