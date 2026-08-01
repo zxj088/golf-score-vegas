@@ -33,6 +33,12 @@ v5.0.4 uses PWA asset query `v154`, displays “Result Rotation” in the compac
 
 v5.0.5 uses PWA asset query `v155`, makes Net the default scoring mode, improves the history-picker control, restores explicit handicap steppers, and prevents duplicate player selection.
 
+v5.0.6 uses PWA asset query `v156` and adds visible scoring-device ownership, take-over/transfer controls, last-sync time, completed-game locking, and optional cloud version conflict protection.
+
+v5.0.7 uses PWA asset query `v157`, shortens both history filters to “All/全部”, and separates player-name keyboard input from the historical-player menu button on mobile.
+
+v5.0.8 uses PWA asset query `v158` and gives Wolf & Pack game cards a balanced three-line layout: course/time, game mode, then all player results.
+
 ### v4.4 - Stable Wolf & Pack mobile baseline
 
 Date: 2026-07-31

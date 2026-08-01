@@ -237,6 +237,64 @@ h3 {
   display: none;
 }
 
+.scoring-device-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 0 0 8px;
+  padding: 9px 10px;
+  border: 1px solid rgba(31, 111, 91, 0.28);
+  border-radius: 12px;
+  color: var(--ink);
+  background: #fffdf8;
+  box-shadow: 0 4px 12px rgba(28, 35, 31, 0.06);
+}
+
+.scoring-device-copy {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+
+.scoring-device-copy strong {
+  color: var(--green);
+  font-size: 14px;
+}
+
+.scoring-device-copy span {
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.25;
+}
+
+.scoring-device-actions {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 6px;
+}
+
+.scoring-device-actions button {
+  min-height: 36px;
+  padding: 0 10px;
+  border-color: var(--green);
+  color: var(--green);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+@media (max-width: 430px) {
+  .scoring-device-bar {
+    align-items: stretch;
+  }
+
+  .scoring-device-actions button {
+    max-width: 116px;
+    white-space: normal;
+    line-height: 1.1;
+  }
+}
+
 .score-strip.landlord-mode {
   display: none;
 }
@@ -1239,31 +1297,43 @@ textarea {
 }
 
 .landlord-score-line {
-  grid-template-columns: minmax(104px, auto) repeat(3, minmax(0, 1fr));
+  display: grid;
+  gap: 4px;
   width: 100%;
 }
 
-.landlord-score-line.player-count-4 {
-  grid-template-columns: minmax(104px, auto) repeat(4, minmax(0, 1fr));
+.landlord-mode-row {
+  display: flex;
+  min-width: 0;
 }
 
-.landlord-score-line .mode-chip,
+.landlord-mode-row .mode-chip {
+  justify-content: flex-start;
+}
+
+.landlord-player-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 5px;
+}
+
+.landlord-score-line.player-count-4 .landlord-player-row {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
 .landlord-score-line .team-result {
   justify-content: center;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
   padding-inline: 6px;
   white-space: nowrap;
 }
 
 @media (max-width: 620px) {
-  .landlord-score-line,
-  .landlord-score-line.player-count-4 {
-    grid-template-columns: minmax(78px, auto) repeat(var(--landlord-player-columns, 3), minmax(0, 1fr));
+  .landlord-player-row {
     gap: 3px;
     font-size: 11px;
-  }
-
-  .landlord-score-line.player-count-4 {
-    --landlord-player-columns: 4;
   }
 
   .landlord-score-line .mode-chip,

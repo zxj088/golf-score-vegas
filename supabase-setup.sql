@@ -31,6 +31,11 @@ create table if not exists public.vegas_rounds (
   updated_at timestamptz not null default now()
 );
 
+-- Optimistic concurrency control. The app updates a round only when this
+-- version still matches the version it originally loaded.
+alter table public.vegas_rounds
+add column if not exists version bigint not null default 1;
+
 create index if not exists vegas_courses_sync_key_idx on public.vegas_courses (sync_key);
 create index if not exists vegas_rounds_sync_key_saved_at_idx on public.vegas_rounds (sync_key, saved_at desc);
 
