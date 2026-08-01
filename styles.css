@@ -906,12 +906,61 @@ textarea {
 }
 
 .history-picker-button {
+  position: relative;
+  display: grid;
   min-width: 48px;
+  place-items: center;
   padding: 0;
   border-radius: 0 8px 8px 0;
   color: var(--green);
   background: #fff;
-  font-size: 25px;
+  font-size: 0;
+}
+
+.history-picker-button::after {
+  width: 10px;
+  height: 10px;
+  border-right: 3px solid currentColor;
+  border-bottom: 3px solid currentColor;
+  content: '';
+  transform: translateY(-3px) rotate(45deg);
+}
+
+.number-stepper {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr) 42px;
+  margin-top: 4px;
+}
+
+.number-stepper > input {
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+  border-radius: 0;
+  text-align: center;
+  appearance: textfield;
+}
+
+.number-stepper > input::-webkit-inner-spin-button,
+.number-stepper > input::-webkit-outer-spin-button {
+  margin: 0;
+  appearance: none;
+}
+
+.number-stepper > button {
+  min-width: 42px;
+  min-height: 42px;
+  padding: 0;
+  border-color: var(--line);
+  border-radius: 8px 0 0 8px;
+  color: var(--green);
+  background: #fff;
+  font-size: 23px;
+  font-weight: 800;
+}
+
+.number-stepper > button:last-child {
+  border-radius: 0 8px 8px 0;
 }
 
 .history-player-menu {
@@ -945,6 +994,13 @@ textarea {
 .history-player-menu button:hover,
 .history-player-menu button:focus-visible {
   background: var(--green-2);
+}
+
+.history-player-menu button:disabled {
+  color: var(--muted);
+  background: var(--soft);
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 
 .history-player-menu small { color: var(--muted); }

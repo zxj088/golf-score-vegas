@@ -2298,6 +2298,7 @@ function showGameWizardStep(step) {
 }
 
 function validateGameWizardStep() {
+  if (gameWizardStep === 3 && !validateUniqueNewGamePlayers()) return false;
   const section = document.querySelector(`[data-game-step="${gameWizardStep}"]`);
   const required = Array.from(section?.querySelectorAll('input[required], select[required]') || [])
     .filter(input => !input.closest('[hidden]'));
@@ -2305,6 +2306,27 @@ function validateGameWizardStep() {
   if (invalid) {
     invalid.reportValidity();
     return false;
+  }
+  return true;
+}
+
+function activeNewGamePlayerInputs() {
+  const inputs = [els.newPlayerA1, els.newPlayerA2, els.newPlayerB1, els.newPlayerB2];
+  const count = els.newGameType.value === 'landlord' && Number(els.newLandlordPlayerCount.value) === 3 ? 3 : 4;
+  return inputs.slice(0, count);
+}
+
+function validateUniqueNewGamePlayers() {
+  const seen = new Set();
+  for (const input of activeNewGamePlayerInputs()) {
+    input.setCustomValidity('');
+    const key = input.value.trim().toLocaleLowerCase();
+    if (key && seen.has(key)) {
+      input.setCustomValidity(t('Each player can only be selected once.'));
+      input.reportValidity();
+      return false;
+    }
+    if (key) seen.add(key);
   }
   return true;
 }
@@ -2325,9 +2347,19 @@ function renderPlayerHistoryOptions() {
     select.innerHTML = options;
     const menu = select.closest('.player-name-picker')?.querySelector('.history-player-menu');
     if (menu) {
+      const currentInput = select.closest('.player-name-picker')?.querySelector('input');
+      const currentKey = String(currentInput?.value || '').trim().toLocaleLowerCase();
+      const selectedElsewhere = new Set(activeNewGamePlayerInputs()
+        .filter(input => input !== currentInput)
+        .map(input => input.value.trim().toLocaleLowerCase())
+        .filter(Boolean));
       menu.innerHTML = Array.from(profiles.values())
         .sort((a, b) => a.name.localeCompare(b.name))
-        .map(profile => `<button type="button" data-player-name="${escapeHtml(profile.name)}"><strong>${escapeHtml(profile.name)}</strong><small>HCP ${profile.handicap}</small></button>`)
+        .map(profile => {
+          const key = profile.name.trim().toLocaleLowerCase();
+          const disabled = key !== currentKey && selectedElsewhere.has(key);
+          return `<button type="button" data-player-name="${escapeHtml(profile.name)}"${disabled ? ' disabled aria-disabled="true"' : ''}><strong>${escapeHtml(profile.name)}</strong><small>HCP ${profile.handicap}</small></button>`;
+        })
         .join('');
     }
   });
@@ -2375,7 +2407,7 @@ function openGameModal() {
   setNewGameArea(DEFAULT_COURSE_COUNTRY, DEFAULT_COURSE_REGION);
   renderNewGameCourses(state.courseId);
   els.newGameBirdieFlip.checked = true;
-  els.newGameScoreMode.value = 'gross';
+  els.newGameScoreMode.value = 'net';
   els.newGameType.value = 'vegas';
   els.newGameType.disabled = false;
   els.newLandlordPlayerCount.value = '3';
@@ -5081,22 +5113,39 @@ function addListeners() {
     const pickerButton = picker?.querySelector('.history-picker-button');
     const openHistoryMenu = () => {
       if (!menu) return;
+      renderPlayerHistoryOptions();
       closeHistoricalPlayerMenus(menu);
       menu.hidden = false;
     };
-    playerInput.addEventListener('input', () => fillHistoricalPlayerHandicap(playerInput, handicapInput));
+    playerInput.addEventListener('input', () => {
+      playerInput.setCustomValidity('');
+      fillHistoricalPlayerHandicap(playerInput, handicapInput);
+      renderPlayerHistoryOptions();
+    });
     playerInput.addEventListener('change', () => fillHistoricalPlayerHandicap(playerInput, handicapInput));
     playerInput.addEventListener('input', renderFixedLandlordPlayers);
     playerInput.addEventListener('click', openHistoryMenu);
     pickerButton?.addEventListener('click', openHistoryMenu);
     menu?.addEventListener('click', event => {
       const choice = event.target.closest('[data-player-name]');
-      if (!choice) return;
+      if (!choice || choice.disabled) return;
       playerInput.value = choice.dataset.playerName;
       fillHistoricalPlayerHandicap(playerInput, handicapInput);
       renderFixedLandlordPlayers();
       menu.hidden = true;
       playerInput.focus();
+    });
+  });
+  document.querySelectorAll('.number-stepper').forEach(stepper => {
+    stepper.addEventListener('click', event => {
+      const button = event.target.closest('[data-step]');
+      const input = stepper.querySelector('input[type="number"]');
+      if (!button || !input) return;
+      const step = Number(button.dataset.step) || 0;
+      const min = Number(input.min || 0);
+      const max = Number(input.max || 54);
+      input.value = String(Math.min(max, Math.max(min, (Number(input.value) || 0) + step)));
+      input.dispatchEvent(new Event('input', { bubbles: true }));
     });
   });
   document.addEventListener('click', event => {
@@ -5115,6 +5164,7 @@ function addListeners() {
 
   els.gameForm.addEventListener('submit', async event => {
     event.preventDefault();
+    if (!validateUniqueNewGamePlayers()) return;
     const allPlayers = [
       els.newPlayerA1.value.trim() || 'Player 1',
       els.newPlayerA2.value.trim() || 'Player 2',

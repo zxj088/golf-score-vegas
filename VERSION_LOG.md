@@ -31,6 +31,8 @@ v5.0.3 uses PWA asset query `v153` and renames the Chinese Rotating Wolf option 
 
 v5.0.4 uses PWA asset query `v154`, displays “Result Rotation” in the compact English UI, uses “Result-Based Rotation” in the rules, and restores Chinese translations for the updated setup hints.
 
+v5.0.5 uses PWA asset query `v155`, makes Net the default scoring mode, improves the history-picker control, restores explicit handicap steppers, and prevents duplicate player selection.
+
 ### v4.4 - Stable Wolf & Pack mobile baseline
 
 Date: 2026-07-31
