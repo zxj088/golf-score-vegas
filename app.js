@@ -6,11 +6,23 @@ const CLIENT_KEY = 'vegasGolfClientId.v1';
 const SCORING_PLAYER_KEY = 'vegasGolfScoringPlayer.v1';
 const DELETE_KEY = 'vegasGolfDeletedRounds.v1';
 const COURSE_DELETE_KEY = 'vegasGolfDeletedCourses.v1';
+const PENDING_SYNC_KEY = 'vegasGolfPendingRound.v1';
 const GAME_LIMIT = 200;
 const CLOUD_ROUND_LIMIT = 1000;
 const EDIT_LOCK_TTL_MS = 12000;
 const WELCOME_MIN_DURATION_MS = 1000;
+const ROLE_ICON_PATHS = {
+  landlord: './assets/roles/landlord-golfer.png',
+  peasant: './assets/roles/farmer-golfer.png'
+};
 const welcomeStartedAt = performance.now();
+let welcomeReadyToEnter = false;
+let pendingWelcomeAction = '';
+
+function roleIconHtml(isLandlord, className = '') {
+  const role = isLandlord ? 'landlord' : 'peasant';
+  return `<img class="role-character-icon ${className}" src="${ROLE_ICON_PATHS[role]}" alt="" aria-hidden="true">`;
+}
 const DEFAULT_COURSE_COUNTRY = 'Sweden';
 const DEFAULT_COURSE_REGION = 'Stockholm County';
 const OVERPASS_API_URLS = [
@@ -492,6 +504,7 @@ const els = {
   rulesButton: document.querySelector('#rulesButton'),
   languageButton: document.querySelector('#languageButton'),
   shareButton: document.querySelector('#shareButton'),
+  shareCurrentScorecard: document.querySelector('#shareCurrentScorecard'),
   courseSelect: document.querySelector('#courseSelect'),
   birdieFlip: document.querySelector('#birdieFlip'),
   scoreMode: document.querySelector('#scoreMode'),
@@ -550,6 +563,10 @@ const els = {
   backNineTotal: document.querySelector('#backNineTotal'),
   courseParTotal: document.querySelector('#courseParTotal'),
   newGame: document.querySelector('#newGame'),
+  watchGames: document.querySelector('#watchGames'),
+  viewScorecards: document.querySelector('#viewScorecards'),
+  playingSection: document.querySelector('#playingSection'),
+  historySection: document.querySelector('#historySection'),
   gameModal: document.querySelector('#gameModal'),
   gameForm: document.querySelector('#gameForm'),
   cancelGame: document.querySelector('#cancelGame'),
@@ -599,8 +616,11 @@ const els = {
   scoringDeviceBar: document.querySelector('#scoringDeviceBar'),
   scoringDeviceStatus: document.querySelector('#scoringDeviceStatus'),
   lastSyncStatus: document.querySelector('#lastSyncStatus'),
+  previousHistoryGame: document.querySelector('#previousHistoryGame'),
+  nextHistoryGame: document.querySelector('#nextHistoryGame'),
   takeOverScoring: document.querySelector('#takeOverScoring'),
   welcomeScreen: document.querySelector('#welcomeScreen'),
+  welcomeActions: Array.from(document.querySelectorAll('[data-welcome-action]')),
   appDialog: document.querySelector('#appDialog'),
   dialogForm: document.querySelector('#dialogForm'),
   dialogEyebrow: document.querySelector('#dialogEyebrow'),
@@ -822,6 +842,19 @@ function saveHistoryLocal() {
   localStorage.setItem(HISTORY_KEY, JSON.stringify(savedRounds.slice(0, GAME_LIMIT)));
 }
 
+function loadPendingRoundLocal() {
+  const pending = loadJson(PENDING_SYNC_KEY, null);
+  return pending?.id ? normalizeRound(pending) : null;
+}
+
+function savePendingRoundLocal(round) {
+  if (!round?.id) {
+    localStorage.removeItem(PENDING_SYNC_KEY);
+    return;
+  }
+  localStorage.setItem(PENDING_SYNC_KEY, JSON.stringify(normalizeRound(round)));
+}
+
 function saveDeletedRoundKeys() {
   localStorage.setItem(DELETE_KEY, JSON.stringify(deletedRoundKeys.slice(-GAME_LIMIT)));
 }
@@ -925,8 +958,7 @@ function editLockDevice(round) {
 }
 
 function hasCurrentEditLock(round = currentGame()) {
-  const lock = editLock(round);
-  return Boolean(lock && lock.owner === clientId && Number(lock.expiresAt || 0) > Date.now());
+  return window.SIMPLE_GOLF_ROUND_ACCESS.hasEditRight(round, clientId);
 }
 
 function withCurrentEditLock(round) {
@@ -1261,10 +1293,11 @@ function userEditableCourses() {
 }
 
 function mergeRounds(localRounds, remoteRounds) {
-  const remoteVisible = remoteRounds.map(normalizeRound).filter(round => !isRoundDeleted(round));
-  return mergeById(localRounds.map(normalizeRound), remoteVisible)
-    .sort((a, b) => Number(b.savedAt || 0) - Number(a.savedAt || 0))
-    .slice(0, GAME_LIMIT);
+  return window.SIMPLE_GOLF_SYNC.mergeRoundSnapshots(localRounds, remoteRounds, {
+    normalize: normalizeRound,
+    isDeleted: isRoundDeleted,
+    limit: GAME_LIMIT
+  });
 }
 
 function serverRounds(remoteRounds) {
@@ -1288,6 +1321,9 @@ function renderSyncStatus() {
   els.syncStatus.classList.toggle('sync-bad', !syncState.ok && !syncState.busy);
   els.editGame.textContent = isEditing ? t('Finish') : t('Edit');
   els.editGame.disabled = !currentGame();
+  if (els.shareCurrentScorecard) {
+    els.shareCurrentScorecard.hidden = !window.SIMPLE_GOLF_ROUND_ACCESS.canShareScorecard(currentGame(), gameStatus(currentGame()));
+  }
   renderScoringDeviceBar();
 }
 
@@ -1311,14 +1347,32 @@ function renderScoringDeviceBar() {
     els.scoringDeviceStatus.textContent = t('No scoring phone');
   }
 
-  const syncText = syncState.busy
-    ? t('Syncing...')
-    : (syncState.lastSyncedAt
-      ? t('Last synced {time}', { time: new Date(syncState.lastSyncedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) })
-      : t('Not synced yet'));
-  const protection = cloudVersionSupported ? t('Version protected') : t('Version protection needs cloud upgrade');
-  els.lastSyncStatus.textContent = `${syncText} · ${protection}`;
+  const saveStatus = syncState.busy
+    ? t('Saving')
+    : (syncState.ok ? t('Saved') : t('Waiting for network'));
+  const lastSynced = syncState.lastSyncedAt && syncState.ok
+    ? ` · ${t('Last synced {time}', { time: new Date(syncState.lastSyncedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) })}`
+    : '';
+  els.lastSyncStatus.textContent = `${saveStatus}${lastSynced}`;
+  els.lastSyncStatus.title = syncState.title;
+  const completedRounds = savedRounds.filter(item => gameStatus(item) !== 'playing');
+  const showHistoryNavigation = finished && currentView === 'leaderboard' && completedRounds.length >= 2;
+  els.previousHistoryGame.hidden = !showHistoryNavigation;
+  els.nextHistoryGame.hidden = !showHistoryNavigation;
+  const historyIndex = completedRounds.findIndex(item => item.id === round.id);
+  els.previousHistoryGame.disabled = historyIndex <= 0;
+  els.nextHistoryGame.disabled = historyIndex < 0 || historyIndex >= completedRounds.length - 1;
   els.takeOverScoring.hidden = finished || isEditing;
+}
+
+function showAdjacentHistoryGame(direction = 1) {
+  const completedRounds = savedRounds.filter(round => gameStatus(round) !== 'playing');
+  if (completedRounds.length < 2) return;
+  const currentIndex = completedRounds.findIndex(round => round.id === activeGameId);
+  const nextIndex = currentIndex + direction;
+  if (currentIndex < 0 || nextIndex < 0 || nextIndex >= completedRounds.length) return;
+  loadGame(completedRounds[nextIndex].id, false, false);
+  switchView('leaderboard');
 }
 
 async function fetchCloudCourses() {
@@ -1568,7 +1622,7 @@ async function syncFromCloud(pushLocal = true, quiet = false) {
     ]);
 
     customCourses = mergeById(customCourses, cloudCourses).filter(course => !isCourseDeleted(course));
-    savedRounds = serverRounds(cloudRounds);
+    savedRounds = mergeRounds(savedRounds, cloudRounds);
     await restoreActiveGameAfterCloudSync();
     saveCoursesLocal();
     saveHistoryLocal();
@@ -1605,10 +1659,15 @@ async function upsertRoundWithRetry(round) {
       error.latest = latest;
       throw error;
     }
-    let rebased = roundFromState(latest, gameStatus(round));
+    let rebased = normalizeRound({
+      ...round,
+      totals: {
+        ...round.totals,
+        cloudVersion: Math.max(0, Number(latest.totals?.cloudVersion || 0))
+      }
+    });
     if (gameStatus(round) !== 'playing') rebased.totals.editLock = null;
     else if (isEditing) rebased = withCurrentEditLock(rebased);
-    rebased.totals.cloudVersion = Math.max(0, Number(latest.totals?.cloudVersion || 0));
     await upsertCloudRound(rebased);
     return rebased;
   }
@@ -1632,6 +1691,8 @@ async function flushPendingRoundSync() {
         }
         const saved = await upsertRoundWithRetry(round);
         replaceRound(saved);
+        if (!pendingSyncRound) savePendingRoundLocal(null);
+        else savePendingRoundLocal(pendingSyncRound);
         saveHistoryLocal();
         setSyncState({
           ready: true,
@@ -1651,6 +1712,7 @@ async function flushPendingRoundSync() {
         } else if (!pendingSyncRound) {
           pendingSyncRound = round;
         }
+        savePendingRoundLocal(pendingSyncRound || round);
         setSyncState({ ready: true, busy: false, ok: false, label: t('Cloud sync Not ok'), title: error.message });
         break;
       }
@@ -1662,6 +1724,7 @@ async function flushPendingRoundSync() {
 function scheduleAutoSync(round) {
   if (!round) return;
   pendingSyncRound = round;
+  savePendingRoundLocal(round);
   window.clearTimeout(autoSyncTimer);
   if (!hasSupabaseConfig()) {
     setSyncState({ ok: false, busy: false, label: t('Cloud sync Not ok'), title: t('Supabase is not configured.') });
@@ -2974,8 +3037,7 @@ function renderLandlordActions() {
     const button = document.createElement('button');
     button.type = 'button';
     button.className = index === displayedLandlordIndex ? 'active' : '';
-    const roleIcon = index === displayedLandlordIndex ? '👲' : '👨‍🌾';
-    button.innerHTML = `<span class="landlord-person-icon" aria-hidden="true">${roleIcon}</span><span>${escapeHtml(player)}</span>`;
+    button.innerHTML = `${roleIconHtml(index === displayedLandlordIndex, 'landlord-person-icon')}<span>${escapeHtml(player)}</span>`;
     button.disabled = !isEditing;
     if (config.selectionMode === 'fixed') button.disabled = true;
     button.addEventListener('click', () => setLandlordForHole(index));
@@ -3002,8 +3064,7 @@ function renderLandlordActions() {
   const playerResults = playerDisplayIndexes(config.playerCount).map(index => {
     const player = state.players[index];
     const role = index === landlordIndex ? t('Landlord') : t('Peasant');
-    const roleIcon = index === landlordIndex ? '👲' : '👨‍🌾';
-    return `<span class="${result.points[index] > 0 ? 'point-positive' : (result.points[index] < 0 ? 'point-negative' : '')}">${roleIcon} ${escapeHtml(player)} · ${escapeHtml(role)} <strong>${signedPoints(result.points[index])}</strong></span>`;
+    return `<span class="${result.points[index] > 0 ? 'point-positive' : (result.points[index] < 0 ? 'point-negative' : '')}">${roleIconHtml(index === landlordIndex)} ${escapeHtml(player)} · ${escapeHtml(role)} <strong>${signedPoints(result.points[index])}</strong></span>`;
   }).join('');
   const multiplierSummary = t('Hole result: Manual multiplier {manual} x Bomb multiplier {bomb}', {
     manual: result.manualMultiplier,
@@ -3068,7 +3129,10 @@ function renderPlayEntry() {
       ${activePlayHoleIndex > 0 ? '<div class="play-score-meta previous-hole-score"></div>' : ''}
       <button class="play-score-button" type="button"></button>
     `;
-      row.querySelector('.play-player-copy strong').textContent = player || t('Player');
+      const role = state.gameType === 'landlord' && displayedLandlordIndex >= 0
+        ? (scoreIndex === displayedLandlordIndex ? t('Landlord') : t('Peasant'))
+        : '';
+      row.querySelector('.play-player-copy strong').innerHTML = `${escapeHtml(player || t('Player'))}${role ? ` ${roleIconHtml(scoreIndex === displayedLandlordIndex, 'player-name-role-icon')}` : ''}`;
       const runningTotal = row.querySelector('.landlord-running-total');
       if (runningTotal) {
         const points = landlordRunningPoints(scoreIndex);
@@ -3076,10 +3140,14 @@ function renderPlayEntry() {
         runningTotal.classList.toggle('point-positive', points > 0);
         runningTotal.classList.toggle('point-negative', points < 0);
       }
-    const role = state.gameType === 'landlord'
-      ? (displayedLandlordIndex < 0 ? '' : (scoreIndex === displayedLandlordIndex ? `👲 ${t('Landlord')}` : `👨‍🌾 ${t('Peasant')}`))
+    const showStrokeAllowance = state.gameType !== 'landlord' || state.scoreMode === 'net';
+    const strokesReceived = showStrokeAllowance
+      ? handicapStrokes(state.handicaps?.[scoreIndex], indexValue)
+      : 0;
+    const netStrokeHint = showStrokeAllowance
+      ? ` · ${t('Strokes received this hole: {value}', { value: strokesReceived })}`
       : '';
-    row.querySelector('.play-player-copy span').textContent = `${t('HCP {value}', { value: state.handicaps?.[scoreIndex] || 0 })}${role ? ` · ${role}` : ''}`;
+    row.querySelector('.play-player-copy span').textContent = `${t('HCP {value}', { value: state.handicaps?.[scoreIndex] || 0 })}${netStrokeHint}`;
     const meta = row.querySelector('.play-score-meta');
     if (meta) meta.innerHTML = previousHoleScoreHtml(scoreIndex);
     const button = row.querySelector('.play-score-button');
@@ -3867,10 +3935,16 @@ function renderScoreStrip() {
 function renderLandlordLeaderboard() {
   const active = state.gameType === 'landlord';
   const vegasScorecard = document.querySelector('#leaderboardView .scorecard');
+  const commonActions = document.querySelector('#leaderboardView .leaderboard-common-actions');
   if (vegasScorecard) vegasScorecard.hidden = active;
   document.querySelector('.leaderboard-tools').hidden = active;
   els.landlordLeaderboard.hidden = !active;
-  if (!active) return;
+  if (!active) {
+    if (commonActions && els.shareCurrentScorecard && els.shareCurrentScorecard.parentElement !== commonActions) {
+      commonActions.appendChild(els.shareCurrentScorecard);
+    }
+    return;
+  }
   for (let holeIndex = 0; holeIndex < 18; holeIndex += 1) {
     if (landlordHoleResult(state, holeIndex)) autoLandlordMultiplierForHole(holeIndex);
   }
@@ -3887,6 +3961,7 @@ function renderLandlordLeaderboard() {
       const net = result?.net?.[playerIndex];
       const points = result?.points?.[playerIndex] || 0;
       return `<td class="${playerIndex === landlordIndex ? 'landlord-cell' : ''}">
+        ${playerIndex === landlordIndex && isComplete ? roleIconHtml(true, 'landlord-cell-marker') : ''}
         <strong>${gross ?? '--'}</strong>
         ${gross !== null && config.handicapEnabled ? `<small>${escapeHtml(t('Net'))} ${net ?? '--'}</small>` : ''}
         ${isComplete ? `<span class="${points > 0 ? 'point-positive' : (points < 0 ? 'point-negative' : '')}">${signedPoints(points)}</span>` : ''}
@@ -3913,6 +3988,7 @@ function renderLandlordLeaderboard() {
         <h2>${escapeHtml(course.name)}</h2>
         <span>${escapeHtml(roundListDate(currentGame() || {}))}</span>
         <strong>${totalsValue.complete}/18</strong>
+        <span class="landlord-share-slot"></span>
       </div>
       <div class="rank-chips">${displayIndexes
         .map(index => `<span>${escapeHtml(state.players[index])} <strong class="${totalsValue.points[index] > 0 ? 'point-positive' : (totalsValue.points[index] < 0 ? 'point-negative' : '')}">${signedPoints(totalsValue.points[index])}</strong></span>`)
@@ -3925,6 +4001,8 @@ function renderLandlordLeaderboard() {
         <tfoot><tr><th>${escapeHtml(t('Total'))}</th><th>${course.pars.reduce((sum, par) => sum + par, 0)}</th><th>--</th><th>${totalsValue.complete}/18</th>${totalCells}</tr></tfoot>
       </table>
     </div>`;
+  const shareSlot = els.landlordLeaderboard.querySelector('.landlord-share-slot');
+  if (shareSlot && els.shareCurrentScorecard) shareSlot.appendChild(els.shareCurrentScorecard);
 }
 
 function renderHoles() {
@@ -4452,11 +4530,24 @@ function scorecardFileName(round) {
   return `${safeCourse || 'golf-game'}-${roundListDate(round).replace(/[^0-9]+/g, '-')}.png`;
 }
 
+function loadRoleImage(src) {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => resolve(image);
+    image.onerror = () => reject(new Error(`Unable to load role icon: ${src}`));
+    image.src = src;
+  });
+}
+
 async function createLandlordScorecardAsset(round) {
   const normalized = normalizeRound(round);
   const config = normalizeLandlordState(normalized.landlord, normalized.players.length);
   const playerCount = config.playerCount;
   const totalsValue = landlordTotals(normalized);
+  const [landlordRoleImage, peasantRoleImage] = await Promise.all([
+    loadRoleImage(ROLE_ICON_PATHS.landlord),
+    loadRoleImage(ROLE_ICON_PATHS.peasant)
+  ]);
   const roleStatistics = normalized.players.slice(0, playerCount).map((player, playerIndex) => {
     const landlord = [];
     const peasant = [];
@@ -4524,21 +4615,23 @@ async function createLandlordScorecardAsset(round) {
     });
     let roleY = cardY + 72;
     [
-      { icon: '👲', label: t('Landlord {count} times', { count: statistics.landlord.length }), items: statistics.landlord, color: '#8c5a19' },
-      { icon: '👨‍🌾', label: t('Peasant {count} times', { count: statistics.peasant.length }), items: statistics.peasant, color: '#315e51' }
+      { image: landlordRoleImage, label: t('Landlord {count} times', { count: statistics.landlord.length }), items: statistics.landlord, color: '#8c5a19' },
+      { image: peasantRoleImage, label: t('Peasant {count} times', { count: statistics.peasant.length }), items: statistics.peasant, color: '#315e51' }
     ].forEach(role => {
       const chunks = role.items.length
         ? Array.from({ length: Math.ceil(role.items.length / 4) }, (_, index) => role.items.slice(index * 4, index * 4 + 4))
         : [[]];
       chunks.forEach((chunk, chunkIndex) => {
-        const prefix = chunkIndex === 0 ? `${role.icon} ${role.label}: ` : '　';
+        const prefix = chunkIndex === 0 ? `${role.label}: ` : '　';
         const font = 'bold 25px Arial, Microsoft YaHei, Segoe UI Emoji, sans-serif';
         ctx.textAlign = 'left';
         ctx.textBaseline = 'middle';
         ctx.font = font;
         ctx.fillStyle = role.color;
-        ctx.fillText(prefix, margin + 18, roleY);
-        let detailX = margin + 18 + ctx.measureText(prefix).width;
+        const iconOffset = chunkIndex === 0 ? 34 : 0;
+        if (chunkIndex === 0) ctx.drawImage(role.image, margin + 18, roleY - 14, 28, 28);
+        ctx.fillText(prefix, margin + 18 + iconOffset, roleY);
+        let detailX = margin + 18 + iconOffset + ctx.measureText(prefix).width;
         if (!chunk.length) {
           ctx.fillStyle = '#62706a';
           ctx.fillText('--', detailX, roleY);
@@ -4590,6 +4683,7 @@ async function createLandlordScorecardAsset(round) {
       ctx.strokeRect(x, y, columns[columnIndex], rowHeight);
       if (columnIndex >= 4 && result) {
         const playerIndex = columnIndex - 4;
+        if (playerIndex === landlordIndex) ctx.drawImage(landlordRoleImage, x + 4, y + 4, 24, 24);
         drawScorecardText(ctx, value, x + columns[columnIndex] / 2, y + 24, { font: 'bold 34px Arial' });
         drawScorecardText(ctx, `${t('Net')} ${result.net[playerIndex]} · ${signedPoints(result.points[playerIndex])}`, x + columns[columnIndex] / 2, y + 54, {
           color: result.points[playerIndex] > 0 ? '#118747' : (result.points[playerIndex] < 0 ? '#b3453f' : '#62706a'),
@@ -4962,16 +5056,23 @@ function renderGameList(container, rounds, emptyText, status) {
             <span class="small-actions"></span>
           </span>
           <span class="game-line game-score"></span>
+          <span class="game-destination"></span>
         </span>
       </div>
     `;
     row.querySelector('.playing-icon').hidden = status !== 'playing';
     row.querySelector('.game-main').textContent = `${round.courseName || t('Course')} | ${roundListDate(round)}`;
     row.querySelector('.game-score').innerHTML = roundScoreSummaryHtml(round);
+    const destination = window.SIMPLE_GOLF_ROUND_ACCESS.openDestination(round, status, clientId);
+    const destinationText = status === 'history'
+      ? t('View scorecard')
+      : (destination.canEdit ? t('Continue scoring') : t('Watch live'));
+    row.querySelector('.game-destination').textContent = destinationText;
+    row.querySelector('.game-open').setAttribute('aria-label', `${round.courseName || t('Course')} · ${destinationText}`);
     const openRound = () => {
-      const canEdit = status === 'playing' && hasCurrentEditLock(round);
-      loadGame(round.id, canEdit, false);
-      switchView(status === 'playing' && canEdit ? 'play' : 'leaderboard');
+      const target = window.SIMPLE_GOLF_ROUND_ACCESS.openDestination(round, status, clientId);
+      loadGame(round.id, target.canEdit, false);
+      switchView(target.view);
     };
     row.querySelector('.game-open').addEventListener('click', () => {
       openRound();
@@ -5048,6 +5149,43 @@ function switchView(name) {
   saveState();
 }
 
+function performMainAction(action = 'home') {
+  switchView('start');
+  if (action === 'score') {
+    openGameModal();
+  } else if (action === 'watch') {
+    const liveRound = savedRounds.find(round => gameStatus(round) === 'playing');
+    if (liveRound) {
+      loadGame(liveRound.id, hasEditRight(liveRound), false);
+      switchView('leaderboard');
+    } else {
+      els.playingSection?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  } else if (action === 'history') {
+    const completedRound = savedRounds.find(round => gameStatus(round) !== 'playing');
+    if (completedRound) {
+      loadGame(completedRound.id, false, false);
+      switchView('leaderboard');
+    } else {
+      els.historySection?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }
+}
+
+function enterFromWelcome(action = 'home') {
+  if (!welcomeReadyToEnter) {
+    pendingWelcomeAction = action;
+    els.welcomeActions.forEach(button => { button.disabled = true; });
+    return;
+  }
+  if (!els.welcomeScreen || els.welcomeScreen.classList.contains('leaving')) return;
+  els.welcomeScreen.classList.add('leaving');
+  window.setTimeout(() => {
+    els.welcomeScreen.hidden = true;
+    performMainAction(action);
+  }, 300);
+}
+
 function addListeners() {
   window.addEventListener('beforeinstallprompt', event => {
     event.preventDefault();
@@ -5058,6 +5196,11 @@ function addListeners() {
     tab.addEventListener('click', () => switchView(tab.dataset.view));
   });
   els.takeOverScoring?.addEventListener('click', takeOverScoring);
+  els.previousHistoryGame?.addEventListener('click', () => showAdjacentHistoryGame(-1));
+  els.nextHistoryGame?.addEventListener('click', () => showAdjacentHistoryGame(1));
+  els.welcomeActions.forEach(button => {
+    button.addEventListener('click', () => enterFromWelcome(button.dataset.welcomeAction));
+  });
 
   els.appTitle.addEventListener('click', promptInstallApp);
   els.historyTimeFilter.addEventListener('change', () => {
@@ -5121,6 +5264,11 @@ function addListeners() {
         await showMessage(t('Share app'), shareData.url);
       }
     } catch {}
+  });
+  els.shareCurrentScorecard?.addEventListener('click', () => {
+    const round = currentGame();
+    if (!window.SIMPLE_GOLF_ROUND_ACCESS.canShareScorecard(round, gameStatus(round))) return;
+    openShareCard(round);
   });
 
   els.rulesButton.addEventListener('click', () => {
@@ -5374,6 +5522,8 @@ function addListeners() {
   });
 
   els.newGame.addEventListener('click', openGameModal);
+  els.watchGames.addEventListener('click', () => performMainAction('watch'));
+  els.viewScorecards.addEventListener('click', () => performMainAction('history'));
   els.newGameCountry.addEventListener('change', () => {
     renderNewGameRegions('');
     renderNewGameCourses('');
@@ -5568,8 +5718,9 @@ async function init() {
   customCourses = loadJson(COURSE_KEY, []);
   deletedRoundKeys = loadJson(DELETE_KEY, []);
   deletedCourseIds = loadJson(COURSE_DELETE_KEY, []);
-  savedRounds = cloudReady ? [] : loadJson(HISTORY_KEY, []).map(normalizeRound).filter(round => !isRoundDeleted(round));
-  if (cloudReady) saveHistoryLocal();
+  savedRounds = loadJson(HISTORY_KEY, []).map(normalizeRound).filter(round => !isRoundDeleted(round));
+  pendingSyncRound = loadPendingRoundLocal();
+  if (pendingSyncRound) savedRounds = mergeRounds(savedRounds, [pendingSyncRound]);
   const savedState = loadJson(STORAGE_KEY, {});
   activeGameId = savedState.activeGameId || '';
   currentView = ['start', 'play', 'leaderboard', 'courses'].includes(savedState.currentView) ? savedState.currentView : 'start';
@@ -5587,7 +5738,7 @@ async function init() {
   state.scoreMode = state.scoreMode === 'net' ? 'net' : 'gross';
   state.underParFlip = 'underParFlip' in state ? Boolean(state.underParFlip) : Boolean(state.birdieFlip);
   state.birdieFlip = state.underParFlip;
-  if (!cloudReady) chooseInitialGame();
+  chooseInitialGame();
   if (activeGameId && savedRounds.some(round => round.id === activeGameId)) {
     loadGame(activeGameId, shouldResumeEditing, false, savedPlayHoleIndex);
   }
@@ -5607,14 +5758,17 @@ async function init() {
   switchView(currentView);
   try {
     await syncFromCloud(false);
+    if (pendingSyncRound) await flushPendingRoundSync();
   } finally {
     if (els.welcomeScreen) {
       const remainingWelcomeTime = Math.max(0, WELCOME_MIN_DURATION_MS - (performance.now() - welcomeStartedAt));
       if (remainingWelcomeTime) {
         await new Promise(resolve => window.setTimeout(resolve, remainingWelcomeTime));
       }
-      els.welcomeScreen.classList.add('leaving');
-      window.setTimeout(() => { els.welcomeScreen.hidden = true; }, 300);
+      welcomeReadyToEnter = true;
+      els.welcomeScreen.classList.add('ready');
+      els.welcomeActions.forEach(button => { button.disabled = false; });
+      if (pendingWelcomeAction) enterFromWelcome(pendingWelcomeAction);
     }
   }
   window.setInterval(() => {
@@ -5639,6 +5793,13 @@ async function init() {
       syncFromCloud(false, true);
     }
   });
+  window.addEventListener('online', () => {
+    if (pendingSyncRound) {
+      flushPendingRoundSync();
+      return;
+    }
+    if (!isEditing && hasSupabaseConfig() && !syncState.busy) syncFromCloud(false, true);
+  });
   window.addEventListener('pagehide', () => {
     if (pendingSyncRound) flushPendingRoundSync();
   });
@@ -5646,12 +5807,12 @@ async function init() {
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js?v=149', { updateViaCache: 'none' })
+    navigator.serviceWorker.register('./sw.js?v=177', { updateViaCache: 'none' })
       .then(registration => registration.update())
       .catch(() => {});
   });
   navigator.serviceWorker.addEventListener('controllerchange', () => {
-    const reloadKey = 'simpleGolfSwReload.v154';
+    const reloadKey = 'simpleGolfSwReload.v177';
     if (sessionStorage.getItem(reloadKey)) return;
     sessionStorage.setItem(reloadKey, '1');
     window.location.reload();
