@@ -6,6 +6,9 @@ const outDir = join(root, 'www');
 const files = [
   'index.html',
   'styles.css',
+  'sync-logic.js',
+  'round-access.js',
+  'i18n.js',
   'app.js',
   'sw.js',
   'manifest.webmanifest',
@@ -13,7 +16,7 @@ const files = [
   'assets'
 ];
 
-await rm(outDir, { recursive: true, force: true });
+await rm(outDir, { recursive: true, force: true, maxRetries: 8, retryDelay: 125 });
 await mkdir(outDir, { recursive: true });
 
 for (const file of files) {

@@ -1,0 +1,41 @@
+import assert from 'node:assert/strict';
+import test from 'node:test';
+
+await import('../sync-logic.js');
+
+const { mergeRoundSnapshots } = globalThis.SIMPLE_GOLF_SYNC;
+
+test('remote snapshot replaces the same local round', () => {
+  const result = mergeRoundSnapshots(
+    [{ id: 'round-1', savedAt: 10, version: 1 }],
+    [{ id: 'round-1', savedAt: 10, version: 2 }]
+  );
+  assert.equal(result.length, 1);
+  assert.equal(result[0].version, 2);
+});
+
+test('local-only pending rounds remain visible after cloud refresh', () => {
+  const result = mergeRoundSnapshots(
+    [{ id: 'offline-round', savedAt: 30 }],
+    [{ id: 'cloud-round', savedAt: 20 }]
+  );
+  assert.deepEqual(result.map(round => round.id), ['offline-round', 'cloud-round']);
+});
+
+test('deleted rounds are filtered from both sources', () => {
+  const result = mergeRoundSnapshots(
+    [{ id: 'deleted-local', savedAt: 30 }, { id: 'visible', savedAt: 20 }],
+    [{ id: 'deleted-cloud', savedAt: 40 }],
+    { isDeleted: round => round.id.startsWith('deleted-') }
+  );
+  assert.deepEqual(result.map(round => round.id), ['visible']);
+});
+
+test('rounds are newest first and respect the configured limit', () => {
+  const result = mergeRoundSnapshots(
+    [{ id: 'old', savedAt: 1 }, { id: 'new', savedAt: 3 }],
+    [{ id: 'middle', savedAt: 2 }],
+    { limit: 2 }
+  );
+  assert.deepEqual(result.map(round => round.id), ['new', 'middle']);
+});
