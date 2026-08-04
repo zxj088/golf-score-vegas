@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 72 84" role="img" aria-labelledby="title desc">
+  <title id="title">Simple Golf Scorecard brand mark</title>
+  <desc id="desc">A green shield with a gold golf flag, a white ball, and three score lines.</desc>
+  <defs>
+    <linearGradient id="shield" x1="12" y1="5" x2="62" y2="76" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#167052"/>
+      <stop offset="1" stop-color="#083d2e"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-15%" width="140%" height="145%">
+      <feDropShadow dx="0" dy="3" stdDeviation="2" flood-color="#082c22" flood-opacity=".24"/>
+    </filter>
+  </defs>
+  <path d="M36 2 67 12v30c0 19-11 31-31 40C16 73 5 61 5 42V12L36 2Z" fill="url(#shield)" filter="url(#shadow)"/>
+  <path d="M36 7 62 15v27c0 15-8 25-26 34C18 67 10 57 10 42V15L36 7Z" fill="none" stroke="#ffffff" stroke-opacity=".24"/>
+  <path d="M25 19v34" fill="none" stroke="#e5b94f" stroke-width="4" stroke-linecap="round"/>
+  <path d="m28 20 22 5-22 10V20Z" fill="#e5b94f"/>
+  <circle cx="25" cy="58" r="7" fill="#fff"/>
+  <circle cx="22.5" cy="55.5" r="1" fill="#b7c8c1"/>
+  <circle cx="27.5" cy="55.5" r="1" fill="#b7c8c1"/>
+  <circle cx="22.5" cy="60.5" r="1" fill="#b7c8c1"/>
+  <circle cx="27.5" cy="60.5" r="1" fill="#b7c8c1"/>
+  <path d="M39 45h15M39 52h15M39 59h11" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"/>
+</svg>

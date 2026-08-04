@@ -1093,9 +1093,61 @@ body {
 }
 
 .play-score-button.under-par {
+  border: 4px solid #c83b3b;
+  color: #b83232;
+  background: #ffffff;
+  box-shadow: 0 0 0 4px rgba(195, 63, 56, 0.1);
+}
+
+.play-score-button.one-over {
+  border: 2px solid #79add0;
+  border-radius: 12px;
+  color: #174f78;
+  background: #d9edf9;
+}
+
+.play-score-button.two-over {
   color: #ffffff;
-  background: #c33f38;
-  box-shadow: 0 0 0 4px rgba(195, 63, 56, 0.14);
+  border: 3px double #ffffff;
+  border-radius: 12px;
+  background: #185783;
+  box-shadow: 0 0 0 2px #103e60;
+}
+
+.scorecard button.score.gross-under-par > span,
+.landlord-table-wrap strong.gross-under-par {
+  display: inline-grid;
+  place-items: center;
+  min-width: 28px;
+  min-height: 28px;
+  border: 2px solid #c83b3b;
+  border-radius: 50%;
+  color: #b83232;
+}
+
+.scorecard button.score.gross-one-over > span,
+.landlord-table-wrap strong.gross-one-over {
+  display: inline-grid;
+  place-items: center;
+  min-width: 28px;
+  min-height: 28px;
+  border: 2px solid #79add0;
+  border-radius: 3px;
+  color: #174f78;
+  background: #d9edf9;
+}
+
+.scorecard button.score.gross-two-over > span,
+.landlord-table-wrap strong.gross-two-over {
+  display: inline-grid;
+  place-items: center;
+  min-width: 28px;
+  min-height: 28px;
+  border: 3px double #ffffff;
+  border-radius: 3px;
+  color: #ffffff;
+  background: #185783;
+  box-shadow: 0 0 0 1px #103e60;
 }
 
 label {
@@ -3434,5 +3486,1274 @@ button,
 
   html[lang="en"] .home-action strong {
     font-size: 12px;
+  }
+}
+/* Unified scorecard table language: compact hole data and strong totals. */
+.scorecard thead th,
+.scorecard thead .team-a-cell,
+.scorecard thead .team-b-cell,
+.scorecard thead .team-a-cell.calc-head,
+.scorecard thead .team-b-cell.calc-head,
+.landlord-table-wrap thead th {
+  color: #fff;
+  background: var(--green-deep, #145c48);
+}
+
+.scorecard thead input[type="text"] {
+  color: #fff;
+  -webkit-text-fill-color: #fff;
+  border-color: rgba(255, 255, 255, 0.42);
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.scorecard th:nth-child(-n+3),
+.scorecard td:nth-child(-n+3),
+.landlord-table-wrap th:nth-child(-n+3),
+.landlord-table-wrap td:nth-child(-n+3) {
+  font-family: "Arial Narrow", "Roboto Condensed", "Microsoft YaHei UI", sans-serif;
+  letter-spacing: -0.03em;
+}
+
+.scorecard th:nth-child(1), .scorecard td:nth-child(1) { width: 4.2%; }
+.scorecard th:nth-child(2), .scorecard td:nth-child(2) { width: 4.4%; }
+.scorecard th:nth-child(3), .scorecard td:nth-child(3) { width: 4.4%; border-right-width: 2px; border-right-color: #6f8f84; }
+.scorecard th:nth-child(4), .scorecard th:nth-child(5),
+.scorecard th:nth-child(8), .scorecard th:nth-child(9),
+.scorecard td:nth-child(4), .scorecard td:nth-child(5),
+.scorecard td:nth-child(8), .scorecard td:nth-child(9) { width: 11%; }
+.scorecard th:nth-child(6), .scorecard th:nth-child(10),
+.scorecard td:nth-child(6), .scorecard td:nth-child(10) { width: 9.8%; }
+.scorecard th:nth-child(7), .scorecard th:nth-child(11),
+.scorecard td:nth-child(7), .scorecard td:nth-child(11) { width: 8.7%; }
+
+.scorecard tbody tr:not(.nine-hole-subtotal) td:nth-child(-n+3),
+.landlord-table-wrap tbody tr:not(.nine-hole-subtotal) td:nth-child(-n+3) {
+  background: #edf3f0;
+}
+
+.scorecard tbody tr:not(.nine-hole-subtotal):nth-child(even) td:nth-child(-n+3),
+.landlord-table-wrap tbody tr:not(.nine-hole-subtotal):nth-child(even) td:nth-child(-n+3) {
+  background: #e5eeea;
+}
+
+.scorecard tbody tr:not(.nine-hole-subtotal) td:first-child,
+.landlord-table-wrap tbody tr:not(.nine-hole-subtotal) td:first-child {
+  color: #123f32;
+  font-size: 1.08em;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+}
+
+.scorecard tr.nine-hole-subtotal th,
+.landlord-table-wrap tr.nine-hole-subtotal th {
+  height: 28px;
+  padding: 2px 3px;
+  color: #fff;
+  background: #64877b;
+  border-color: rgba(255, 255, 255, 0.2);
+  border-top: 2px solid #fff;
+  border-bottom: 1px solid #466b5f;
+  font-size: 0.9em;
+  font-weight: 900;
+}
+
+.scorecard tr.nine-hole-subtotal .point-positive,
+.landlord-table-wrap tr.nine-hole-subtotal .point-positive {
+  color: #c9ffe2;
+}
+
+.scorecard tr.nine-hole-subtotal .point-negative,
+.landlord-table-wrap tr.nine-hole-subtotal .point-negative {
+  color: #ffd0cc;
+}
+
+/* Give both leaderboard types the same professional event-card header. */
+.score-strip:not(.landlord-mode) {
+  position: relative;
+  top: auto;
+  z-index: 1;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  margin: 0 0 12px;
+  padding: 16px;
+  color: #fff;
+  background: linear-gradient(135deg, #0c6f50, #123f35);
+  border-radius: 16px;
+  box-shadow: 0 12px 28px rgba(20, 92, 72, 0.2);
+  backdrop-filter: none;
+}
+
+.score-strip:not(.landlord-mode) .team-total,
+.score-strip:not(.landlord-mode) .match-meta {
+  min-width: 0;
+  padding: 0;
+  color: #fff;
+  background: transparent;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.score-strip:not(.landlord-mode) .team-total .label,
+.score-strip:not(.landlord-mode) .team-total .team-players,
+.score-strip:not(.landlord-mode) .match-meta span {
+  color: #fff;
+}
+
+.score-strip:not(.landlord-mode) .team-total .label,
+.score-strip:not(.landlord-mode) .match-meta span {
+  opacity: 0.78;
+}
+
+.score-strip:not(.landlord-mode) .team-total strong {
+  color: #fff;
+  font-size: 30px;
+}
+
+.score-strip:not(.landlord-mode) .team-total strong.positive,
+.score-strip:not(.landlord-mode) .team-total strong.point-positive {
+  color: #9ff0c8;
+}
+
+.score-strip:not(.landlord-mode) .team-total strong.negative,
+.score-strip:not(.landlord-mode) .team-total strong.point-negative {
+  color: #ffc1bd;
+}
+
+.vegas-share-slot {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.score-strip:not(.landlord-mode) .leaderboard-share {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.45);
+  white-space: nowrap;
+}
+
+@media (max-width: 600px) {
+  .score-strip:not(.landlord-mode) {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .score-strip:not(.landlord-mode) .team-total.team-b {
+    grid-column: 1;
+  }
+
+  .score-strip:not(.landlord-mode) .vegas-share-slot {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+  }
+}
+
+/* Unified Golf GameBook-inspired score language. Special gross scores are
+   solid, high-contrast markers in both Vegas and Wolf & Pack results. */
+.scorecard tbody td,
+.landlord-table-wrap tbody td {
+  min-height: 58px;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  font-size: 15px;
+}
+
+.scorecard button.score > span,
+.landlord-table-wrap td > strong {
+  font-size: 18px;
+  line-height: 1;
+}
+
+.scorecard button.score > span.gross-under-par,
+.scorecard button.score > span.gross-one-over,
+.scorecard button.score > span.gross-two-over,
+.landlord-table-wrap td > strong.gross-under-par,
+.landlord-table-wrap td > strong.gross-one-over,
+.landlord-table-wrap td > strong.gross-two-over {
+  display: inline-flex;
+  width: 29px;
+  height: 29px;
+  align-items: center;
+  justify-content: center;
+  color: #fff !important;
+  font-weight: 950;
+  line-height: 1;
+  box-sizing: border-box;
+}
+
+.scorecard button.score > span.gross-under-par,
+.landlord-table-wrap td > strong.gross-under-par {
+  border-radius: 50%;
+  background: #c43b3b;
+}
+
+.scorecard button.score > span.gross-one-over,
+.landlord-table-wrap td > strong.gross-one-over {
+  border-radius: 3px;
+  background: #438fba;
+}
+
+.scorecard button.score > span.gross-two-over,
+.landlord-table-wrap td > strong.gross-two-over {
+  border: 2px solid #185783;
+  border-radius: 3px;
+  background: #185783;
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.72);
+}
+
+@media (max-width: 600px) {
+  .scorecard tbody td,
+  .landlord-table-wrap tbody td {
+    min-height: 55px;
+    padding-top: 7px;
+    padding-bottom: 7px;
+  }
+
+  .scorecard button.score > span.gross-under-par,
+  .scorecard button.score > span.gross-one-over,
+  .scorecard button.score > span.gross-two-over,
+  .landlord-table-wrap td > strong.gross-under-par,
+  .landlord-table-wrap td > strong.gross-one-over,
+  .landlord-table-wrap td > strong.gross-two-over {
+    width: 27px;
+    height: 27px;
+  }
+}
+
+/* Final visual alignment: calm off-white canvas, compact masthead and inverse active nav. */
+html,
+body,
+.app-shell,
+main {
+  background: #f6f7f4;
+}
+
+.topbar {
+  grid-template-columns: 52px minmax(0, 1fr) 52px;
+  align-items: start;
+}
+
+.brand-mark {
+  align-self: start;
+}
+
+.brand-copy {
+  position: relative;
+  align-self: start;
+  min-height: 58px;
+}
+
+.topbar .brand-line {
+  position: absolute;
+  right: calc(100% + 8px);
+  bottom: 0;
+  width: min-content;
+  max-width: 90px;
+  justify-content: flex-end;
+  align-items: flex-end;
+  line-height: 1.05;
+}
+
+.topbar .brand-line .eyebrow {
+  max-width: 72px;
+  white-space: normal;
+  text-align: right;
+}
+
+.topbar h1 {
+  align-self: start;
+  margin-top: 0;
+}
+
+.tab.active .tab-icon {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  color: #fff;
+  background: #0b7654;
+  border-radius: 10px;
+}
+
+.tab.active .tab-icon svg {
+  width: 27px;
+  height: 27px;
+  stroke: #fff;
+}
+
+@media (max-width: 430px) {
+  .topbar {
+    grid-template-columns: 42px minmax(0, 1fr) 42px;
+  }
+
+  .topbar .brand-line {
+    right: calc(100% + 4px);
+    max-width: 64px;
+  }
+
+  .topbar .brand-line .eyebrow {
+    max-width: 51px;
+    font-size: 9px;
+  }
+}
+
+.scorecard tfoot th,
+.landlord-table-wrap tfoot th {
+  color: #fff;
+  background: var(--green-deep, #145c48);
+  border-top: 3px solid #c99a43;
+  font-weight: 900;
+}
+
+.scorecard tfoot .point-positive,
+.landlord-table-wrap tfoot .point-positive {
+  color: #9ff0c8;
+}
+
+.scorecard tfoot .point-negative,
+.landlord-table-wrap tfoot .point-negative {
+  color: #ffc1bd;
+}
+
+.landlord-table-wrap th:nth-child(1) { width: 38px; }
+.landlord-table-wrap th:nth-child(2) { width: 36px; }
+.landlord-table-wrap th:nth-child(3) { width: 36px; border-right-width: 2px; border-right-color: #6f8f84; }
+.landlord-table-wrap th:nth-child(4) { width: 70px; }
+
+.landlord-count-total {
+  color: #fff !important;
+  white-space: nowrap;
+}
+
+.landlord-count-total img {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  margin: 0 2px 0 0;
+  vertical-align: middle;
+}
+
+@media (max-width: 430px) {
+  .landlord-table-wrap th:nth-child(1),
+  .landlord-table-wrap th:nth-child(2),
+  .landlord-table-wrap th:nth-child(3) { width: 29px; }
+  .landlord-table-wrap th:nth-child(4) { width: 52px; }
+}
+
+/* Compact professional masthead and unified line-icon navigation. */
+.topbar {
+  position: relative;
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr) 44px;
+  align-items: center;
+  justify-content: initial;
+  gap: 11px;
+  margin: 0 -8px 10px;
+  padding: 12px 16px 13px;
+  border-bottom: 1px solid #dce5e1;
+  background: #fff;
+}
+
+.brand-mark {
+  display: block;
+  width: 44px;
+  height: 52px;
+}
+
+.brand-mark img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.brand-copy {
+  min-width: 0;
+}
+
+.topbar .brand-line {
+  gap: 4px;
+  margin-bottom: 2px;
+}
+
+.topbar .brand-line .eyebrow {
+  overflow: hidden;
+  color: #155f48;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.topbar .rules-button {
+  width: 21px;
+  min-height: 21px;
+  border: 0;
+  background: #edf5f1;
+  font-size: 12px;
+}
+
+.topbar h1 {
+  overflow: hidden;
+  color: #10291f;
+  font-size: clamp(21px, 4.5vw, 30px);
+  font-weight: 900;
+  line-height: 1.08;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.header-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 5px 0 0;
+  color: #17694f;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.header-status-check {
+  display: inline-grid;
+  width: 17px;
+  height: 17px;
+  place-items: center;
+  flex: 0 0 17px;
+  border: 2px solid currentColor;
+  border-radius: 50%;
+  font-size: 11px;
+  line-height: 1;
+}
+
+.header-status[data-status="scoring"] .header-status-check,
+.header-status[data-status="watching"] .header-status-check {
+  border: 0;
+  background: currentColor;
+  font-size: 0;
+  transform: scale(0.55);
+}
+
+.top-menu-button {
+  display: grid;
+  width: 44px;
+  min-height: 44px;
+  place-content: center;
+  gap: 5px;
+  border: 0;
+  padding: 0;
+  color: #123f32;
+  background: transparent;
+}
+
+.top-menu-button span {
+  display: block;
+  width: 25px;
+  height: 3px;
+  border-radius: 4px;
+  background: currentColor;
+}
+
+.top-actions {
+  position: absolute;
+  top: calc(100% - 3px);
+  right: 12px;
+  z-index: 40;
+  display: none;
+  min-width: 150px;
+  padding: 8px;
+  border: 1px solid #d9e2de;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 12px 30px rgba(16, 41, 31, 0.18);
+}
+
+.top-actions.open {
+  display: grid;
+  gap: 6px;
+}
+
+.top-actions button {
+  width: 100%;
+  min-height: 42px;
+  justify-content: center;
+  font-size: 14px;
+}
+
+.tabs {
+  height: calc(70px + env(safe-area-inset-bottom));
+  padding: 0 8px env(safe-area-inset-bottom);
+  border-top: 1px solid #d6dfdb;
+  border-radius: 0;
+  background: #fff;
+  box-shadow: 0 -3px 14px rgba(18, 54, 41, 0.08);
+}
+
+.tab {
+  position: relative;
+  grid-template-rows: 33px auto;
+  min-height: 69px;
+  gap: 1px;
+  border-radius: 0;
+  color: #3d4b51;
+}
+
+.tab.active {
+  color: #086b38;
+}
+
+.tab.active::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 46px;
+  height: 3px;
+  border-radius: 0 0 3px 3px;
+  background: currentColor;
+  transform: translateX(-50%);
+}
+
+/* The selected destination is one clear inverted control, without an extra
+   indicator line competing with the icon and label. */
+.tabs .tab.active {
+  color: #ffffff;
+  background: #0b7654;
+  border-radius: 12px;
+}
+
+.tabs .tab.active::before,
+.tabs .tab.active::after {
+  display: none;
+}
+
+.tabs .tab.active .tab-icon {
+  color: #ffffff;
+  background: transparent;
+}
+
+.tabs .tab.active .tab-icon svg {
+  stroke: #ffffff;
+}
+
+/* Final visual layer: a quiet white brand header, a consistent event card for
+   both game types, and score colours that cannot be reset by table defaults. */
+.app-shell,
+.topbar {
+  background: #ffffff;
+}
+
+.topbar {
+  border-bottom: 1px solid #e4ece8;
+  box-shadow: none;
+}
+
+.topbar .brand-line {
+  position: absolute;
+  top: 16px;
+  left: 66px;
+  z-index: 2;
+  display: flex;
+  width: auto;
+  max-width: 150px;
+  justify-content: flex-start;
+  text-align: left;
+}
+
+.topbar .brand-line .eyebrow {
+  max-width: 120px;
+  text-align: left;
+}
+
+.score-strip:not(.landlord-mode) {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 13px;
+  padding: 18px;
+}
+
+.vegas-event-main {
+  display: grid;
+  grid-template-columns: 70px minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 14px;
+}
+
+.vegas-event-copy {
+  min-width: 0;
+}
+
+.vegas-event-copy h2 {
+  margin: 0 0 3px;
+  overflow: hidden;
+  color: #ffffff;
+  font-size: 25px;
+  line-height: 1.05;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vegas-event-copy p,
+.vegas-event-copy span {
+  display: block;
+  margin: 0;
+  color: #e2b94e;
+  font-weight: 800;
+}
+
+.vegas-event-copy span {
+  margin-top: 3px;
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.score-strip:not(.landlord-mode) .match-meta {
+  display: grid;
+  align-content: center;
+  min-width: 88px;
+  min-height: 64px;
+  padding-left: 16px;
+  border-left: 1px solid rgba(255, 255, 255, 0.34);
+  text-align: center;
+}
+
+.score-strip:not(.landlord-mode) .match-meta #holesComplete {
+  color: #ffffff;
+  font-size: 31px;
+  font-weight: 900;
+  opacity: 1;
+}
+
+.score-strip:not(.landlord-mode) .match-meta #coursePar {
+  font-size: 11px;
+}
+
+.vegas-score-pairs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.score-strip:not(.landlord-mode) .vegas-score-pairs .team-total {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 7px;
+  padding: 10px 14px;
+  color: #17221f;
+  background: #ffffff;
+  border-radius: 9px;
+}
+
+.score-strip:not(.landlord-mode) .vegas-score-pairs .team-total .label,
+.score-strip:not(.landlord-mode) .vegas-score-pairs .team-total .team-players {
+  color: #17221f;
+  opacity: 1;
+}
+
+.score-strip:not(.landlord-mode) .vegas-score-pairs .team-total strong {
+  font-size: 24px;
+}
+
+.scorecard button.score.gross-under-par > span,
+.landlord-table-wrap td strong.gross-under-par {
+  color: #c63232 !important;
+}
+
+.scorecard button.score.gross-one-over > span,
+.landlord-table-wrap td strong.gross-one-over {
+  color: #174f78 !important;
+}
+
+.scorecard button.score.gross-two-over > span,
+.landlord-table-wrap td strong.gross-two-over {
+  color: #ffffff !important;
+}
+
+@media (max-width: 600px) {
+  .topbar .brand-line {
+    top: 12px;
+    left: 54px;
+    max-width: 92px;
+  }
+
+  .topbar .brand-line .eyebrow {
+    max-width: 72px;
+  }
+
+  .vegas-event-main {
+    grid-template-columns: 52px minmax(0, 1fr) auto;
+    gap: 9px;
+  }
+
+  .vegas-event-main .course-emblem,
+  .vegas-event-main .course-emblem svg {
+    width: 48px;
+    height: 48px;
+  }
+
+  .vegas-event-copy h2 {
+    font-size: 20px;
+  }
+
+  .score-strip:not(.landlord-mode) .match-meta {
+    min-width: 68px;
+    padding-left: 9px;
+  }
+
+  .score-strip:not(.landlord-mode) .match-meta #holesComplete {
+    font-size: 25px;
+  }
+
+  .vegas-event-main .vegas-share-slot {
+    grid-column: 2 / -1;
+    justify-content: stretch;
+  }
+
+  .vegas-event-main .leaderboard-share {
+    width: 100%;
+  }
+
+  .score-strip:not(.landlord-mode) .vegas-score-pairs .team-total {
+    grid-template-columns: 1fr auto;
+    grid-column: auto;
+    grid-row: auto;
+    padding: 9px 10px;
+  }
+
+  .score-strip:not(.landlord-mode) .vegas-score-pairs .team-total .label {
+    grid-column: 1;
+  }
+
+  .score-strip:not(.landlord-mode) .vegas-score-pairs .team-total .team-players {
+    grid-column: 1;
+  }
+
+  .score-strip:not(.landlord-mode) .vegas-score-pairs .team-total strong {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+  }
+}
+
+.tab .tab-icon {
+  position: relative;
+  display: block;
+  width: 28px;
+  height: 28px;
+  color: currentColor;
+  background: none;
+  transform: none;
+}
+
+.tab-icon-home::before {
+  left: 5px;
+  top: 8px;
+  width: 18px;
+  height: 16px;
+  box-sizing: border-box;
+  border: 2px solid currentColor;
+  border-top: 0;
+  background: transparent;
+  clip-path: none;
+}
+
+.tab-icon-home::after {
+  content: "";
+  position: absolute;
+  left: 5px;
+  top: 3px;
+  width: 17px;
+  height: 17px;
+  border-top: 2px solid currentColor;
+  border-left: 2px solid currentColor;
+  transform: rotate(45deg);
+}
+
+.tab-icon-edit::before {
+  content: "";
+  position: absolute;
+  left: 3px;
+  bottom: 2px;
+  width: 18px;
+  height: 19px;
+  border: 2px solid currentColor;
+  border-radius: 2px;
+}
+
+.tab-icon-edit::after {
+  content: "";
+  position: absolute;
+  right: 1px;
+  top: 2px;
+  width: 5px;
+  height: 22px;
+  border: 2px solid #fff;
+  border-radius: 2px;
+  background: currentColor;
+  transform: rotate(43deg);
+}
+
+.tab-icon-results {
+  border-bottom: 2px solid currentColor;
+}
+
+.tab-icon-results::before {
+  content: "";
+  position: absolute;
+  left: 2px;
+  bottom: 2px;
+  width: 5px;
+  height: 10px;
+  border: 2px solid currentColor;
+  border-bottom: 0;
+  box-shadow: 8px -6px 0 -2px #fff, 8px -6px 0 0 currentColor, 16px -14px 0 -2px #fff, 16px -14px 0 0 currentColor;
+}
+
+.tab-icon-course::before {
+  content: "";
+  position: absolute;
+  left: 12px;
+  top: 2px;
+  width: 2px;
+  height: 21px;
+  background: currentColor;
+}
+
+.tab-icon-course::after {
+  content: "";
+  position: absolute;
+  left: 13px;
+  top: 3px;
+  width: 12px;
+  height: 9px;
+  border: 2px solid currentColor;
+  border-left: 0;
+  border-radius: 0 8px 8px 0;
+  box-shadow: -7px 18px 0 -5px #fff, -7px 18px 0 -3px currentColor;
+}
+
+.tab span:not(.tab-icon) {
+  font-size: 12px;
+  font-weight: 700;
+}
+
+@media (max-width: 430px) {
+  .topbar {
+    grid-template-columns: 40px minmax(0, 1fr) 40px;
+    gap: 8px;
+    padding: 10px 10px 11px;
+  }
+
+  .brand-mark {
+    width: 38px;
+    height: 45px;
+  }
+
+  .topbar h1 {
+    font-size: 21px;
+  }
+
+  .header-status {
+    font-size: 11px;
+  }
+}
+
+/* Reference-layout refinements: status first, centered masthead, event identity. */
+.app-shell > .scoring-device-bar {
+  margin: 0 -8px 6px;
+  border-width: 0 0 1px;
+  border-radius: 0;
+  padding-inline: 16px;
+  background: #eef6f2;
+  box-shadow: none;
+}
+
+.brand-copy {
+  display: grid;
+  justify-items: center;
+  text-align: center;
+}
+
+.topbar .brand-line {
+  width: 100%;
+  justify-content: flex-start;
+}
+
+.topbar h1,
+.topbar .header-status {
+  justify-self: center;
+}
+
+.topbar h1 {
+  font-family: "Arial Black", "Microsoft YaHei UI", "PingFang SC", sans-serif;
+  letter-spacing: -0.035em;
+}
+
+.tab .tab-icon svg {
+  display: block;
+  width: 30px;
+  height: 30px;
+  overflow: visible;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.tab.active .tab-icon svg {
+  stroke-width: 2.5;
+}
+
+.landlord-ranking {
+  display: grid;
+  gap: 11px;
+  padding: 18px;
+  color: #fff;
+  background: linear-gradient(135deg, #0d674d, #083e31);
+  border: 0;
+  border-radius: 16px;
+  box-shadow: 0 12px 28px rgba(10, 67, 50, 0.2);
+}
+
+.landlord-event-main {
+  display: grid;
+  grid-template-columns: 70px minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 14px;
+}
+
+.course-emblem {
+  display: grid;
+  width: 64px;
+  height: 64px;
+  place-items: center;
+  color: #e2b94e;
+}
+
+.course-emblem svg {
+  width: 64px;
+  height: 64px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.course-emblem svg circle {
+  stroke-width: 2;
+}
+
+.landlord-event-copy {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+.landlord-event-copy h2 {
+  overflow: hidden;
+  color: #fff;
+  font-size: 25px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.landlord-event-copy .eyebrow,
+.landlord-event-copy > span,
+.landlord-settings-line {
+  margin: 0;
+  color: #f2d37f;
+}
+
+.landlord-event-copy .eyebrow {
+  font-size: 14px;
+}
+
+.landlord-event-copy > span {
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 13px;
+}
+
+.landlord-event-progress {
+  display: grid;
+  min-width: 80px;
+  place-items: center;
+  align-self: stretch;
+  align-content: center;
+  padding-left: 15px;
+  border-left: 1px solid rgba(255, 255, 255, 0.45);
+}
+
+.landlord-event-progress strong {
+  color: #fff;
+  font-size: 32px;
+  line-height: 1;
+}
+
+.landlord-event-progress span {
+  margin-top: 5px;
+  color: rgba(255, 255, 255, 0.84);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.landlord-settings-line {
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.landlord-ranking .rank-chips {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  gap: 9px;
+}
+
+.landlord-ranking .rank-chips > span {
+  display: grid;
+  min-height: 58px;
+  place-items: center;
+  align-content: center;
+  gap: 3px;
+  padding: 7px;
+  color: #17271f;
+  background: #fff;
+  border: 0;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.landlord-ranking .rank-chips strong {
+  font-size: 19px;
+}
+
+.landlord-share-slot .leaderboard-share {
+  min-height: 46px;
+  color: #fff;
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.45);
+}
+
+@media (max-width: 600px) {
+  .landlord-ranking {
+    padding: 14px;
+  }
+
+  .landlord-event-main {
+    grid-template-columns: 52px minmax(0, 1fr) auto;
+    gap: 9px;
+  }
+
+  .course-emblem,
+  .course-emblem svg {
+    width: 49px;
+    height: 49px;
+  }
+
+  .landlord-event-copy h2 {
+    font-size: 20px;
+  }
+
+  .landlord-event-progress {
+    min-width: 64px;
+    padding-left: 9px;
+  }
+
+  .landlord-event-progress strong {
+    font-size: 25px;
+  }
+
+  .landlord-share-slot {
+    grid-column: 2 / -1;
+  }
+
+  .landlord-share-slot .leaderboard-share {
+    width: 100%;
+  }
+}
+
+/* Keep the rules shortcut visually attached to the brand mark while the app
+   name and status remain centred. This comes last because the stylesheet also
+   contains legacy responsive header rules. */
+.topbar .brand-line {
+  position: absolute;
+  top: 16px;
+  left: 66px;
+  z-index: 2;
+  display: flex;
+  width: max-content;
+  max-width: 150px;
+  justify-content: flex-start;
+  text-align: left;
+}
+
+.topbar .brand-line .eyebrow {
+  max-width: 120px;
+  text-align: left;
+  white-space: normal;
+}
+
+@media (max-width: 430px) {
+  .topbar .brand-line {
+    top: 12px;
+    left: 54px;
+    max-width: 92px;
+  }
+
+  .topbar .brand-line .eyebrow {
+    max-width: 72px;
+  }
+}
+
+/* Final header/menu integration overrides. Rules now live in the menu, while
+   the Vegas result chips use the same visual weight as the landlord chips. */
+.topbar {
+  margin-bottom: 0;
+  padding-bottom: 12px;
+  border-bottom: 0;
+}
+
+.topbar + main {
+  padding-top: 10px;
+  border-top: 1px solid #e7eeea;
+  background: linear-gradient(180deg, #f7faf8 0, #ffffff 118px);
+}
+
+.top-actions .rules-button {
+  width: 100%;
+  min-height: 42px;
+  padding: 0 12px;
+  border: 1px solid #d9e2de;
+  border-radius: 9px;
+  color: #17221f;
+  background: #ffffff;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.top-actions .rules-button::before {
+  content: "?";
+  display: inline-grid;
+  width: 19px;
+  height: 19px;
+  place-items: center;
+  margin-right: 7px;
+  border: 1.5px solid #17694f;
+  border-radius: 50%;
+  color: #17694f;
+  font-size: 12px;
+  line-height: 1;
+}
+
+.score-strip:not(.landlord-mode) .vegas-score-pairs .team-total {
+  min-height: 62px;
+  padding: 9px 13px;
+  border: 0;
+  border-radius: 8px;
+  box-shadow: 0 1px 0 rgba(9, 64, 47, 0.08);
+}
+
+.score-strip:not(.landlord-mode) .vegas-score-pairs .team-total .label {
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.score-strip:not(.landlord-mode) .vegas-score-pairs .team-total .team-players {
+  font-size: 14px;
+  font-weight: 850;
+  line-height: 1.15;
+}
+
+.score-strip:not(.landlord-mode) .vegas-score-pairs .team-total strong {
+  min-width: 74px;
+  color: #00865f;
+  font-size: clamp(27px, 4.5vw, 34px);
+  font-weight: 950;
+  line-height: 1;
+  letter-spacing: -0.035em;
+  text-align: right;
+  opacity: 1;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.4);
+}
+
+.score-strip:not(.landlord-mode) .vegas-score-pairs .team-b strong {
+  color: #bd3939;
+}
+
+@media (max-width: 600px) {
+  .topbar + main {
+    padding-top: 8px;
+  }
+
+  .score-strip:not(.landlord-mode) .vegas-score-pairs .team-total {
+    min-height: 58px;
+  }
+
+  .score-strip:not(.landlord-mode) .vegas-score-pairs .team-total strong {
+    min-width: 58px;
+    font-size: clamp(25px, 7vw, 31px);
+  }
+}
+
+/* Final score-marker overrides: keep these after all legacy scorecard rules so
+   the results screen and generated-share preview read as one visual system. */
+.scorecard button.score.gross-under-par > span,
+.scorecard button.score.gross-one-over > span,
+.scorecard button.score.gross-two-over > span,
+.landlord-table-wrap td > strong.gross-under-par,
+.landlord-table-wrap td > strong.gross-one-over,
+.landlord-table-wrap td > strong.gross-two-over {
+  display: inline-flex;
+  width: 29px;
+  height: 29px;
+  align-items: center;
+  justify-content: center;
+  color: #fff !important;
+  font-size: 18px;
+  font-weight: 950;
+  line-height: 1;
+  box-sizing: border-box;
+}
+
+.scorecard button.score.gross-under-par > span,
+.landlord-table-wrap td > strong.gross-under-par {
+  border: 0;
+  border-radius: 50%;
+  background: #c43b3b;
+}
+
+.scorecard button.score.gross-one-over > span,
+.landlord-table-wrap td > strong.gross-one-over {
+  border: 0;
+  border-radius: 3px;
+  background: #438fba;
+}
+
+.scorecard button.score.gross-two-over > span,
+.landlord-table-wrap td > strong.gross-two-over {
+  border: 2px solid #185783;
+  border-radius: 3px;
+  background: #185783;
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.72);
+}
+
+.scorecard tbody td,
+.landlord-table-wrap tbody td {
+  padding-top: 8px;
+  padding-bottom: 8px;
+}
+
+@media (max-width: 600px) {
+  .scorecard button.score.gross-under-par > span,
+  .scorecard button.score.gross-one-over > span,
+  .scorecard button.score.gross-two-over > span,
+  .landlord-table-wrap td > strong.gross-under-par,
+  .landlord-table-wrap td > strong.gross-one-over,
+  .landlord-table-wrap td > strong.gross-two-over {
+    width: 27px;
+    height: 27px;
   }
 }

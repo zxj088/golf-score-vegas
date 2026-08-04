@@ -482,8 +482,15 @@ let gameWizardStep = 1;
 
 const els = {
   scoreStrip: document.querySelector('#scoreStrip'),
+  scoreStripCourse: document.querySelector('#scoreStripCourse'),
+  scoreStripMode: document.querySelector('#scoreStripMode'),
+  scoreStripDate: document.querySelector('#scoreStripDate'),
   syncBar: document.querySelector('#syncBar'),
   appTitle: document.querySelector('#appTitle'),
+  headerStatus: document.querySelector('#headerStatus'),
+  headerStatusText: document.querySelector('#headerStatusText'),
+  topMenuButton: document.querySelector('#topMenuButton'),
+  topActions: document.querySelector('#topActions'),
   rulesLabel: document.querySelector('#rulesLabel'),
   playEntryMode: document.querySelector('#playEntryMode'),
   playEntryTitle: document.querySelector('#playEntryTitle'),
@@ -2753,6 +2760,50 @@ function parseScore(value) {
   return Number.isInteger(score) && score > 0 ? score : null;
 }
 
+function grossScoreTone(score, par) {
+  const gross = parseScore(score);
+  const parValue = Number(par);
+  if (gross === null || !Number.isFinite(parValue)) return '';
+  if (gross < parValue) return 'gross-under-par';
+  if (gross === parValue + 1) return 'gross-one-over';
+  if (gross >= parValue + 2) return 'gross-two-over';
+  return '';
+}
+
+function grossScoreCanvasColor(score, par) {
+  const tone = grossScoreTone(score, par);
+  if (tone === 'gross-under-par') return '#ffffff';
+  if (tone === 'gross-one-over') return '#ffffff';
+  if (tone === 'gross-two-over') return '#ffffff';
+  return '#17221f';
+}
+
+function drawGrossScoreMarker(ctx, score, par, centerX, centerY, size = 34) {
+  const tone = grossScoreTone(score, par);
+  if (!tone) return;
+  ctx.save();
+  ctx.lineWidth = Math.max(2, size * 0.07);
+  if (tone === 'gross-under-par') {
+    ctx.fillStyle = '#c43b3b';
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, size * 0.46, 0, Math.PI * 2);
+    ctx.fill();
+  } else {
+    const half = size * 0.48;
+    ctx.fillStyle = tone === 'gross-one-over' ? '#438fba' : '#185783';
+    ctx.strokeStyle = tone === 'gross-one-over' ? '#2d739c' : '#103e60';
+    ctx.fillRect(centerX - half, centerY - half, half * 2, half * 2);
+    ctx.strokeRect(centerX - half, centerY - half, half * 2, half * 2);
+    if (tone === 'gross-two-over') {
+      const inset = size * 0.13;
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = Math.max(1.5, size * 0.045);
+      ctx.strokeRect(centerX - half + inset, centerY - half + inset, (half - inset) * 2, (half - inset) * 2);
+    }
+  }
+  ctx.restore();
+}
+
 function clampScore(value) {
   const score = Number(value);
   if (!Number.isFinite(score)) return '';
@@ -3151,7 +3202,9 @@ function renderPlayEntry() {
     const meta = row.querySelector('.play-score-meta');
     if (meta) meta.innerHTML = previousHoleScoreHtml(scoreIndex);
     const button = row.querySelector('.play-score-button');
-    button.classList.toggle('under-par', parseScore(grossValue) !== null && Number(grossValue) < par);
+    button.classList.toggle('under-par', grossScoreTone(grossValue, par) === 'gross-under-par');
+    button.classList.toggle('one-over', grossScoreTone(grossValue, par) === 'gross-one-over');
+    button.classList.toggle('two-over', grossScoreTone(grossValue, par) === 'gross-two-over');
     button.innerHTML = grossValue
       ? `<span>${grossValue}</span>${state.scoreMode === 'net' && netValue ? `<small>${t('Net')} ${netValue}</small>` : ''}`
       : '<span>--</span>';
@@ -3864,6 +3917,24 @@ function renderRulesEntry() {
   els.rulesButton.title = accessibleLabel;
 }
 
+function renderHeaderStatus() {
+  const game = currentGame();
+  let label = t('No sign-in · Ready to play');
+  let status = 'ready';
+  if (game && gameStatus(game) !== 'playing') {
+    label = t('Game complete · Locked');
+    status = 'complete';
+  } else if (game && isEditing) {
+    label = t('Scoring in progress');
+    status = 'scoring';
+  } else if (game) {
+    label = t('Watching live');
+    status = 'watching';
+  }
+  if (els.headerStatusText) els.headerStatusText.textContent = label;
+  if (els.headerStatus) els.headerStatus.dataset.status = status;
+}
+
 async function showRulesDialog() {
   const landlordRules = LANDLORD_RULES_SECTIONS.map(section => t(section)).join('\n\n');
   const gameType = currentGame()?.gameType || state.gameType;
@@ -3893,6 +3964,9 @@ function renderScoreStrip() {
   const game = currentGame();
   const total = totals();
   const parTotal = course.pars.reduce((a, b) => a + b, 0);
+  if (els.scoreStripCourse) els.scoreStripCourse.textContent = course.name;
+  if (els.scoreStripMode) els.scoreStripMode.textContent = `${state.gameType === 'landlord' ? t('Fight the Landlord') : t('Las Vegas')} · ${state.scoreMode === 'net' ? t('Net') : t('Gross')}`;
+  if (els.scoreStripDate) els.scoreStripDate.textContent = formatTeeTime(game?.totals?.teeTime, game?.savedAt);
   els.scoreStrip.classList.toggle('landlord-mode', state.gameType === 'landlord');
   if (state.gameType === 'landlord') {
     const points = total.landlordPoints || [];
@@ -3907,7 +3981,7 @@ function renderScoreStrip() {
     applySignedClass(els.teamATotal, ranked[0]?.points || 0);
     applySignedClass(els.teamBTotal, 0);
     els.holesComplete.textContent = `${total.complete}/18`;
-    els.coursePar.textContent = formatTeeTime(game?.totals?.teeTime, game?.savedAt);
+    els.coursePar.textContent = total.complete >= 18 ? t('Completed') : t('Playing');
     return;
   }
   els.teamATotal.closest('.team-total')?.querySelector('.label')?.replaceChildren(document.createTextNode(t('Team A')));
@@ -3919,7 +3993,7 @@ function renderScoreStrip() {
   applySignedClass(els.teamATotal, total.a);
   applySignedClass(els.teamBTotal, total.b);
   els.holesComplete.textContent = `${total.complete}/18`;
-  els.coursePar.textContent = formatTeeTime(game?.totals?.teeTime, game?.savedAt);
+  els.coursePar.textContent = total.complete >= 18 ? t('Completed') : t('Playing');
   els.totalPar.textContent = parTotal;
   els.playerTotals.forEach((cell, index) => {
     cell.textContent = state.scoreMode === 'net'
@@ -3937,11 +4011,14 @@ function renderLandlordLeaderboard() {
   const vegasScorecard = document.querySelector('#leaderboardView .scorecard');
   const commonActions = document.querySelector('#leaderboardView .leaderboard-common-actions');
   if (vegasScorecard) vegasScorecard.hidden = active;
-  document.querySelector('.leaderboard-tools').hidden = active;
+  // The event card already contains course, format, date, progress and sync
+  // context. Keep the results view focused by removing the duplicate controls.
+  document.querySelector('.leaderboard-tools').hidden = true;
   els.landlordLeaderboard.hidden = !active;
   if (!active) {
-    if (commonActions && els.shareCurrentScorecard && els.shareCurrentScorecard.parentElement !== commonActions) {
-      commonActions.appendChild(els.shareCurrentScorecard);
+    const vegasShareSlot = els.scoreStrip?.querySelector('.vegas-share-slot');
+    if (vegasShareSlot && els.shareCurrentScorecard && els.shareCurrentScorecard.parentElement !== vegasShareSlot) {
+      vegasShareSlot.appendChild(els.shareCurrentScorecard);
     }
     return;
   }
@@ -3952,44 +4029,66 @@ function renderLandlordLeaderboard() {
   const displayIndexes = playerDisplayIndexes(config.playerCount);
   const totalsValue = landlordTotals(state);
   const course = currentCourse();
+  const landlordCounts = Array.from({ length: config.playerCount }, () => 0);
+  const frontGross = Array.from({ length: config.playerCount }, () => 0);
+  const frontNet = Array.from({ length: config.playerCount }, () => 0);
+  const frontPoints = Array.from({ length: config.playerCount }, () => 0);
+  let frontComplete = 0;
   const rows = state.scores.map((scores, holeIndex) => {
     const result = landlordHoleResult(state, holeIndex);
     const isComplete = Boolean(result);
     const landlordIndex = config.landlords[holeIndex];
+    if (isComplete && landlordIndex >= 0 && landlordIndex < config.playerCount) landlordCounts[landlordIndex] += 1;
+    if (isComplete && holeIndex < 9) {
+      frontComplete += 1;
+      displayIndexes.forEach(playerIndex => {
+        frontGross[playerIndex] += parseScore(scores[playerIndex]) || 0;
+        frontNet[playerIndex] += result.net[playerIndex] || 0;
+        frontPoints[playerIndex] += result.points[playerIndex] || 0;
+      });
+    }
     const scoreCells = displayIndexes.map(playerIndex => {
       const gross = parseScore(scores[playerIndex]);
       const net = result?.net?.[playerIndex];
       const points = result?.points?.[playerIndex] || 0;
       return `<td class="${playerIndex === landlordIndex ? 'landlord-cell' : ''}">
         ${playerIndex === landlordIndex && isComplete ? roleIconHtml(true, 'landlord-cell-marker') : ''}
-        <strong>${gross ?? '--'}</strong>
+        <strong class="${grossScoreTone(gross, course.pars[holeIndex])}">${gross ?? '--'}</strong>
         ${gross !== null && config.handicapEnabled ? `<small>${escapeHtml(t('Net'))} ${net ?? '--'}</small>` : ''}
         ${isComplete ? `<span class="${points > 0 ? 'point-positive' : (points < 0 ? 'point-negative' : '')}">${signedPoints(points)}</span>` : ''}
       </td>`;
     }).join('');
-    return `<tr>
+    const row = `<tr>
       <td>${holeIndex + 1}</td>
       <td>${course.pars[holeIndex]}</td>
       <td>${course.indexes[holeIndex]}</td>
       <td>${isComplete ? `${escapeHtml(state.players[landlordIndex] || '')}<small>x${result.multiplier}</small>` : '--'}</td>
       ${scoreCells}
     </tr>`;
+    if (holeIndex !== 8) return row;
+    const frontCells = displayIndexes.map(index => `<th><strong>${frontGross[index]}</strong>${config.handicapEnabled ? `<small>${escapeHtml(t('Net'))} ${frontNet[index]}</small>` : ''}<span class="${frontPoints[index] > 0 ? 'point-positive' : (frontPoints[index] < 0 ? 'point-negative' : '')}">${signedPoints(frontPoints[index])}</span></th>`).join('');
+    return `${row}<tr class="nine-hole-subtotal"><th>${escapeHtml(document.documentElement.lang.startsWith('zh') ? '小计' : 'Subtotal')}</th><th>${course.pars.slice(0, 9).reduce((sum, par) => sum + par, 0)}</th><th>—</th><th>—</th>${frontCells}</tr>`;
   }).join('');
   const totalCells = displayIndexes.map(index => `
     <th>
       <strong>${totalsValue.gross[index]}</strong>
       ${config.handicapEnabled ? `<small>${escapeHtml(t('Net'))} ${totalsValue.net[index]}</small>` : ''}
+      <small class="landlord-count-total">${roleIconHtml(true)} ${document.documentElement.lang.startsWith('zh') ? `${landlordCounts[index]}次` : `× ${landlordCounts[index]}`}</small>
       <span class="${totalsValue.points[index] > 0 ? 'point-positive' : (totalsValue.points[index] < 0 ? 'point-negative' : '')}">${signedPoints(totalsValue.points[index])}</span>
     </th>`).join('');
   els.landlordLeaderboard.innerHTML = `
     <div class="landlord-ranking">
-      <p class="eyebrow">${escapeHtml(`${t('Fight the Landlord')} · ${state.scoreMode === 'net' ? t('Net') : t('Gross')} · ${landlordSettingsSummary(state)}`)}</p>
-      <div class="landlord-ranking-title-row">
-        <h2>${escapeHtml(course.name)}</h2>
-        <span>${escapeHtml(roundListDate(currentGame() || {}))}</span>
-        <strong>${totalsValue.complete}/18</strong>
+      <div class="landlord-event-main">
+        <span class="course-emblem" aria-hidden="true"><svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="29"/><path d="M17 47V28h7V18h6v10h5V14h6v14h7v19M14 47h36M23 47V36h7v11M36 47V36h7v11M20 23h4M38 20h3"/></svg></span>
+        <div class="landlord-event-copy">
+          <h2>${escapeHtml(course.name)}</h2>
+          <p class="eyebrow">${escapeHtml(`${t('Fight the Landlord')} · ${state.scoreMode === 'net' ? t('Net') : t('Gross')}`)}</p>
+          <span>${escapeHtml(roundListDate(currentGame() || {}))}</span>
+        </div>
+        <div class="landlord-event-progress"><strong>${totalsValue.complete}/18</strong><span>${totalsValue.complete >= 18 ? escapeHtml(t('Completed')) : escapeHtml(t('Playing'))}</span></div>
         <span class="landlord-share-slot"></span>
       </div>
+      <p class="landlord-settings-line">${escapeHtml(landlordSettingsSummary(state))}</p>
       <div class="rank-chips">${displayIndexes
         .map(index => `<span>${escapeHtml(state.players[index])} <strong class="${totalsValue.points[index] > 0 ? 'point-positive' : (totalsValue.points[index] < 0 ? 'point-negative' : '')}">${signedPoints(totalsValue.points[index])}</strong></span>`)
         .join('')}</div>
@@ -3998,7 +4097,7 @@ function renderLandlordLeaderboard() {
       <table>
         <thead><tr><th>${escapeHtml(t('Hole'))}</th><th>${escapeHtml(t('Par'))}</th><th>${escapeHtml(t('Index'))}</th><th>${escapeHtml(t('Landlord'))}</th>${displayIndexes.map(index => `<th>${escapeHtml(state.players[index])}</th>`).join('')}</tr></thead>
         <tbody>${rows}</tbody>
-        <tfoot><tr><th>${escapeHtml(t('Total'))}</th><th>${course.pars.reduce((sum, par) => sum + par, 0)}</th><th>--</th><th>${totalsValue.complete}/18</th>${totalCells}</tr></tfoot>
+        <tfoot><tr><th>${escapeHtml(t('Total'))}</th><th>${course.pars.reduce((sum, par) => sum + par, 0)}</th><th>—</th><th>—</th>${totalCells}</tr></tfoot>
       </table>
     </div>`;
   const shareSlot = els.landlordLeaderboard.querySelector('.landlord-share-slot');
@@ -4014,8 +4113,9 @@ function renderHoles() {
     const result = scoreHole(scores, course.pars[index], index);
     const holeValues = holeGrossAndNet(scores, index);
     row.innerHTML = `
-      <td>${index + 1}/${course.indexes[index] || index + 1}</td>
+      <td>${index + 1}</td>
       <td>${course.pars[index]}</td>
+      <td>${course.indexes[index] || index + 1}</td>
       <td class="team-a-score"><button class="score score-0" type="button" aria-label="${t('Hole {hole} {player} score', { hole: index + 1, player: state.players[0] })}"></button></td>
       <td class="team-a-score"><button class="score score-1" type="button" aria-label="${t('Hole {hole} {player} score', { hole: index + 1, player: state.players[1] })}"></button></td>
       <td class="team-a-score vegas-number"></td>
@@ -4030,6 +4130,8 @@ function renderHoles() {
       const input = row.querySelector(`.score-${scoreIndex}`);
       const grossValue = scores[scoreIndex] || '';
       const netValue = holeValues.net[scoreIndex];
+      const grossTone = grossScoreTone(grossValue, course.pars[index]);
+      if (grossTone) input.classList.add(grossTone);
       input.innerHTML = grossValue
         ? `<span>${grossValue}</span>${state.scoreMode === 'net' && netValue ? `<small>${t('Net')} ${netValue}</small>` : ''}`
         : '<span>--</span>';
@@ -4051,22 +4153,35 @@ function renderHoles() {
     });
 
     if (result) {
-      const aPointCell = row.children[5];
-      const bPointCell = row.children[9];
-      row.children[4].textContent = `${result.aNumber.value}${result.aNumber.flipped ? '*' : ''}`;
-      row.children[8].textContent = `${result.bNumber.value}${result.bNumber.flipped ? '*' : ''}`;
+      const aPointCell = row.children[6];
+      const bPointCell = row.children[10];
+      row.children[5].textContent = `${result.aNumber.value}${result.aNumber.flipped ? '*' : ''}`;
+      row.children[9].textContent = `${result.bNumber.value}${result.bNumber.flipped ? '*' : ''}`;
       aPointCell.textContent = result.delta;
       bPointCell.textContent = -result.delta;
       applySignedClass(aPointCell, result.delta);
       applySignedClass(bPointCell, -result.delta);
     } else {
-      row.children[4].textContent = '--';
-      row.children[5].textContent = '0';
-      row.children[8].textContent = '--';
-      row.children[9].textContent = '0';
+      row.children[5].textContent = '--';
+      row.children[6].textContent = '0';
+      row.children[9].textContent = '--';
+      row.children[10].textContent = '0';
     }
 
     els.scoreRows.append(row);
+    if (index === 8) {
+      const front = state.scores.slice(0, 9).reduce((sum, holeScores, holeIndex) => {
+        const hole = scoreHole(holeScores, course.pars[holeIndex], holeIndex);
+        const values = holeGrossAndNet(holeScores, holeIndex);
+        values.gross.forEach((value, playerIndex) => { sum.players[playerIndex] += value || 0; });
+        if (hole) { sum.a += hole.delta; sum.b -= hole.delta; }
+        return sum;
+      }, { players: [0, 0, 0, 0], a: 0, b: 0 });
+      const subtotal = document.createElement('tr');
+      subtotal.className = 'nine-hole-subtotal';
+      subtotal.innerHTML = `<th>${document.documentElement.lang.startsWith('zh') ? '小计' : 'Subtotal'}</th><th>${course.pars.slice(0, 9).reduce((sum, par) => sum + par, 0)}</th><th>—</th><th>${front.players[0]}</th><th>${front.players[1]}</th><th></th><th class="${front.a > 0 ? 'point-positive' : (front.a < 0 ? 'point-negative' : '')}">${front.a}</th><th>${front.players[2]}</th><th>${front.players[3]}</th><th></th><th class="${front.b > 0 ? 'point-positive' : (front.b < 0 ? 'point-negative' : '')}">${front.b}</th>`;
+      els.scoreRows.append(subtotal);
+    }
   });
 }
 
@@ -4570,35 +4685,43 @@ async function createLandlordScorecardAsset(round) {
   const playerCardHeights = roleStatistics.map(statistics => 94 + roleLineCount(statistics) * 38);
   const playerCardOffsets = playerCardHeights.map((_, index) => playerCardHeights
     .slice(0, index).reduce((sum, height) => sum + height + playerCardGap, 0));
-  const statisticsTop = 225;
+  const statisticsTop = 280;
   const statisticsHeight = playerCardHeights.reduce((sum, height) => sum + height, 0) + playerCardGap * Math.max(0, playerCount - 1);
   const tableTop = statisticsTop + 48 + statisticsHeight + 18;
   const headerHeight = 62;
   const rowHeight = 74;
-  const totalRowHeight = 78;
+  const totalRowHeight = 92;
   const logicalHeight = tableTop + headerHeight + 18 * rowHeight + totalRowHeight + 30;
   const canvas = document.createElement('canvas');
   canvas.width = logicalWidth * exportScale;
   canvas.height = logicalHeight * exportScale;
   const ctx = canvas.getContext('2d');
   ctx.scale(exportScale, exportScale);
-  ctx.fillStyle = '#f7f3e9';
+  ctx.fillStyle = '#f6f7f4';
   ctx.fillRect(0, 0, logicalWidth, logicalHeight);
-  ctx.fillStyle = '#8c5a19';
-  ctx.fillRect(0, 0, logicalWidth, 205);
-  drawScorecardText(ctx, t('Fight the Landlord'), logicalWidth / 2, 54, { color: '#fff', font: 'bold 46px Georgia, Microsoft YaHei, serif' });
-  drawScorecardText(ctx, normalized.courseName, logicalWidth / 2, 111, { color: '#fff', font: 'bold 38px Arial, Microsoft YaHei, sans-serif' });
-  drawScorecardText(ctx, `${roundListDate(normalized)} · ${roundModeLine(normalized)}`, logicalWidth / 2, 163, { color: '#fff5dc', font: '27px Arial, Microsoft YaHei, sans-serif' });
+  ctx.fillStyle = '#0b5d46';
+  ctx.fillRect(0, 0, logicalWidth, 260);
+  drawScorecardCourseIcon(ctx, 70, 91, 42);
+  drawScorecardText(ctx, normalized.courseName, 128, 54, { align: 'left', color: '#fff', font: 'bold 36px Arial, Microsoft YaHei, sans-serif', maxWidth: 440 });
+  drawScorecardText(ctx, t('Fight the Landlord'), 128, 101, { align: 'left', color: '#f2d37f', font: 'bold 25px Arial, Microsoft YaHei, sans-serif', maxWidth: 440 });
+  drawScorecardText(ctx, '18/18', 750, 70, { align: 'right', color: '#fff', font: 'bold 42px Arial, Microsoft YaHei, sans-serif' });
+  drawScorecardText(ctx, t('Completed'), 750, 116, { align: 'right', color: '#dceee8', font: 'bold 19px Arial, Microsoft YaHei, sans-serif' });
+  drawScorecardText(ctx, `${roundListDate(normalized)} · ${roundModeLine(normalized)}`, 128, 143, { align: 'left', color: '#dceee8', font: '20px Arial, Microsoft YaHei, sans-serif', maxWidth: 500 });
+  const resultGap = 8;
+  const resultWidth = (contentWidth - resultGap * (playerCount - 1)) / playerCount;
+  normalized.players.slice(0, playerCount).forEach((player, index) => {
+    drawScorecardResultBlock(ctx, margin + index * (resultWidth + resultGap), 184, resultWidth, 58, player, totalsValue.points[index]);
+  });
 
   drawScorecardText(ctx, `${t('Leaderboard')} · ${roundModeLine(normalized)}`, margin, statisticsTop + 27, {
-    align: 'left', color: '#8c5a19', font: 'bold 32px Arial, Microsoft YaHei, sans-serif'
+    align: 'left', color: '#0b5d46', font: 'bold 32px Arial, Microsoft YaHei, sans-serif'
   });
   roleStatistics.forEach((statistics, playerIndex) => {
     const cardY = statisticsTop + 48 + playerCardOffsets[playerIndex];
     const playerCardHeight = playerCardHeights[playerIndex];
     ctx.fillStyle = '#fff';
-    ctx.strokeStyle = '#d5c39d';
-    ctx.lineWidth = 2;
+    ctx.strokeStyle = '#d8e1dc';
+    ctx.lineWidth = 1;
     ctx.fillRect(margin, cardY, contentWidth, playerCardHeight);
     ctx.strokeRect(margin, cardY, contentWidth, playerCardHeight);
     drawScorecardText(ctx, statistics.player, margin + 18, cardY + 31, {
@@ -4615,7 +4738,7 @@ async function createLandlordScorecardAsset(round) {
     });
     let roleY = cardY + 72;
     [
-      { image: landlordRoleImage, label: t('Landlord {count} times', { count: statistics.landlord.length }), items: statistics.landlord, color: '#8c5a19' },
+      { image: landlordRoleImage, label: t('Landlord {count} times', { count: statistics.landlord.length }), items: statistics.landlord, color: '#9b6715' },
       { image: peasantRoleImage, label: t('Peasant {count} times', { count: statistics.peasant.length }), items: statistics.peasant, color: '#315e51' }
     ].forEach(role => {
       const chunks = role.items.length
@@ -4647,16 +4770,16 @@ async function createLandlordScorecardAsset(round) {
     });
   });
 
-  const fixedColumns = [40, 42, 42, 86];
+  const fixedColumns = [32, 34, 34, 70];
   const playerWidth = (contentWidth - fixedColumns.reduce((sum, value) => sum + value, 0)) / playerCount;
   const columns = [...fixedColumns, ...Array.from({ length: playerCount }, () => playerWidth)];
   const headers = [t('Hole'), t('Par'), t('Index'), t('Landlord'), ...normalized.players.slice(0, playerCount)];
   let x = margin;
   headers.forEach((header, index) => {
-    ctx.fillStyle = index < 4 ? '#315e51' : '#dceee8';
+    ctx.fillStyle = '#315e51';
     ctx.fillRect(x, tableTop, columns[index], headerHeight);
     drawScorecardText(ctx, header, x + columns[index] / 2, tableTop + headerHeight / 2, {
-      color: index < 4 ? '#fff' : '#17221f',
+      color: '#fff',
       font: 'bold 27px Arial, Microsoft YaHei, sans-serif',
       maxWidth: columns[index] - 12
     });
@@ -4675,16 +4798,22 @@ async function createLandlordScorecardAsset(round) {
     ];
     x = margin;
     values.forEach((value, columnIndex) => {
-      ctx.fillStyle = columnIndex >= 4 && columnIndex - 4 === landlordIndex
-        ? '#fff1d6'
-        : (holeIndex % 2 ? '#fff' : '#f0eee8');
+      ctx.fillStyle = columnIndex < 3
+        ? (holeIndex % 2 ? '#edf3f0' : '#e5eeea')
+        : (columnIndex >= 4 && columnIndex - 4 === landlordIndex
+          ? '#fff1d6'
+          : (holeIndex % 2 ? '#fff' : '#f0eee8'));
       ctx.fillRect(x, y, columns[columnIndex], rowHeight);
       ctx.strokeStyle = '#d6d1c6';
       ctx.strokeRect(x, y, columns[columnIndex], rowHeight);
       if (columnIndex >= 4 && result) {
         const playerIndex = columnIndex - 4;
         if (playerIndex === landlordIndex) ctx.drawImage(landlordRoleImage, x + 4, y + 4, 24, 24);
-        drawScorecardText(ctx, value, x + columns[columnIndex] / 2, y + 24, { font: 'bold 34px Arial' });
+        drawGrossScoreMarker(ctx, value, normalized.pars[holeIndex], x + columns[columnIndex] / 2, y + 24, 38);
+        drawScorecardText(ctx, value, x + columns[columnIndex] / 2, y + 24, {
+          color: grossScoreCanvasColor(value, normalized.pars[holeIndex]),
+          font: 'bold 34px Arial'
+        });
         drawScorecardText(ctx, `${t('Net')} ${result.net[playerIndex]} · ${signedPoints(result.points[playerIndex])}`, x + columns[columnIndex] / 2, y + 54, {
           color: result.points[playerIndex] > 0 ? '#118747' : (result.points[playerIndex] < 0 ? '#b3453f' : '#62706a'),
           font: 'bold 23px Arial, Microsoft YaHei, sans-serif',
@@ -4692,7 +4821,9 @@ async function createLandlordScorecardAsset(round) {
         });
       } else {
         drawScorecardText(ctx, value, x + columns[columnIndex] / 2, y + rowHeight / 2, {
-          font: columnIndex === 3 ? 'bold 23px Arial, Microsoft YaHei, sans-serif' : '27px Arial, Microsoft YaHei, sans-serif',
+          font: columnIndex === 0
+            ? 'bold 31px Arial Narrow, Arial, Microsoft YaHei, sans-serif'
+            : (columnIndex === 3 ? 'bold 23px Arial, Microsoft YaHei, sans-serif' : '27px Arial, Microsoft YaHei, sans-serif'),
           maxWidth: columns[columnIndex] - 8
         });
       }
@@ -4704,24 +4835,31 @@ async function createLandlordScorecardAsset(round) {
     t('Total'),
     normalized.pars.reduce((sum, par) => sum + Number(par || 0), 0),
     '--',
-    `${totalsValue.complete}/18`,
+    '—',
     ...normalized.players.slice(0, playerCount).map((_, index) => totalsValue.gross[index])
   ];
   x = margin;
   totalValues.forEach((value, columnIndex) => {
-    ctx.fillStyle = columnIndex < 4 ? '#315e51' : '#dceee8';
+    ctx.fillStyle = '#315e51';
     ctx.fillRect(x, totalY, columns[columnIndex], totalRowHeight);
     ctx.strokeStyle = '#b8cfc7';
     ctx.strokeRect(x, totalY, columns[columnIndex], totalRowHeight);
     if (columnIndex >= 4) {
       const playerIndex = columnIndex - 4;
       drawScorecardText(ctx, value, x + columns[columnIndex] / 2, totalY + 24, {
-        font: 'bold 33px Arial, Microsoft YaHei, sans-serif'
+        color: '#fff', font: 'bold 33px Arial, Microsoft YaHei, sans-serif'
       });
-      drawScorecardText(ctx, `${t('Net')} ${totalsValue.net[playerIndex]} · ${signedPoints(totalsValue.points[playerIndex])}`, x + columns[columnIndex] / 2, totalY + 55, {
-        color: totalsValue.points[playerIndex] > 0 ? '#118747' : (totalsValue.points[playerIndex] < 0 ? '#b3453f' : '#315e51'),
-        font: 'bold 22px Arial, Microsoft YaHei, sans-serif',
-        maxWidth: columns[columnIndex] - 8
+      drawScorecardText(ctx, `${t('Net')} ${totalsValue.net[playerIndex]}`, x + columns[columnIndex] / 2 - 24, totalY + 51, {
+        color: '#fff', font: 'bold 18px Arial, Microsoft YaHei, sans-serif',
+        maxWidth: columns[columnIndex] - 55
+      });
+      drawScorecardText(ctx, signedPoints(totalsValue.points[playerIndex]), x + columns[columnIndex] / 2 + 45, totalY + 51, {
+        color: totalsValue.points[playerIndex] > 0 ? '#9ff0c8' : (totalsValue.points[playerIndex] < 0 ? '#ffc1bd' : '#fff'),
+        font: 'bold 20px Arial, Microsoft YaHei, sans-serif', maxWidth: 60
+      });
+      ctx.drawImage(landlordRoleImage, x + columns[columnIndex] / 2 - 38, totalY + 63, 22, 22);
+      drawScorecardText(ctx, document.documentElement.lang.startsWith('zh') ? `${roleStatistics[playerIndex].landlord.length}次` : `× ${roleStatistics[playerIndex].landlord.length}`, x + columns[columnIndex] / 2 + 9, totalY + 75, {
+        color: '#fff', font: 'bold 18px Arial, Microsoft YaHei, sans-serif', maxWidth: columns[columnIndex] - 34
       });
     } else {
       drawScorecardText(ctx, value, x + columns[columnIndex] / 2, totalY + totalRowHeight / 2, {
@@ -4743,7 +4881,10 @@ async function createScorecardAsset(round) {
   const totalRowHeight = 74;
   const exportScale = 2;
   const logicalWidth = 1200;
-  const logicalHeight = Math.max(1875, 1869 + flipDetails.length * detailRowHeight);
+  // Give the gross score and its net-score caption enough vertical breathing
+  // room in the exported PNG. The canvas grows with the taller 18-hole table
+  // so the analysis section below is never clipped.
+  const logicalHeight = Math.max(2055, 2049 + flipDetails.length * detailRowHeight);
   const canvas = document.createElement('canvas');
   canvas.width = logicalWidth * exportScale;
   canvas.height = logicalHeight * exportScale;
@@ -4758,33 +4899,45 @@ async function createScorecardAsset(round) {
   const margin = 55;
   const tableTop = 320;
   const headerHeight = 78;
-  const rowHeight = 54;
-  const columns = [85, 65, 135, 135, 105, 105, 135, 135, 95, 95];
-  const labels = ['H/I', t('Par'), players[0], players[1], 'A#', 'A+/-', players[2], players[3], 'B#', 'B+/-'];
+  const rowHeight = 64;
+  const columns = [45, 45, 45, 140, 140, 105, 105, 140, 140, 95, 90];
+  const labels = [t('Hole'), t('Par'), t('Index'), players[0], players[1], 'A#', 'A+/-', players[2], players[3], 'B#', 'B+/-'];
 
-  ctx.fillStyle = '#f7f3e9';
+  ctx.fillStyle = '#f6f7f4';
   ctx.fillRect(0, 0, logicalWidth, logicalHeight);
-  ctx.fillStyle = '#1f6f5b';
-  ctx.fillRect(0, 0, canvas.width, 245);
-  drawScorecardText(ctx, t('Vegas Golf Scorecard'), 600, 65, { color: '#ffffff', font: 'bold 48px Georgia, Microsoft YaHei, serif' });
-  drawScorecardText(ctx, normalized.courseName || t('Course'), 600, 132, { color: '#ffffff', font: 'bold 42px Arial, Microsoft YaHei, sans-serif' });
-  drawScorecardText(ctx, roundListDate(normalized), 600, 194, { color: '#dceee8', font: '28px Arial, Microsoft YaHei, sans-serif' });
-  ctx.fillStyle = '#ffffff';
-  ctx.fillRect(margin, 245, 1090, 75);
-  drawScorecardText(ctx,
-    `${t('Team A')}: ${players[0]} (HCP ${handicaps[0]}) + ${players[1]} (HCP ${handicaps[1]})  vs  ${t('Team B')}: ${players[2]} (HCP ${handicaps[2]}) + ${players[3]} (HCP ${handicaps[3]})`,
-    600,
-    277,
-    { font: '28px Arial, Microsoft YaHei, sans-serif', maxWidth: 1060 }
-  );
+  ctx.fillStyle = '#0b5d46';
+  ctx.fillRect(0, 0, logicalWidth, tableTop);
+  drawScorecardCourseIcon(ctx, 82, 106, 50);
+  drawScorecardText(ctx, normalized.courseName || t('Course'), 155, 64, {
+    align: 'left', color: '#ffffff', font: 'bold 44px Arial, Microsoft YaHei, sans-serif', maxWidth: 620
+  });
+  drawScorecardText(ctx, `${t('Las Vegas')} · ${normalized.scoreMode === 'net' ? t('Net') : t('Gross')}`, 155, 119, {
+    align: 'left', color: '#f2d37f', font: 'bold 28px Arial, Microsoft YaHei, sans-serif', maxWidth: 620
+  });
+  drawScorecardText(ctx, roundListDate(normalized), 155, 158, {
+    align: 'left', color: '#dceee8', font: '22px Arial, Microsoft YaHei, sans-serif', maxWidth: 500
+  });
+  drawScorecardText(ctx, '18/18', 1128, 77, {
+    align: 'right', color: '#ffffff', font: 'bold 48px Arial, Microsoft YaHei, sans-serif'
+  });
+  drawScorecardText(ctx, t('Completed'), 1128, 126, {
+    align: 'right', color: '#dceee8', font: 'bold 20px Arial, Microsoft YaHei, sans-serif'
+  });
+  const teamBlockY = 218;
+  const teamBlockGap = 16;
+  const teamBlockWidth = (1090 - teamBlockGap) / 2;
+  drawScorecardResultBlock(ctx, margin, teamBlockY, teamBlockWidth, 70,
+    `${t('Team A')}  ${players[0]} + ${players[1]}`, displayedTeamTotal.a);
+  drawScorecardResultBlock(ctx, margin + teamBlockWidth + teamBlockGap, teamBlockY, teamBlockWidth, 70,
+    `${t('Team B')}  ${players[2]} + ${players[3]}`, displayedTeamTotal.b);
 
   let x = margin;
   labels.forEach((label, index) => {
-    ctx.fillStyle = index < 2 ? '#315e51' : (index < 6 ? '#dceee8' : '#fff1d6');
+    ctx.fillStyle = '#0b5d46';
     ctx.fillRect(x, tableTop, columns[index], headerHeight);
     drawScorecardText(ctx, label, x + columns[index] / 2, tableTop + headerHeight / 2, {
-      color: index < 2 ? '#ffffff' : '#17221f',
-      font: index < 2 ? 'bold 24px Arial' : 'bold 21px Arial, Microsoft YaHei, sans-serif'
+      color: '#ffffff',
+      font: index < 3 ? 'bold 22px Arial Narrow, Arial, Microsoft YaHei, sans-serif' : 'bold 21px Arial, Microsoft YaHei, sans-serif'
     });
     x += columns[index];
   });
@@ -4813,8 +4966,9 @@ async function createScorecardAsset(round) {
       bPoints = -aPoints;
     }
     const values = [
-      `${holeIndex + 1}/${normalized.indexes[holeIndex]}`,
+      holeIndex + 1,
       normalized.pars[holeIndex],
+      normalized.indexes[holeIndex],
       ...normalized.scores[holeIndex].map(value => value || '—').slice(0, 2),
       aNumber,
       aPoints,
@@ -4824,25 +4978,33 @@ async function createScorecardAsset(round) {
     ];
     x = margin;
     values.forEach((value, columnIndex) => {
-      ctx.fillStyle = holeIndex % 2 ? '#ffffff' : '#f0eee8';
+      ctx.fillStyle = columnIndex < 3
+        ? (holeIndex % 2 ? '#edf3f0' : '#e5eeea')
+        : (holeIndex % 2 ? '#ffffff' : '#f0eee8');
       ctx.fillRect(x, y, columns[columnIndex], rowHeight);
       ctx.strokeStyle = '#d6d1c6';
       ctx.strokeRect(x, y, columns[columnIndex], rowHeight);
-      const playerIndexByColumn = { 2: 0, 3: 1, 6: 2, 7: 3 };
+      const playerIndexByColumn = { 3: 0, 4: 1, 7: 2, 8: 3 };
       const playerIndex = playerIndexByColumn[columnIndex];
       if (playerIndex !== undefined && complete) {
-        drawScorecardText(ctx, value, x + columns[columnIndex] / 2, y + 20, { font: 'bold 22px Arial' });
-        drawScorecardText(ctx, `${t('Net')} ${netValues[playerIndex]}`, x + columns[columnIndex] / 2, y + 41, {
+        drawGrossScoreMarker(ctx, value, normalized.pars[holeIndex], x + columns[columnIndex] / 2, y + 21, 31);
+        drawScorecardText(ctx, value, x + columns[columnIndex] / 2, y + 21, {
+          color: grossScoreCanvasColor(value, normalized.pars[holeIndex]),
+          font: 'bold 22px Arial'
+        });
+        drawScorecardText(ctx, `${t('Net')} ${netValues[playerIndex]}`, x + columns[columnIndex] / 2, y + 49, {
           color: '#62706a', font: 'bold 13px Arial, Microsoft YaHei, sans-serif'
         });
         x += columns[columnIndex];
         return;
       }
-      const isPointsColumn = columnIndex === 5 || columnIndex === 9;
+      const isPointsColumn = columnIndex === 6 || columnIndex === 10;
       const pointValue = Number(value);
       drawScorecardText(ctx, value, x + columns[columnIndex] / 2, y + rowHeight / 2, {
         color: isPointsColumn && pointValue > 0 ? '#118747' : (isPointsColumn && pointValue < 0 ? '#b3453f' : '#17221f'),
-        font: columnIndex < 2 ? '22px Arial' : 'bold 24px Arial'
+        font: columnIndex === 0
+          ? 'bold 25px Arial Narrow, Arial'
+          : (columnIndex < 3 ? '21px Arial Narrow, Arial' : 'bold 24px Arial')
       });
       x += columns[columnIndex];
     });
@@ -4861,6 +5023,7 @@ async function createScorecardAsset(round) {
   const totalValues = [
     t('Total'),
     parTotal,
+    '--',
     playerTotals.gross[0],
     playerTotals.gross[1],
     '—',
@@ -4872,25 +5035,25 @@ async function createScorecardAsset(round) {
   ];
   x = margin;
   totalValues.forEach((value, columnIndex) => {
-    ctx.fillStyle = columnIndex < 2 ? '#315e51' : (columnIndex < 6 ? '#dceee8' : '#fff1d6');
+    ctx.fillStyle = '#315e51';
     ctx.fillRect(x, totalsY, columns[columnIndex], totalRowHeight);
     ctx.strokeStyle = '#78958c';
     ctx.lineWidth = 2;
     ctx.strokeRect(x, totalsY, columns[columnIndex], totalRowHeight);
-    const playerIndexByColumn = { 2: 0, 3: 1, 6: 2, 7: 3 };
+    const playerIndexByColumn = { 3: 0, 4: 1, 7: 2, 8: 3 };
     const playerIndex = playerIndexByColumn[columnIndex];
     if (playerIndex !== undefined) {
       drawScorecardText(ctx, value, x + columns[columnIndex] / 2, totalsY + 27, {
-        font: 'bold 25px Arial, Microsoft YaHei, sans-serif'
+        color: '#fff', font: 'bold 25px Arial, Microsoft YaHei, sans-serif'
       });
       drawScorecardText(ctx, `${t('Net')} ${playerTotals.net[playerIndex]}`, x + columns[columnIndex] / 2, totalsY + 55, {
-        color: '#52635d', font: 'bold 16px Arial, Microsoft YaHei, sans-serif'
+        color: '#fff', font: 'bold 16px Arial, Microsoft YaHei, sans-serif'
       });
     } else {
-      const isPointsColumn = columnIndex === 5 || columnIndex === 9;
+      const isPointsColumn = columnIndex === 6 || columnIndex === 10;
       const pointValue = Number(value);
       drawScorecardText(ctx, value, x + columns[columnIndex] / 2, totalsY + totalRowHeight / 2, {
-        color: columnIndex < 2 ? '#ffffff' : (isPointsColumn && pointValue > 0 ? '#118747' : (isPointsColumn && pointValue < 0 ? '#b3453f' : '#17221f')),
+        color: isPointsColumn && pointValue > 0 ? '#9ff0c8' : (isPointsColumn && pointValue < 0 ? '#ffc1bd' : '#ffffff'),
         font: columnIndex === 0 ? 'bold 21px Arial, Microsoft YaHei, sans-serif' : 'bold 25px Arial, Microsoft YaHei, sans-serif'
       });
     }
@@ -5056,7 +5219,6 @@ function renderGameList(container, rounds, emptyText, status) {
             <span class="small-actions"></span>
           </span>
           <span class="game-line game-score"></span>
-          <span class="game-destination"></span>
         </span>
       </div>
     `;
@@ -5067,7 +5229,6 @@ function renderGameList(container, rounds, emptyText, status) {
     const destinationText = status === 'history'
       ? t('View scorecard')
       : (destination.canEdit ? t('Continue scoring') : t('Watch live'));
-    row.querySelector('.game-destination').textContent = destinationText;
     row.querySelector('.game-open').setAttribute('aria-label', `${round.courseName || t('Course')} · ${destinationText}`);
     const openRound = () => {
       const target = window.SIMPLE_GOLF_ROUND_ACCESS.openDestination(round, status, clientId);
@@ -5127,7 +5288,59 @@ function render() {
   renderCourses();
   renderStart();
   renderRulesEntry();
+  renderHeaderStatus();
   renderSyncStatus();
+}
+
+function drawScorecardCourseIcon(ctx, centerX, centerY, radius = 42) {
+  ctx.save();
+  ctx.strokeStyle = '#d6ae43';
+  ctx.lineWidth = Math.max(3, radius * 0.09);
+  ctx.beginPath();
+  ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+  ctx.stroke();
+  const scale = radius / 42;
+  const px = value => value * scale;
+  // Match the warm-gold castle emblem used by the on-screen event card.
+  ctx.beginPath();
+  ctx.moveTo(centerX - px(22), centerY + px(20));
+  ctx.lineTo(centerX + px(22), centerY + px(20));
+  ctx.moveTo(centerX - px(18), centerY + px(20));
+  ctx.lineTo(centerX - px(18), centerY - px(9));
+  ctx.lineTo(centerX - px(8), centerY - px(9));
+  ctx.lineTo(centerX - px(8), centerY - px(23));
+  ctx.lineTo(centerX + px(1), centerY - px(23));
+  ctx.lineTo(centerX + px(1), centerY - px(9));
+  ctx.lineTo(centerX + px(9), centerY - px(9));
+  ctx.lineTo(centerX + px(9), centerY - px(29));
+  ctx.lineTo(centerX + px(18), centerY - px(29));
+  ctx.lineTo(centerX + px(18), centerY + px(20));
+  ctx.moveTo(centerX - px(11), centerY + px(20));
+  ctx.lineTo(centerX - px(11), centerY + px(4));
+  ctx.lineTo(centerX - px(2), centerY + px(4));
+  ctx.lineTo(centerX - px(2), centerY + px(20));
+  ctx.moveTo(centerX + px(6), centerY + px(20));
+  ctx.lineTo(centerX + px(6), centerY + px(4));
+  ctx.lineTo(centerX + px(14), centerY + px(4));
+  ctx.lineTo(centerX + px(14), centerY + px(20));
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawScorecardResultBlock(ctx, x, y, width, height, label, score) {
+  ctx.save();
+  ctx.fillStyle = '#ffffff';
+  ctx.beginPath();
+  roundedRectPath(ctx, x, y, width, height, 12);
+  ctx.fill();
+  drawScorecardText(ctx, label, x + 16, y + height / 2, {
+    align: 'left', color: '#17221f', font: 'bold 24px Arial, Microsoft YaHei, sans-serif', maxWidth: width * 0.65
+  });
+  drawScorecardText(ctx, signedPoints(score), x + width - 16, y + height / 2, {
+    align: 'right', color: Number(score) > 0 ? '#118747' : (Number(score) < 0 ? '#b3453f' : '#17221f'),
+    font: 'bold 35px Arial, Microsoft YaHei, sans-serif', maxWidth: width * 0.28
+  });
+  ctx.restore();
 }
 
 function switchView(name) {
@@ -5142,7 +5355,9 @@ function switchView(name) {
     els.scoreStrip.hidden = currentView !== 'leaderboard';
   }
   if (els.syncBar) {
-    els.syncBar.hidden = currentView !== 'leaderboard';
+    // Synchronisation remains automatic; its state is already shown in the
+    // system status bar, so the legacy manual control is intentionally hidden.
+    els.syncBar.hidden = true;
   }
   if (currentView === 'play') renderPlayEntry();
   renderScoringDeviceBar();
@@ -5264,6 +5479,8 @@ function addListeners() {
         await showMessage(t('Share app'), shareData.url);
       }
     } catch {}
+    els.topActions?.classList.remove('open');
+    els.topMenuButton?.setAttribute('aria-expanded', 'false');
   });
   els.shareCurrentScorecard?.addEventListener('click', () => {
     const round = currentGame();
@@ -5272,7 +5489,20 @@ function addListeners() {
   });
 
   els.rulesButton.addEventListener('click', () => {
+    els.topActions?.classList.remove('open');
+    els.topMenuButton?.setAttribute('aria-expanded', 'false');
     showRulesDialog();
+  });
+
+  els.topMenuButton?.addEventListener('click', event => {
+    event.stopPropagation();
+    const open = els.topActions?.classList.toggle('open');
+    els.topMenuButton.setAttribute('aria-expanded', String(Boolean(open)));
+  });
+  document.addEventListener('click', event => {
+    if (event.target.closest('.topbar')) return;
+    els.topActions?.classList.remove('open');
+    els.topMenuButton?.setAttribute('aria-expanded', 'false');
   });
 
   els.dialogForm.addEventListener('submit', event => {
