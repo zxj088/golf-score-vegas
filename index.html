@@ -29,55 +29,65 @@
   </div>
 
   <div class="app-shell">
-    <header class="topbar">
-      <div>
-        <div class="brand-line">
-          <p class="eyebrow" id="rulesLabel">Las Vegas Rule</p>
-          <button id="rulesButton" class="rules-button" type="button" aria-label="Show Las Vegas rules" title="Show Las Vegas rules">☝</button>
-        </div>
-        <h1 id="appTitle">Simple Golf Scorecard</h1>
+    <section class="scoring-device-bar" id="scoringDeviceBar" hidden aria-live="polite">
+      <div class="scoring-device-copy">
+        <strong id="scoringDeviceStatus">Read only</strong>
+        <span id="lastSyncStatus">Not synced yet</span>
       </div>
-      <div class="top-actions">
-        <button id="shareButton" type="button" aria-label="Share app" title="Share app">Share</button>
+      <div class="scoring-device-actions">
+        <button id="previousHistoryGame" type="button" hidden>Previous game</button>
+        <button id="nextHistoryGame" type="button" hidden>Next game</button>
+        <button id="takeOverScoring" type="button" hidden>Take over scoring</button>
+      </div>
+    </section>
+    <header class="topbar">
+      <div class="brand-mark"><img src="./assets/brand-mark.svg" alt="" aria-hidden="true"></div>
+      <div class="brand-copy">
+        <h1 id="appTitle">Simple Golf Scorecard</h1>
+        <p class="header-status" id="headerStatus"><span class="header-status-check" aria-hidden="true">✓</span><span id="headerStatusText">No sign-in · Ready to play</span></p>
+      </div>
+      <button class="top-menu-button" id="topMenuButton" type="button" aria-label="Open menu" title="Open menu" aria-expanded="false" aria-controls="topActions"><span></span><span></span><span></span></button>
+      <div class="top-actions" id="topActions">
+        <button id="rulesButton" class="rules-button" type="button" aria-label="Show Las Vegas rules" title="Show Las Vegas rules"><span id="rulesLabel">Las Vegas Rule</span></button>
+        <button id="shareButton" type="button" aria-label="Share app" title="Share app">Share app</button>
         <button id="languageButton" class="language-button" type="button" aria-label="Switch to Chinese" title="Switch to Chinese">中文</button>
       </div>
     </header>
 
     <main>
-      <section class="scoring-device-bar" id="scoringDeviceBar" hidden aria-live="polite">
-        <div class="scoring-device-copy">
-          <strong id="scoringDeviceStatus">Read only</strong>
-          <span id="lastSyncStatus">Not synced yet</span>
-        </div>
-        <div class="scoring-device-actions">
-          <button id="previousHistoryGame" type="button" hidden>Previous game</button>
-          <button id="nextHistoryGame" type="button" hidden>Next game</button>
-          <button id="takeOverScoring" type="button" hidden>Take over scoring</button>
-        </div>
-      </section>
-
       <section class="score-strip" id="scoreStrip" aria-label="Match totals" hidden>
-        <div class="team-total team-a">
-          <span class="label">Team A</span>
-          <span class="team-players" id="teamAPlayers">Player 1 + Player 2</span>
-          <strong id="teamATotal">0</strong>
+        <div class="vegas-event-main">
+          <span class="course-emblem" aria-hidden="true"><svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="29"/><path d="M17 47V28h7V18h6v10h5V14h6v14h7v19M14 47h36M23 47V36h7v11M36 47V36h7v11M20 23h4M38 20h3"/></svg></span>
+          <div class="vegas-event-copy">
+            <h2 id="scoreStripCourse">Course</h2>
+            <p id="scoreStripMode">Las Vegas · Gross</p>
+            <span id="scoreStripDate">Tee time</span>
+          </div>
+          <div class="match-meta">
+            <span id="holesComplete">0/18</span>
+            <span id="coursePar">Tee time</span>
+          </div>
+          <span class="vegas-share-slot"></span>
         </div>
-        <div class="match-meta">
-          <span id="holesComplete">0/18</span>
-          <span id="coursePar">Tee time</span>
-        </div>
-        <div class="team-total team-b">
-          <span class="label">Team B</span>
-          <span class="team-players" id="teamBPlayers">Player 3 + Player 4</span>
-          <strong id="teamBTotal">0</strong>
+        <div class="vegas-score-pairs">
+          <div class="team-total team-a">
+            <span class="label">Team A</span>
+            <span class="team-players" id="teamAPlayers">Player 1 + Player 2</span>
+            <strong id="teamATotal">0</strong>
+          </div>
+          <div class="team-total team-b">
+            <span class="label">Team B</span>
+            <span class="team-players" id="teamBPlayers">Player 3 + Player 4</span>
+            <strong id="teamBTotal">0</strong>
+          </div>
         </div>
       </section>
 
       <nav class="tabs" aria-label="Views">
-        <button class="tab active" type="button" data-view="start"><span class="tab-icon tab-icon-home" aria-hidden="true"></span><span>Home</span></button>
-        <button class="tab" type="button" data-view="play"><span class="tab-icon">✎</span><span>Play</span></button>
-        <button class="tab" type="button" data-view="leaderboard"><span class="tab-icon">☷</span><span>Leaderboard</span></button>
-        <button class="tab" type="button" data-view="courses"><span class="tab-icon">⚑</span><span>Course</span></button>
+        <button class="tab active" type="button" data-view="start"><span class="tab-icon" aria-hidden="true"><svg viewBox="0 0 32 32"><path d="M4 15 16 4l12 11M7 13v15h18V13M13 28V18h6v10"/></svg></span><span>Home</span></button>
+        <button class="tab" type="button" data-view="play"><span class="tab-icon" aria-hidden="true"><svg viewBox="0 0 32 32"><path d="M18 6H6v21h21V15M13 20l2-6L25 4l4 4-10 10-6 2Z"/></svg></span><span>Play</span></button>
+        <button class="tab" type="button" data-view="leaderboard"><span class="tab-icon" aria-hidden="true"><svg viewBox="0 0 32 32"><path d="M4 28h24M7 28V18h5v10M14 28V11h5v17M21 28V5h5v23"/></svg></span><span>Leaderboard</span></button>
+        <button class="tab" type="button" data-view="courses"><span class="tab-icon" aria-hidden="true"><svg viewBox="0 0 32 32"><path d="M15 27V4l11 4-11 5M5 28c2-3 6-4 10-4s8 1 10 4c-3 2-7 3-10 3s-7-1-10-3Z"/></svg></span><span>Course</span></button>
       </nav>
 
       <section class="view" id="playView">
@@ -150,8 +160,9 @@
           <table>
             <thead>
               <tr>
-                <th>H/I</th>
+                <th>Hole</th>
                 <th>Par</th>
+                <th>Index</th>
                 <th class="team-a-cell"><input id="playerA1" type="text" autocomplete="off" aria-label="Team A player 1"></th>
                 <th class="team-a-cell"><input id="playerA2" type="text" autocomplete="off" aria-label="Team A player 2"></th>
                 <th class="team-a-cell calc-head">A#</th>
@@ -167,6 +178,7 @@
               <tr>
                 <th>Total</th>
                 <th id="totalPar">72</th>
+                <th>--</th>
                 <th id="totalPlayerA1">0</th>
                 <th id="totalPlayerA2">0</th>
                 <th></th>
