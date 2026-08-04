@@ -3720,6 +3720,95 @@ button,
   }
 }
 
+/* Cascade lock for the Las Vegas summary card. */
+.score-strip:not(.landlord-mode) .vegas-event-main {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr) 104px 46px;
+  grid-template-areas: "emblem copy meta share";
+  align-items: center;
+  gap: 14px;
+}
+
+.score-strip:not(.landlord-mode) .event-emblem { grid-area: emblem; }
+.score-strip:not(.landlord-mode) .event-copy {
+  grid-area: copy;
+  min-width: 0;
+  text-align: left !important;
+}
+.score-strip:not(.landlord-mode) .vegas-event-meta { grid-area: meta; }
+.score-strip:not(.landlord-mode) .vegas-share-slot {
+  position: static;
+  grid-area: share;
+  align-self: start;
+  justify-self: end;
+}
+.score-strip:not(.landlord-mode) .leaderboard-share {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  min-height: 44px;
+  place-items: center;
+  padding: 0;
+  border-radius: 50%;
+}
+.score-strip:not(.landlord-mode) .leaderboard-share svg {
+  width: 23px;
+  height: 23px;
+}
+.score-strip:not(.landlord-mode) .vegas-score-pairs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.score-strip:not(.landlord-mode) .vegas-score-pairs .team-total {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) auto !important;
+  grid-template-areas: "label score" "players players";
+  align-items: center;
+}
+.score-strip:not(.landlord-mode) .vegas-score-pairs .team-total .label { grid-area: label; }
+.score-strip:not(.landlord-mode) .vegas-score-pairs .team-total strong { grid-area: score; }
+.score-strip:not(.landlord-mode) .vegas-score-pairs .team-total .team-players {
+  display: block;
+  grid-area: players;
+  min-width: 0;
+  margin-top: 7px;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+.leaderboard-share[hidden] { display: none !important; }
+
+@media (max-width: 600px) {
+  .score-strip:not(.landlord-mode) {
+    padding: 16px;
+    gap: 13px;
+  }
+  .score-strip:not(.landlord-mode) .vegas-event-main {
+    grid-template-columns: 48px minmax(0, 1fr) 62px 40px;
+    gap: 9px;
+  }
+  .score-strip:not(.landlord-mode) .event-emblem {
+    width: 46px;
+    height: 46px;
+  }
+  .score-strip:not(.landlord-mode) .event-copy h2 { font-size: 20px; }
+  .score-strip:not(.landlord-mode) .vegas-event-meta { padding-left: 8px; }
+  .score-strip:not(.landlord-mode) .vegas-event-meta > span:first-child { font-size: 25px; }
+  .score-strip:not(.landlord-mode) .leaderboard-share {
+    width: 40px;
+    height: 40px;
+    min-height: 40px;
+  }
+  .score-strip:not(.landlord-mode) .vegas-score-pairs { gap: 9px; }
+  .score-strip:not(.landlord-mode) .vegas-score-pairs .team-total {
+    min-height: 68px;
+    padding: 9px 11px;
+  }
+  .score-strip:not(.landlord-mode) .vegas-score-pairs .team-total .team-players {
+    font-size: 13px;
+  }
+}
+
 /* Final visual alignment: calm off-white canvas, compact masthead and inverse active nav. */
 html,
 body,
@@ -3844,7 +3933,7 @@ main {
 .topbar {
   position: relative;
   display: grid;
-  grid-template-columns: 48px minmax(0, 1fr) 44px;
+  grid-template-columns: 48px minmax(0, 1fr) 40px 44px;
   align-items: center;
   justify-content: initial;
   gap: 11px;
@@ -3947,6 +4036,418 @@ main {
   background: transparent;
 }
 
+/* Keep the Las Vegas event card aligned with the Wolf & Pack card. */
+.score-strip:not(.landlord-mode) .vegas-event-main {
+  grid-template-columns: 64px minmax(0, 1fr) 104px 46px !important;
+  grid-template-areas: "emblem copy meta share" !important;
+  align-items: center;
+  gap: 12px;
+}
+
+.score-strip:not(.landlord-mode) .course-emblem { grid-area: emblem; }
+.score-strip:not(.landlord-mode) .vegas-event-copy { grid-area: copy; min-width: 0; }
+.score-strip:not(.landlord-mode) .match-meta { grid-area: meta; }
+.score-strip:not(.landlord-mode) .vegas-share-slot {
+  grid-area: share !important;
+  display: flex;
+  justify-content: flex-end;
+  align-items: flex-start;
+}
+
+.score-strip:not(.landlord-mode) .leaderboard-share {
+  width: 44px !important;
+  height: 44px;
+  min-width: 44px;
+  padding: 10px !important;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.leaderboard-share svg {
+  width: 23px;
+  height: 23px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.score-strip:not(.landlord-mode) .vegas-score-pairs .team-total {
+  grid-template-columns: minmax(0, 1fr) auto !important;
+  grid-template-rows: auto auto !important;
+  grid-template-areas: "label score" "players players" !important;
+  column-gap: 8px !important;
+  row-gap: 5px !important;
+  align-content: center;
+}
+
+.score-strip:not(.landlord-mode) .team-total .label {
+  grid-area: label !important;
+}
+
+.score-strip:not(.landlord-mode) .team-total strong {
+  grid-area: score !important;
+  grid-row: auto !important;
+  align-self: center;
+}
+
+.score-strip:not(.landlord-mode) .team-total .team-players {
+  grid-area: players !important;
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 600px) {
+  .score-strip:not(.landlord-mode) {
+    padding: 14px 12px !important;
+  }
+
+  .score-strip:not(.landlord-mode) .vegas-event-main {
+    grid-template-columns: 48px minmax(0, 1fr) 62px 40px !important;
+    gap: 8px;
+  }
+
+  .score-strip:not(.landlord-mode) .leaderboard-share {
+    width: 40px !important;
+    height: 40px;
+    min-width: 40px;
+    padding: 9px !important;
+  }
+
+  .score-strip:not(.landlord-mode) .vegas-event-copy h2 {
+    font-size: 20px;
+  }
+
+  .score-strip:not(.landlord-mode) .vegas-score-pairs {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 8px;
+  }
+
+  .score-strip:not(.landlord-mode) .vegas-score-pairs .team-total {
+    min-height: 68px;
+    padding: 8px 10px !important;
+  }
+
+  .score-strip:not(.landlord-mode) .team-total .team-players {
+    font-size: 13px;
+  }
+}
+
+/* Final Las Vegas event-card layout. Keep this last so legacy mobile rules
+   cannot move the share control or collapse the team summary hierarchy. */
+.score-strip:not(.landlord-mode) {
+  padding: 20px;
+  gap: 16px;
+}
+
+.score-strip:not(.landlord-mode) .vegas-event-main {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr) 104px 46px;
+  grid-template-areas: "emblem copy meta share";
+  align-items: center;
+  gap: 14px;
+}
+
+.score-strip:not(.landlord-mode) .event-emblem {
+  grid-area: emblem;
+}
+
+.score-strip:not(.landlord-mode) .event-copy {
+  grid-area: copy;
+  min-width: 0;
+  text-align: left !important;
+}
+
+.score-strip:not(.landlord-mode) .vegas-event-meta {
+  grid-area: meta;
+}
+
+.score-strip:not(.landlord-mode) .vegas-share-slot {
+  position: static;
+  grid-area: share;
+  align-self: start;
+  justify-self: end;
+}
+
+.score-strip:not(.landlord-mode) .leaderboard-share {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  min-height: 44px;
+  place-items: center;
+  padding: 0;
+  border-radius: 50%;
+}
+
+.score-strip:not(.landlord-mode) .leaderboard-share svg {
+  width: 23px;
+  height: 23px;
+}
+
+.score-strip:not(.landlord-mode) .vegas-score-pairs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.score-strip:not(.landlord-mode) .vegas-score-pairs .team-total {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) auto !important;
+  grid-template-areas:
+    "label score"
+    "players players";
+  align-items: center;
+}
+
+.score-strip:not(.landlord-mode) .vegas-score-pairs .team-total .label {
+  grid-area: label;
+}
+
+.score-strip:not(.landlord-mode) .vegas-score-pairs .team-total strong {
+  grid-area: score;
+}
+
+.score-strip:not(.landlord-mode) .vegas-score-pairs .team-total .team-players {
+  display: block;
+  grid-area: players;
+  min-width: 0;
+  margin-top: 7px;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+.leaderboard-share[hidden] {
+  display: none !important;
+}
+
+@media (max-width: 600px) {
+  .score-strip:not(.landlord-mode) {
+    padding: 16px;
+    gap: 13px;
+  }
+
+  .score-strip:not(.landlord-mode) .vegas-event-main {
+    grid-template-columns: 48px minmax(0, 1fr) 62px 40px;
+    gap: 9px;
+  }
+
+  .score-strip:not(.landlord-mode) .event-emblem {
+    width: 46px;
+    height: 46px;
+  }
+
+  .score-strip:not(.landlord-mode) .event-copy h2 {
+    font-size: 20px;
+  }
+
+  .score-strip:not(.landlord-mode) .vegas-event-meta {
+    padding-left: 8px;
+  }
+
+  .score-strip:not(.landlord-mode) .vegas-event-meta > span:first-child {
+    font-size: 25px;
+  }
+
+  .score-strip:not(.landlord-mode) .leaderboard-share {
+    width: 40px;
+    height: 40px;
+    min-height: 40px;
+  }
+
+  .score-strip:not(.landlord-mode) .vegas-score-pairs {
+    gap: 9px;
+  }
+
+  .score-strip:not(.landlord-mode) .vegas-score-pairs .team-total {
+    min-height: 68px;
+    padding: 9px 11px;
+  }
+
+  .score-strip:not(.landlord-mode) .vegas-score-pairs .team-total .team-players {
+    font-size: 13px;
+  }
+}
+
+/* Las Vegas event card: use the same stable hierarchy as Wolf & Pack.
+   This block intentionally comes last so older responsive rules cannot
+   move the share action into the middle of the card. */
+.score-strip:not(.landlord-mode) {
+  padding: 20px;
+  gap: 16px;
+}
+
+.score-strip:not(.landlord-mode) .vegas-event-main {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr) 104px 46px;
+  grid-template-areas: "emblem copy meta share";
+  align-items: center;
+  gap: 14px;
+}
+
+.score-strip:not(.landlord-mode) .course-emblem {
+  grid-area: emblem;
+}
+
+.score-strip:not(.landlord-mode) .vegas-event-copy {
+  grid-area: copy;
+  min-width: 0;
+}
+
+.score-strip:not(.landlord-mode) .match-meta {
+  grid-area: meta;
+  min-width: 0;
+}
+
+.score-strip:not(.landlord-mode) .vegas-share-slot {
+  position: static;
+  grid-area: share;
+  align-self: start;
+  justify-self: end;
+}
+
+.score-strip:not(.landlord-mode) .leaderboard-share {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  min-height: 44px;
+  place-items: center;
+  padding: 0;
+  border-radius: 50%;
+}
+
+.score-strip:not(.landlord-mode) .leaderboard-share svg {
+  width: 23px;
+  height: 23px;
+}
+
+.score-strip:not(.landlord-mode) .vegas-score-pairs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.score-strip:not(.landlord-mode) .vegas-score-pairs .team-total {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) auto !important;
+  grid-template-areas:
+    "label score"
+    "players players";
+  align-items: center;
+  min-width: 0;
+}
+
+.score-strip:not(.landlord-mode) .team-total .label {
+  grid-area: label;
+}
+
+.score-strip:not(.landlord-mode) .team-total strong {
+  grid-area: score;
+}
+
+.score-strip:not(.landlord-mode) .team-total .team-players {
+  display: block !important;
+  grid-area: players;
+  min-width: 0;
+  margin-top: 7px;
+  overflow: visible;
+  white-space: normal;
+  text-overflow: clip;
+}
+
+@media (max-width: 600px) {
+  .score-strip:not(.landlord-mode) {
+    padding: 16px;
+    gap: 13px;
+  }
+
+  .score-strip:not(.landlord-mode) .vegas-event-main {
+    grid-template-columns: 48px minmax(0, 1fr) 62px 40px;
+    gap: 9px;
+  }
+
+  .score-strip:not(.landlord-mode) .course-emblem {
+    width: 46px;
+    height: 46px;
+  }
+
+  .score-strip:not(.landlord-mode) .vegas-event-copy h2 {
+    font-size: 20px;
+  }
+
+  .score-strip:not(.landlord-mode) .match-meta {
+    padding-left: 8px;
+  }
+
+  .score-strip:not(.landlord-mode) .match-meta span:first-child {
+    font-size: 25px;
+  }
+
+  .score-strip:not(.landlord-mode) .leaderboard-share {
+    width: 40px;
+    height: 40px;
+    min-height: 40px;
+  }
+
+  .score-strip:not(.landlord-mode) .vegas-score-pairs {
+    gap: 9px;
+  }
+
+  .score-strip:not(.landlord-mode) .vegas-score-pairs .team-total {
+    min-height: 68px;
+    padding: 9px 10px;
+  }
+
+  .score-strip:not(.landlord-mode) .team-total .team-players {
+    font-size: 13px;
+    line-height: 1.2;
+  }
+}
+
+.welcome-language-button {
+  position: absolute;
+  top: max(16px, env(safe-area-inset-top));
+  right: max(16px, env(safe-area-inset-right));
+  z-index: 2;
+  display: grid;
+  width: 44px;
+  min-height: 44px;
+  padding: 0;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  border-radius: 50%;
+  color: #fff;
+  background: rgba(7, 62, 45, 0.76);
+  font-size: 20px;
+}
+
+.header-language-button {
+  display: grid;
+  width: 38px;
+  min-height: 38px;
+  padding: 0;
+  place-items: center;
+  align-self: center;
+  border: 1px solid #d7e2dd;
+  border-radius: 50%;
+  color: #125e47;
+  background: #fff;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.header-language-button:hover,
+.header-language-button:focus-visible {
+  border-color: #8ab8a8;
+  background: #edf7f2;
+}
+
 .top-menu-button span {
   display: block;
   width: 25px;
@@ -3979,6 +4480,10 @@ main {
   min-height: 42px;
   justify-content: center;
   font-size: 14px;
+}
+
+.top-actions .about-button {
+  margin-top: 4px;
 }
 
 .tabs {
@@ -4341,8 +4846,8 @@ main {
 
 @media (max-width: 430px) {
   .topbar {
-    grid-template-columns: 40px minmax(0, 1fr) 40px;
-    gap: 8px;
+    grid-template-columns: 40px minmax(0, 1fr) 36px 40px;
+    gap: 6px;
     padding: 10px 10px 11px;
   }
 
@@ -4755,5 +5260,150 @@ main {
   .landlord-table-wrap td > strong.gross-two-over {
     width: 27px;
     height: 27px;
+  }
+}
+
+/* Final Las Vegas event-card layout. Keep this at the end so older responsive
+   rules cannot move the course, progress, share action, or team summaries. */
+.score-strip:not(.landlord-mode) .vegas-event-main {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr) 104px 46px;
+  grid-template-areas: "emblem copy meta share";
+  align-items: center;
+  gap: 14px;
+}
+
+.score-strip:not(.landlord-mode) .event-emblem {
+  grid-area: emblem;
+}
+
+.score-strip:not(.landlord-mode) .event-copy {
+  grid-area: copy;
+  min-width: 0;
+  text-align: left !important;
+}
+
+.score-strip:not(.landlord-mode) .event-meta {
+  grid-area: meta;
+  min-width: 0;
+}
+
+.score-strip:not(.landlord-mode) .vegas-share-slot {
+  position: static;
+  grid-area: share;
+  align-self: start;
+  justify-self: end;
+}
+
+.score-strip:not(.landlord-mode) .leaderboard-share {
+  display: inline-grid;
+  width: 44px;
+  height: 44px;
+  min-height: 0;
+  place-items: center;
+  padding: 0;
+  border-radius: 50%;
+}
+
+.score-strip:not(.landlord-mode) .leaderboard-share svg {
+  width: 23px;
+  height: 23px;
+}
+
+.score-strip:not(.landlord-mode) .leaderboard-share[hidden] {
+  display: none !important;
+}
+
+.score-strip:not(.landlord-mode) .vegas-score-pairs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.score-strip:not(.landlord-mode) .vegas-score-pairs .team-total {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    "label score"
+    "players players";
+  align-items: center;
+  column-gap: 10px;
+  row-gap: 6px;
+}
+
+.score-strip:not(.landlord-mode) .vegas-score-pairs .team-total .label {
+  grid-area: label;
+}
+
+.score-strip:not(.landlord-mode) .vegas-score-pairs .team-total strong {
+  grid-area: score;
+}
+
+.score-strip:not(.landlord-mode) .vegas-score-pairs .team-total .team-players {
+  display: block;
+  grid-area: players;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+/* Preserve the screen-reader label without allowing it to widen the icon. */
+#shareCurrentScorecard .visually-hidden {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
+
+@media (max-width: 600px) {
+  .score-strip:not(.landlord-mode) {
+    padding: 16px;
+    gap: 13px;
+  }
+
+  .score-strip:not(.landlord-mode) .vegas-event-main {
+    grid-template-columns: 48px minmax(0, 1fr) 62px 40px;
+    gap: 9px;
+  }
+
+  .score-strip:not(.landlord-mode) .event-emblem,
+  .score-strip:not(.landlord-mode) .event-emblem svg {
+    width: 46px;
+    height: 46px;
+  }
+
+  .score-strip:not(.landlord-mode) .event-copy h2 {
+    font-size: 20px;
+  }
+
+  .score-strip:not(.landlord-mode) .event-meta {
+    padding-left: 8px;
+  }
+
+  .score-strip:not(.landlord-mode) .event-meta span:first-child {
+    font-size: 25px;
+  }
+
+  .score-strip:not(.landlord-mode) .leaderboard-share {
+    width: 40px;
+    height: 40px;
+  }
+
+  .score-strip:not(.landlord-mode) .vegas-score-pairs {
+    gap: 9px;
+  }
+
+  .score-strip:not(.landlord-mode) .vegas-score-pairs .team-total {
+    min-height: 68px;
+    padding: 9px 11px;
+  }
+
+  .score-strip:not(.landlord-mode) .vegas-score-pairs .team-total .team-players {
+    font-size: 13px;
   }
 }

@@ -510,7 +510,9 @@ const els = {
   landlordLeaderboard: document.querySelector('#landlordLeaderboard'),
   rulesButton: document.querySelector('#rulesButton'),
   languageButton: document.querySelector('#languageButton'),
+  welcomeLanguageButton: document.querySelector('#welcomeLanguageButton'),
   shareButton: document.querySelector('#shareButton'),
+  aboutButton: document.querySelector('#aboutButton'),
   shareCurrentScorecard: document.querySelector('#shareCurrentScorecard'),
   courseSelect: document.querySelector('#courseSelect'),
   birdieFlip: document.querySelector('#birdieFlip'),
@@ -4927,9 +4929,9 @@ async function createScorecardAsset(round) {
   const teamBlockGap = 16;
   const teamBlockWidth = (1090 - teamBlockGap) / 2;
   drawScorecardResultBlock(ctx, margin, teamBlockY, teamBlockWidth, 70,
-    `${t('Team A')}  ${players[0]} + ${players[1]}`, displayedTeamTotal.a);
+    t('Team A'), displayedTeamTotal.a, `${players[0]} + ${players[1]}`);
   drawScorecardResultBlock(ctx, margin + teamBlockWidth + teamBlockGap, teamBlockY, teamBlockWidth, 70,
-    `${t('Team B')}  ${players[2]} + ${players[3]}`, displayedTeamTotal.b);
+    t('Team B'), displayedTeamTotal.b, `${players[2]} + ${players[3]}`);
 
   let x = margin;
   labels.forEach((label, index) => {
@@ -5327,19 +5329,24 @@ function drawScorecardCourseIcon(ctx, centerX, centerY, radius = 42) {
   ctx.restore();
 }
 
-function drawScorecardResultBlock(ctx, x, y, width, height, label, score) {
+function drawScorecardResultBlock(ctx, x, y, width, height, label, score, secondaryLabel = '') {
   ctx.save();
   ctx.fillStyle = '#ffffff';
   ctx.beginPath();
   roundedRectPath(ctx, x, y, width, height, 12);
   ctx.fill();
-  drawScorecardText(ctx, label, x + 16, y + height / 2, {
-    align: 'left', color: '#17221f', font: 'bold 24px Arial, Microsoft YaHei, sans-serif', maxWidth: width * 0.65
+  drawScorecardText(ctx, label, x + 16, y + (secondaryLabel ? 22 : height / 2), {
+    align: 'left', color: '#17221f', font: 'bold 22px Arial, Microsoft YaHei, sans-serif', maxWidth: width * 0.65
   });
-  drawScorecardText(ctx, signedPoints(score), x + width - 16, y + height / 2, {
+  drawScorecardText(ctx, signedPoints(score), x + width - 16, y + (secondaryLabel ? 23 : height / 2), {
     align: 'right', color: Number(score) > 0 ? '#118747' : (Number(score) < 0 ? '#b3453f' : '#17221f'),
     font: 'bold 35px Arial, Microsoft YaHei, sans-serif', maxWidth: width * 0.28
   });
+  if (secondaryLabel) {
+    drawScorecardText(ctx, secondaryLabel, x + 16, y + 52, {
+      align: 'left', color: '#33423e', font: 'bold 20px Arial, Microsoft YaHei, sans-serif', maxWidth: width - 32
+    });
+  }
   ctx.restore();
 }
 
@@ -5492,6 +5499,15 @@ function addListeners() {
     els.topActions?.classList.remove('open');
     els.topMenuButton?.setAttribute('aria-expanded', 'false');
     showRulesDialog();
+  });
+
+  els.aboutButton?.addEventListener('click', async () => {
+    els.topActions?.classList.remove('open');
+    els.topMenuButton?.setAttribute('aria-expanded', 'false');
+    await showMessage(
+      t('About Simple Golf Scorecard'),
+      t('No account or sign-in required. Simple Golf Scorecard supports Las Vegas and Wolf & Pack scoring, live match viewing, historical scorecards, and cloud synchronization across devices. Version 5.1.')
+    );
   });
 
   els.topMenuButton?.addEventListener('click', event => {
@@ -5940,7 +5956,8 @@ function addListeners() {
     });
   });
 
-  els.languageButton.addEventListener('click', window.VEGAS_I18N.toggle);
+  els.languageButton?.addEventListener('click', window.VEGAS_I18N.toggle);
+  els.welcomeLanguageButton?.addEventListener('click', window.VEGAS_I18N.toggle);
 }
 
 async function init() {

@@ -15,6 +15,9 @@
     'Open menu': '打开菜单',
     'Share': '分享',
     'Share app': '分享APP',
+    'About': '关于',
+    'About Simple Golf Scorecard': '关于简单高尔夫记分卡',
+    'No account or sign-in required. Simple Golf Scorecard supports Las Vegas and Wolf & Pack scoring, live match viewing, historical scorecards, and cloud synchronization across devices. Version 5.1.': '无需注册或登录，打开链接即可使用。支持拉斯和斗地主记分、实时观看比赛战况、查看历史记分卡，以及多设备云端同步。版本 5.1。',
     'Add to phone desktop': '添加到手机桌面',
     'Do you want to add this app to your phone desktop?': '是否要把这个应用添加到手机桌面？',
     'Use your browser menu and choose Add to Home Screen.': '请使用浏览器菜单，选择“添加到主屏幕”。',
@@ -408,6 +411,7 @@
     const nodes = [];
     while (walker.nextNode()) nodes.push(walker.currentNode);
     nodes.forEach(node => {
+      if (node.parentElement?.closest('[data-bilingual]')) return;
       const value = node.nodeValue;
       const trimmed = value.trim();
       if (!trimmed || !(trimmed in zh)) return;
@@ -419,13 +423,12 @@
         if (value && value in zh) element.setAttribute(attribute, t(value));
       });
     });
-    const button = document.querySelector('#languageButton');
-    if (button) {
+    document.querySelectorAll('#languageButton, #welcomeLanguageButton').forEach(button => {
       const target = language === 'en' ? t('Switch to Chinese') : t('Switch to English');
-      button.textContent = language === 'en' ? '中文' : 'English';
+      button.innerHTML = '<span aria-hidden="true">🌐</span>';
       button.setAttribute('aria-label', target);
       button.title = target;
-    }
+    });
   }
 
   function toggle() {

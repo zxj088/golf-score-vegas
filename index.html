@@ -14,11 +14,12 @@
 <body>
   <div class="welcome-screen" id="welcomeScreen" role="status" aria-live="polite">
     <div class="welcome-shade"></div>
+    <button id="welcomeLanguageButton" class="welcome-language-button" type="button" aria-label="Switch to Chinese" title="Switch to Chinese"><span aria-hidden="true">🌐</span></button>
     <div class="welcome-copy">
       <strong class="welcome-version">v5.1</strong>
       <p>Welcome to use the Simple Golf Scorecard</p>
       <p lang="zh-CN">欢迎使用简单高尔夫记分卡</p>
-      <div class="welcome-actions" aria-label="Choose what to do">
+      <div class="welcome-actions" aria-label="Choose what to do" data-bilingual>
         <button type="button" data-welcome-action="score"><strong>Start scoring</strong><small>开始记分</small></button>
         <button type="button" data-welcome-action="watch"><strong>Watch live</strong><small>观看比赛</small></button>
         <button type="button" data-welcome-action="history"><strong>Past scorecards</strong><small>历史记分卡</small></button>
@@ -46,11 +47,12 @@
         <h1 id="appTitle">Simple Golf Scorecard</h1>
         <p class="header-status" id="headerStatus"><span class="header-status-check" aria-hidden="true">✓</span><span id="headerStatusText">No sign-in · Ready to play</span></p>
       </div>
+      <button id="languageButton" class="header-language-button" type="button" aria-label="Switch to Chinese" title="Switch to Chinese"><span aria-hidden="true">🌐</span></button>
       <button class="top-menu-button" id="topMenuButton" type="button" aria-label="Open menu" title="Open menu" aria-expanded="false" aria-controls="topActions"><span></span><span></span><span></span></button>
       <div class="top-actions" id="topActions">
         <button id="rulesButton" class="rules-button" type="button" aria-label="Show Las Vegas rules" title="Show Las Vegas rules"><span id="rulesLabel">Las Vegas Rule</span></button>
         <button id="shareButton" type="button" aria-label="Share app" title="Share app">Share app</button>
-        <button id="languageButton" class="language-button" type="button" aria-label="Switch to Chinese" title="Switch to Chinese">中文</button>
+        <button id="aboutButton" class="about-button" type="button">About</button>
       </div>
     </header>
 
@@ -133,7 +135,16 @@
 
       <section class="view" id="leaderboardView">
         <div class="leaderboard-common-actions">
-          <button class="leaderboard-share" id="shareCurrentScorecard" type="button" hidden>Share scorecard</button>
+          <button class="leaderboard-share" id="shareCurrentScorecard" type="button"
+            aria-label="分享记分卡 / Share scorecard" title="分享记分卡 / Share scorecard" hidden>
+            <svg aria-hidden="true" viewBox="0 0 24 24" focusable="false">
+              <circle cx="18" cy="5" r="2.5"></circle>
+              <circle cx="6" cy="12" r="2.5"></circle>
+              <circle cx="18" cy="19" r="2.5"></circle>
+              <path d="M8.2 10.8 15.8 6.3M8.2 13.2l7.6 4.5"></path>
+            </svg>
+            <span class="visually-hidden">分享记分卡 / Share scorecard</span>
+          </button>
         </div>
         <div class="leaderboard-tools">
           <div class="control-panel">
