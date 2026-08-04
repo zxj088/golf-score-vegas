@@ -4018,10 +4018,6 @@ function renderLandlordLeaderboard() {
   document.querySelector('.leaderboard-tools').hidden = true;
   els.landlordLeaderboard.hidden = !active;
   if (!active) {
-    const vegasShareSlot = els.scoreStrip?.querySelector('.vegas-share-slot');
-    if (vegasShareSlot && els.shareCurrentScorecard && els.shareCurrentScorecard.parentElement !== vegasShareSlot) {
-      vegasShareSlot.appendChild(els.shareCurrentScorecard);
-    }
     return;
   }
   for (let holeIndex = 0; holeIndex < 18; holeIndex += 1) {
@@ -4088,10 +4084,9 @@ function renderLandlordLeaderboard() {
           <span>${escapeHtml(roundListDate(currentGame() || {}))}</span>
         </div>
         <div class="landlord-event-progress"><strong>${totalsValue.complete}/18</strong><span>${totalsValue.complete >= 18 ? escapeHtml(t('Completed')) : escapeHtml(t('Playing'))}</span></div>
-        <span class="landlord-share-slot"></span>
       </div>
       <p class="landlord-settings-line">${escapeHtml(landlordSettingsSummary(state))}</p>
-      <div class="rank-chips">${displayIndexes
+      <div class="rank-chips player-count-${displayIndexes.length}">${displayIndexes
         .map(index => `<span>${escapeHtml(state.players[index])} <strong class="${totalsValue.points[index] > 0 ? 'point-positive' : (totalsValue.points[index] < 0 ? 'point-negative' : '')}">${signedPoints(totalsValue.points[index])}</strong></span>`)
         .join('')}</div>
     </div>
@@ -4102,8 +4097,6 @@ function renderLandlordLeaderboard() {
         <tfoot><tr><th>${escapeHtml(t('Total'))}</th><th>${course.pars.reduce((sum, par) => sum + par, 0)}</th><th>—</th><th>—</th>${totalCells}</tr></tfoot>
       </table>
     </div>`;
-  const shareSlot = els.landlordLeaderboard.querySelector('.landlord-share-slot');
-  if (shareSlot && els.shareCurrentScorecard) shareSlot.appendChild(els.shareCurrentScorecard);
 }
 
 function renderHoles() {
@@ -4601,7 +4594,7 @@ function drawFlipResultLine(ctx, result, x, y) {
     { text: ` ${result.afterPoints} `, color: '#b3453f', font: normalFont },
     { text: '💣', color: '#b3453f', font: iconFont },
     { text: ` ${result.extra >= 0 ? '+' : ''}${result.extra} `, color: '#c9892a', font: normalFont },
-    { text: 'EXTRA', color: '#c9892a', font: 'italic bold 22px Arial, sans-serif' }
+    { text: 'EXTRA', color: '#c9892a', font: 'italic bold 16px Arial, sans-serif' }
   ];
   ctx.textAlign = 'left';
   ctx.textBaseline = 'middle';
@@ -4882,11 +4875,11 @@ async function createScorecardAsset(round) {
   const detailRowHeight = 165;
   const totalRowHeight = 74;
   const exportScale = 2;
-  const logicalWidth = 1200;
+  const logicalWidth = 980;
   // Give the gross score and its net-score caption enough vertical breathing
   // room in the exported PNG. The canvas grows with the taller 18-hole table
   // so the analysis section below is never clipped.
-  const logicalHeight = Math.max(2055, 2049 + flipDetails.length * detailRowHeight);
+  const logicalHeight = Math.max(2450, 2445 + flipDetails.length * detailRowHeight);
   const canvas = document.createElement('canvas');
   canvas.width = logicalWidth * exportScale;
   canvas.height = logicalHeight * exportScale;
@@ -4898,11 +4891,12 @@ async function createScorecardAsset(round) {
   const netTeam = scoreRoundTotalsForMode(normalized, 'net');
   const playerTotals = scorecardPlayerTotals(normalized);
   const displayedTeamTotal = normalized.scoreMode === 'net' ? netTeam : grossTeam;
-  const margin = 55;
+  const margin = 35;
   const tableTop = 320;
   const headerHeight = 78;
-  const rowHeight = 64;
-  const columns = [45, 45, 45, 140, 140, 105, 105, 140, 140, 95, 90];
+  const rowHeight = 78;
+  const tableWidth = 910;
+  const columns = [30, 32, 32, 121, 121, 80, 78, 121, 121, 88, 86];
   const labels = [t('Hole'), t('Par'), t('Index'), players[0], players[1], 'A#', 'A+/-', players[2], players[3], 'B#', 'B+/-'];
 
   ctx.fillStyle = '#f6f7f4';
@@ -4910,24 +4904,24 @@ async function createScorecardAsset(round) {
   ctx.fillStyle = '#0b5d46';
   ctx.fillRect(0, 0, logicalWidth, tableTop);
   drawScorecardCourseIcon(ctx, 82, 106, 50);
-  drawScorecardText(ctx, normalized.courseName || t('Course'), 155, 64, {
-    align: 'left', color: '#ffffff', font: 'bold 44px Arial, Microsoft YaHei, sans-serif', maxWidth: 620
+  drawScorecardText(ctx, normalized.courseName || t('Course'), 145, 64, {
+    align: 'left', color: '#ffffff', font: 'bold 44px Arial, Microsoft YaHei, sans-serif', maxWidth: 500
   });
   drawScorecardText(ctx, `${t('Las Vegas')} · ${normalized.scoreMode === 'net' ? t('Net') : t('Gross')}`, 155, 119, {
-    align: 'left', color: '#f2d37f', font: 'bold 28px Arial, Microsoft YaHei, sans-serif', maxWidth: 620
+    align: 'left', color: '#f2d37f', font: 'bold 28px Arial, Microsoft YaHei, sans-serif', maxWidth: 500
   });
-  drawScorecardText(ctx, roundListDate(normalized), 155, 158, {
-    align: 'left', color: '#dceee8', font: '22px Arial, Microsoft YaHei, sans-serif', maxWidth: 500
+  drawScorecardText(ctx, roundListDate(normalized), 145, 158, {
+    align: 'left', color: '#dceee8', font: '22px Arial, Microsoft YaHei, sans-serif', maxWidth: 420
   });
-  drawScorecardText(ctx, '18/18', 1128, 77, {
+  drawScorecardText(ctx, '18/18', 925, 77, {
     align: 'right', color: '#ffffff', font: 'bold 48px Arial, Microsoft YaHei, sans-serif'
   });
-  drawScorecardText(ctx, t('Completed'), 1128, 126, {
+  drawScorecardText(ctx, t('Completed'), 925, 126, {
     align: 'right', color: '#dceee8', font: 'bold 20px Arial, Microsoft YaHei, sans-serif'
   });
   const teamBlockY = 218;
   const teamBlockGap = 16;
-  const teamBlockWidth = (1090 - teamBlockGap) / 2;
+  const teamBlockWidth = (tableWidth - teamBlockGap) / 2;
   drawScorecardResultBlock(ctx, margin, teamBlockY, teamBlockWidth, 70,
     t('Team A'), displayedTeamTotal.a, `${players[0]} + ${players[1]}`);
   drawScorecardResultBlock(ctx, margin + teamBlockWidth + teamBlockGap, teamBlockY, teamBlockWidth, 70,
@@ -4939,7 +4933,8 @@ async function createScorecardAsset(round) {
     ctx.fillRect(x, tableTop, columns[index], headerHeight);
     drawScorecardText(ctx, label, x + columns[index] / 2, tableTop + headerHeight / 2, {
       color: '#ffffff',
-      font: index < 3 ? 'bold 22px Arial Narrow, Arial, Microsoft YaHei, sans-serif' : 'bold 21px Arial, Microsoft YaHei, sans-serif'
+      font: index < 3 ? 'bold 18px Arial Narrow, Arial, Microsoft YaHei, sans-serif' : 'bold 21px Arial, Microsoft YaHei, sans-serif',
+      maxWidth: columns[index] - (index < 3 ? 4 : 8)
     });
     x += columns[index];
   });
@@ -4989,13 +4984,13 @@ async function createScorecardAsset(round) {
       const playerIndexByColumn = { 3: 0, 4: 1, 7: 2, 8: 3 };
       const playerIndex = playerIndexByColumn[columnIndex];
       if (playerIndex !== undefined && complete) {
-        drawGrossScoreMarker(ctx, value, normalized.pars[holeIndex], x + columns[columnIndex] / 2, y + 21, 31);
-        drawScorecardText(ctx, value, x + columns[columnIndex] / 2, y + 21, {
+        drawGrossScoreMarker(ctx, value, normalized.pars[holeIndex], x + columns[columnIndex] / 2, y + 26, 34);
+        drawScorecardText(ctx, value, x + columns[columnIndex] / 2, y + 26, {
           color: grossScoreCanvasColor(value, normalized.pars[holeIndex]),
-          font: 'bold 22px Arial'
+          font: 'bold 24px Arial'
         });
-        drawScorecardText(ctx, `${t('Net')} ${netValues[playerIndex]}`, x + columns[columnIndex] / 2, y + 49, {
-          color: '#62706a', font: 'bold 13px Arial, Microsoft YaHei, sans-serif'
+        drawScorecardText(ctx, `${t('Net')} ${netValues[playerIndex]}`, x + columns[columnIndex] / 2, y + 61, {
+          color: '#62706a', font: 'bold 14px Arial, Microsoft YaHei, sans-serif'
         });
         x += columns[columnIndex];
         return;
@@ -5005,8 +5000,9 @@ async function createScorecardAsset(round) {
       drawScorecardText(ctx, value, x + columns[columnIndex] / 2, y + rowHeight / 2, {
         color: isPointsColumn && pointValue > 0 ? '#118747' : (isPointsColumn && pointValue < 0 ? '#b3453f' : '#17221f'),
         font: columnIndex === 0
-          ? 'bold 25px Arial Narrow, Arial'
-          : (columnIndex < 3 ? '21px Arial Narrow, Arial' : 'bold 24px Arial')
+          ? 'bold 22px Arial Narrow, Arial'
+          : (columnIndex < 3 ? '18px Arial Narrow, Arial' : 'bold 24px Arial'),
+        maxWidth: columns[columnIndex] - 4
       });
       x += columns[columnIndex];
     });
@@ -5017,7 +5013,7 @@ async function createScorecardAsset(round) {
   const nineHoleDividerY = tableTop + headerHeight + 9 * rowHeight;
   ctx.beginPath();
   ctx.moveTo(margin, nineHoleDividerY);
-  ctx.lineTo(margin + 1090, nineHoleDividerY);
+  ctx.lineTo(margin + tableWidth, nineHoleDividerY);
   ctx.stroke();
 
   const totalsY = tableTop + headerHeight + 18 * rowHeight;
@@ -5056,7 +5052,10 @@ async function createScorecardAsset(round) {
       const pointValue = Number(value);
       drawScorecardText(ctx, value, x + columns[columnIndex] / 2, totalsY + totalRowHeight / 2, {
         color: isPointsColumn && pointValue > 0 ? '#9ff0c8' : (isPointsColumn && pointValue < 0 ? '#ffc1bd' : '#ffffff'),
-        font: columnIndex === 0 ? 'bold 21px Arial, Microsoft YaHei, sans-serif' : 'bold 25px Arial, Microsoft YaHei, sans-serif'
+        font: columnIndex === 0
+          ? 'bold 17px Arial, Microsoft YaHei, sans-serif'
+          : (columnIndex < 3 ? 'bold 20px Arial, Microsoft YaHei, sans-serif' : 'bold 25px Arial, Microsoft YaHei, sans-serif'),
+        maxWidth: columns[columnIndex] - 4
       });
     }
     x += columns[columnIndex];
@@ -5067,8 +5066,8 @@ async function createScorecardAsset(round) {
   ctx.fillStyle = '#ffffff';
   ctx.strokeStyle = '#c9892a';
   ctx.lineWidth = 3;
-  ctx.fillRect(margin, resultY, 1090, resultHeight);
-  ctx.strokeRect(margin, resultY, 1090, resultHeight);
+  ctx.fillRect(margin, resultY, tableWidth, resultHeight);
+  ctx.strokeRect(margin, resultY, tableWidth, resultHeight);
   drawScorecardText(ctx, t('Match totals'), margin + 26, resultY + 35, { align: 'left', color: '#1f6f5b', font: 'bold 29px Arial, Microsoft YaHei, sans-serif' });
   [
     { label: t('Gross'), score: grossTeam, y: resultY + 62 },
@@ -5078,12 +5077,12 @@ async function createScorecardAsset(round) {
     ctx.strokeStyle = '#d6d1c6';
     ctx.lineWidth = 2;
     ctx.beginPath();
-    roundedRectPath(ctx, margin + 25, mode.y, 110, 58, 29);
+    roundedRectPath(ctx, margin + 20, mode.y, 90, 58, 29);
     ctx.fill();
     ctx.stroke();
-    drawScorecardText(ctx, mode.label, margin + 80, mode.y + 29, { font: 'bold 23px Arial, Microsoft YaHei, sans-serif' });
-    drawRoundResultChip(ctx, margin + 155, mode.y, 430, `${players[0]}+${players[1]}`, mode.score.a);
-    drawRoundResultChip(ctx, margin + 605, mode.y, 430, `${players[2]}+${players[3]}`, mode.score.b);
+    drawScorecardText(ctx, mode.label, margin + 65, mode.y + 29, { font: 'bold 23px Arial, Microsoft YaHei, sans-serif' });
+    drawRoundResultChip(ctx, margin + 125, mode.y, 365, `${players[0]}+${players[1]}`, mode.score.a);
+    drawRoundResultChip(ctx, margin + 505, mode.y, 365, `${players[2]}+${players[3]}`, mode.score.b);
   });
   drawScorecardText(ctx,
     t(normalized.underParFlip ? 'Under-par flip was enabled for this game.' : 'Under-par flip was disabled for this game.'),
@@ -5098,7 +5097,7 @@ async function createScorecardAsset(round) {
   } else {
     const detailX = margin;
     const detailTop = resultY + 252;
-    const detailColumns = [70, 70, 260, 260, 430];
+    const detailColumns = [58, 58, 210, 210, 374];
     const detailHeaderHeight = 56;
     const detailHeaders = [t('Hole'), t('Par'), t('Team A'), t('Team B'), t('Score result')];
     let headerX = detailX;
@@ -5122,25 +5121,25 @@ async function createScorecardAsset(round) {
         cellX += width;
       });
       const rowMiddle = rowY + detailRowHeight / 2;
-      drawScorecardText(ctx, detail.hole, detailX + 35, rowMiddle, { font: 'bold 27px Arial' });
-      drawScorecardText(ctx, detail.par, detailX + 105, rowMiddle, { font: 'bold 27px Arial' });
-      drawPlayerScoreSegments(ctx, detail.teams[0], detailX + 155, rowMiddle, 230);
-      drawPlayerScoreSegments(ctx, detail.teams[1], detailX + 415, rowMiddle, 230);
+      drawScorecardText(ctx, detail.hole, detailX + 29, rowMiddle, { font: 'bold 27px Arial' });
+      drawScorecardText(ctx, detail.par, detailX + 87, rowMiddle, { font: 'bold 27px Arial' });
+      drawPlayerScoreSegments(ctx, detail.teams[0], detailX + 131, rowMiddle, 180);
+      drawPlayerScoreSegments(ctx, detail.teams[1], detailX + 341, rowMiddle, 180);
       let resultLineY = rowY + 28;
       detail.results.forEach(result => {
         if (result.triggered && normalized.underParFlip) {
-          drawFlipResultLine(ctx, result, detailX + 675, resultLineY);
+          drawFlipResultLine(ctx, result, detailX + 551, resultLineY);
           resultLineY += 46;
         } else {
-          drawScorecardText(ctx, `${result.label}: ${result.beforeText}`, detailX + 675, resultLineY, {
-            align: 'left', font: 'bold 21px Arial, Microsoft YaHei, sans-serif', maxWidth: 410
+          drawScorecardText(ctx, `${result.label}: ${result.beforeText}`, detailX + 551, resultLineY, {
+            align: 'left', font: 'bold 21px Arial, Microsoft YaHei, sans-serif', maxWidth: 344
           });
           resultLineY += 38;
         }
       });
       if (detail.note) {
-        drawScorecardText(ctx, detail.note, detailX + 675, Math.min(rowY + detailRowHeight - 25, resultLineY + 6), {
-          align: 'left', color: '#62706a', font: '21px Arial, Microsoft YaHei, sans-serif', maxWidth: 410
+        drawScorecardText(ctx, detail.note, detailX + 551, Math.min(rowY + detailRowHeight - 25, resultLineY + 6), {
+          align: 'left', color: '#62706a', font: '21px Arial, Microsoft YaHei, sans-serif', maxWidth: 344
         });
       }
     });
@@ -5492,6 +5491,8 @@ function addListeners() {
   els.shareCurrentScorecard?.addEventListener('click', () => {
     const round = currentGame();
     if (!window.SIMPLE_GOLF_ROUND_ACCESS.canShareScorecard(round, gameStatus(round))) return;
+    els.topActions?.classList.remove('open');
+    els.topMenuButton?.setAttribute('aria-expanded', 'false');
     openShareCard(round);
   });
 
@@ -6054,12 +6055,12 @@ async function init() {
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js?v=177', { updateViaCache: 'none' })
+    navigator.serviceWorker.register('./sw.js?v=178', { updateViaCache: 'none' })
       .then(registration => registration.update())
       .catch(() => {});
   });
   navigator.serviceWorker.addEventListener('controllerchange', () => {
-    const reloadKey = 'simpleGolfSwReload.v177';
+    const reloadKey = 'simpleGolfSwReload.v178';
     if (sessionStorage.getItem(reloadKey)) return;
     sessionStorage.setItem(reloadKey, '1');
     window.location.reload();

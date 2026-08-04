@@ -2265,16 +2265,33 @@ input:disabled {
 
 .share-card-form {
   width: min(900px, 100%);
+  min-width: 0;
+  overflow: visible;
 }
 
 .share-card-form img {
   display: block;
   width: 100%;
+  max-width: 100%;
+  height: auto;
   margin: 10px auto;
   border: 1px solid var(--line);
   border-radius: 8px;
-  object-fit: contain;
+  object-fit: initial;
   background: #ffffff;
+}
+
+.share-card-modal {
+  align-items: start;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+@media (max-width: 600px) {
+  .share-card-form {
+    width: 100%;
+    max-width: calc(100vw - 16px);
+  }
 }
 
 .share-card-status {
@@ -3720,11 +3737,36 @@ button,
   }
 }
 
+/* Use the same neutral score-table treatment for Las Vegas and Wolf & Pack.
+   Team result columns stay distinct through their labels and point values. */
+.scorecard thead .team-a-cell,
+.scorecard thead .team-b-cell,
+.scorecard thead .team-a-cell.calc-head,
+.scorecard thead .team-b-cell.calc-head {
+  color: #fff;
+  background: var(--green);
+}
+
+.scorecard .team-a-score,
+.scorecard .team-b-score {
+  background: #fff;
+}
+
+.scorecard tbody tr:nth-child(even) .team-a-score,
+.scorecard tbody tr:nth-child(even) .team-b-score {
+  background: #f7faf8;
+}
+
+.scorecard .vegas-number,
+.scorecard .hole-points {
+  background: #edf4f1;
+}
+
 /* Cascade lock for the Las Vegas summary card. */
 .score-strip:not(.landlord-mode) .vegas-event-main {
   display: grid;
-  grid-template-columns: 64px minmax(0, 1fr) 104px 46px;
-  grid-template-areas: "emblem copy meta share";
+  grid-template-columns: 64px minmax(0, 1fr) 104px;
+  grid-template-areas: "emblem copy meta";
   align-items: center;
   gap: 14px;
 }
@@ -4038,8 +4080,8 @@ main {
 
 /* Keep the Las Vegas event card aligned with the Wolf & Pack card. */
 .score-strip:not(.landlord-mode) .vegas-event-main {
-  grid-template-columns: 64px minmax(0, 1fr) 104px 46px !important;
-  grid-template-areas: "emblem copy meta share" !important;
+  grid-template-columns: 64px minmax(0, 1fr) 104px !important;
+  grid-template-areas: "emblem copy meta" !important;
   align-items: center;
   gap: 12px;
 }
@@ -4148,8 +4190,8 @@ main {
 
 .score-strip:not(.landlord-mode) .vegas-event-main {
   display: grid;
-  grid-template-columns: 64px minmax(0, 1fr) 104px 46px;
-  grid-template-areas: "emblem copy meta share";
+  grid-template-columns: 64px minmax(0, 1fr) 104px;
+  grid-template-areas: "emblem copy meta";
   align-items: center;
   gap: 14px;
 }
@@ -4284,8 +4326,8 @@ main {
 
 .score-strip:not(.landlord-mode) .vegas-event-main {
   display: grid;
-  grid-template-columns: 64px minmax(0, 1fr) 104px 46px;
-  grid-template-areas: "emblem copy meta share";
+  grid-template-columns: 64px minmax(0, 1fr) 104px;
+  grid-template-areas: "emblem copy meta";
   align-items: center;
   gap: 14px;
 }
@@ -5012,8 +5054,12 @@ main {
 
 .landlord-ranking .rank-chips {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 9px;
+}
+
+.landlord-ranking .rank-chips.player-count-4 {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
 .landlord-ranking .rank-chips > span {
@@ -5022,7 +5068,8 @@ main {
   place-items: center;
   align-content: center;
   gap: 3px;
-  padding: 7px;
+  min-width: 0;
+  padding: 7px 4px;
   color: #17271f;
   background: #fff;
   border: 0;
@@ -5140,17 +5187,7 @@ main {
 }
 
 .top-actions .rules-button::before {
-  content: "?";
-  display: inline-grid;
-  width: 19px;
-  height: 19px;
-  place-items: center;
-  margin-right: 7px;
-  border: 1.5px solid #17694f;
-  border-radius: 50%;
-  color: #17694f;
-  font-size: 12px;
-  line-height: 1;
+  content: none;
 }
 
 .score-strip:not(.landlord-mode) .vegas-score-pairs .team-total {
@@ -5217,6 +5254,7 @@ main {
   align-items: center;
   justify-content: center;
   color: #fff !important;
+  -webkit-text-fill-color: #fff !important;
   font-size: 18px;
   font-weight: 950;
   line-height: 1;
@@ -5264,11 +5302,11 @@ main {
 }
 
 /* Final Las Vegas event-card layout. Keep this at the end so older responsive
-   rules cannot move the course, progress, share action, or team summaries. */
+   rules cannot move the course, progress, or team summaries. */
 .score-strip:not(.landlord-mode) .vegas-event-main {
   display: grid;
-  grid-template-columns: 64px minmax(0, 1fr) 104px 46px;
-  grid-template-areas: "emblem copy meta share";
+  grid-template-columns: 64px minmax(0, 1fr) 104px;
+  grid-template-areas: "emblem copy meta";
   align-items: center;
   gap: 14px;
 }
@@ -5367,7 +5405,7 @@ main {
   }
 
   .score-strip:not(.landlord-mode) .vegas-event-main {
-    grid-template-columns: 48px minmax(0, 1fr) 62px 40px;
+    grid-template-columns: 48px minmax(0, 1fr) 62px;
     gap: 9px;
   }
 
