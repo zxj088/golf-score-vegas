@@ -161,6 +161,7 @@
     'Notice': '提示',
     'Edit Code': '编辑密码',
     'Cloud sync Not ok': '云同步失败',
+    'Cloud request timed out. Check the connection and try again.': '云端请求超时，请检查网络后重试。',
     'Cloud sync ok': '云同步成功',
     'Scoring phone': '记分设备',
     'Scoring identity': '记分身份',

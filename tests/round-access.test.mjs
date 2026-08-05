@@ -12,9 +12,12 @@ test('live lock owned by this phone opens Play with edit rights', () => {
   assert.deepEqual(result, { canEdit: true, view: 'play' });
 });
 
-test('another phone, expired lock and missing lock open read-only Leaderboard', () => {
+test('the owning phone keeps edit rights after its lease expires', () => {
+  assert.deepEqual(openDestination(roundWithLock('phone-a', now), 'playing', 'phone-a', now), { canEdit: true, view: 'play' });
+});
+
+test('another phone and missing lock open read-only Leaderboard', () => {
   assert.equal(openDestination(roundWithLock('phone-b', now + 1), 'playing', 'phone-a', now).view, 'leaderboard');
-  assert.equal(openDestination(roundWithLock('phone-a', now), 'playing', 'phone-a', now).view, 'leaderboard');
   assert.equal(openDestination({}, 'playing', 'phone-a', now).view, 'leaderboard');
 });
 

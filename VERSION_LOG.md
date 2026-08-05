@@ -4,6 +4,24 @@ This file records the good baseline versions of the app and how to switch back t
 
 ## Good Baselines
 
+### v5.1.2 - Scoring ownership reliability
+
+Date: 2026-08-05
+
+Tag: `v5.1.2`
+
+Live URL:
+
+`https://zxj088.github.io/golf-score-vegas/?v=179`
+
+What is new in this version:
+
+- The scoring phone keeps edit rights after a background or weak-network lease expiry when the cloud owner is still the same phone.
+- Returning to the foreground immediately validates and renews the scoring lock.
+- Lock refreshes run one at a time and do not race pending score saves.
+- Cloud requests time out instead of blocking lock renewal indefinitely.
+- PWA asset query version is `v179`.
+
 ### v5.0 - Guided setup and fixed Wolf baseline
 
 Date: 2026-08-01

@@ -10,6 +10,7 @@ const PENDING_SYNC_KEY = 'vegasGolfPendingRound.v1';
 const GAME_LIMIT = 200;
 const CLOUD_ROUND_LIMIT = 1000;
 const EDIT_LOCK_TTL_MS = 12000;
+const CLOUD_REQUEST_TIMEOUT_MS = 8000;
 const WELCOME_MIN_DURATION_MS = 1000;
 const ROLE_ICON_PATHS = {
   landlord: './assets/roles/landlord-golfer.png',
@@ -442,6 +443,7 @@ let editingCourseId = '';
 let autoSyncTimer = null;
 let pendingSyncRound = null;
 let pendingSyncPromise = null;
+let editLockRefreshPromise = null;
 let dialogResolver = null;
 let activeScoreTarget = null;
 let activePlayHoleIndex = 0;
@@ -1073,11 +1075,22 @@ async function supabaseRequest(table, query = '', options = {}) {
     'Content-Type': 'application/json',
     Prefer: options.prefer || 'return=representation'
   };
-  const response = await fetch(url, {
-    method: options.method || 'GET',
-    headers,
-    body: options.body ? JSON.stringify(options.body) : undefined
-  });
+  const controller = new AbortController();
+  const timeout = window.setTimeout(() => controller.abort(), CLOUD_REQUEST_TIMEOUT_MS);
+  let response;
+  try {
+    response = await fetch(url, {
+      method: options.method || 'GET',
+      headers,
+      body: options.body ? JSON.stringify(options.body) : undefined,
+      signal: controller.signal
+    });
+  } catch (error) {
+    if (error?.name === 'AbortError') throw new Error(t('Cloud request timed out. Check the connection and try again.'));
+    throw error;
+  } finally {
+    window.clearTimeout(timeout);
+  }
 
   if (!response.ok) {
     const message = await response.text();
@@ -1684,6 +1697,7 @@ async function upsertRoundWithRetry(round) {
 
 async function flushPendingRoundSync() {
   window.clearTimeout(autoSyncTimer);
+  if (editLockRefreshPromise) await editLockRefreshPromise.catch(() => {});
   if (pendingSyncPromise) return pendingSyncPromise;
   if (!pendingSyncRound) return null;
   if (!hasSupabaseConfig()) {
@@ -3482,34 +3496,42 @@ async function acquireEditLock(round) {
 
 async function ensureEditLockStillMine() {
   if (!isEditing || !activeGameId) return true;
-  const latest = await fetchCloudRoundById(activeGameId).catch(() => null);
-  if (!latest) return true;
-  const owner = editLockOwner(latest);
-  if (owner && owner !== clientId) {
-    replaceRound(latest);
-    applyGameToState(latest);
-    isEditing = false;
-    saveState();
-    render();
+  if (pendingSyncPromise || pendingSyncRound) return true;
+  if (editLockRefreshPromise) return editLockRefreshPromise;
+  editLockRefreshPromise = (async () => {
+    const latest = await fetchCloudRoundById(activeGameId).catch(() => null);
+    if (!latest) return true;
+    const owner = editLockOwner(latest);
+    if (owner && owner !== clientId) {
+      replaceRound(latest);
+      applyGameToState(latest);
+      isEditing = false;
+      saveState();
+      render();
+      setSyncState({
+        ready: true,
+        busy: false,
+        ok: true,
+        label: t('Cloud sync ok'),
+        title: t('Another phone is now editing this game.')
+      });
+      return false;
+    }
+    const refreshed = replaceRound(withCurrentEditLock(roundFromState(latest)));
+    await upsertRoundWithRetry(refreshed);
     setSyncState({
       ready: true,
       busy: false,
       ok: true,
       label: t('Cloud sync ok'),
-      title: t('Another phone is now editing this game.')
+      title: t('Edit lock refreshed.')
     });
-    return false;
-  }
-  const refreshed = replaceRound(withCurrentEditLock(roundFromState(latest)));
-  await upsertCloudRound(refreshed);
-  setSyncState({
-    ready: true,
-    busy: false,
-    ok: true,
-    label: t('Cloud sync ok'),
-    title: t('Edit lock refreshed.')
-  });
-  return true;
+    return true;
+  })().catch(error => {
+    setSyncState({ ready: true, busy: false, ok: false, label: t('Cloud sync Not ok'), title: error.message });
+    return true;
+  }).finally(() => { editLockRefreshPromise = null; });
+  return editLockRefreshPromise;
 }
 
 function ensureCourseFromRound(round) {
@@ -6028,7 +6050,9 @@ async function init() {
     }
   }, 1500);
   window.addEventListener('focus', () => {
-    if (!isEditing && hasSupabaseConfig() && !syncState.busy) {
+    if (isEditing && hasSupabaseConfig()) {
+      ensureEditLockStillMine();
+    } else if (hasSupabaseConfig() && !syncState.busy) {
       syncFromCloud(false, true);
     }
   });
@@ -6037,8 +6061,9 @@ async function init() {
       flushPendingRoundSync();
       return;
     }
-    if (!document.hidden && !isEditing && hasSupabaseConfig() && !syncState.busy) {
-      syncFromCloud(false, true);
+    if (!document.hidden && hasSupabaseConfig()) {
+      if (isEditing) ensureEditLockStillMine();
+      else if (!syncState.busy) syncFromCloud(false, true);
     }
   });
   window.addEventListener('online', () => {
@@ -6055,12 +6080,12 @@ async function init() {
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js?v=178', { updateViaCache: 'none' })
+    navigator.serviceWorker.register('./sw.js?v=179', { updateViaCache: 'none' })
       .then(registration => registration.update())
       .catch(() => {});
   });
   navigator.serviceWorker.addEventListener('controllerchange', () => {
-    const reloadKey = 'simpleGolfSwReload.v178';
+    const reloadKey = 'simpleGolfSwReload.v179';
     if (sessionStorage.getItem(reloadKey)) return;
     sessionStorage.setItem(reloadKey, '1');
     window.location.reload();

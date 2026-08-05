@@ -3,8 +3,7 @@
     const lock = round?.totals?.editLock;
     return Boolean(
       lock &&
-      String(lock.owner || '') === String(clientId || '') &&
-      Number(lock.expiresAt || 0) > Number(now)
+      String(lock.owner || '') === String(clientId || '')
     );
   }
 
