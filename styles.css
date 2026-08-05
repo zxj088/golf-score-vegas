@@ -1317,6 +1317,49 @@ textarea {
   padding: 12px;
 }
 
+.player-setup-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.player-setup-row > label {
+  min-width: 0;
+}
+
+.player-setup-row .visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.player-setup-row .player-name-picker,
+.player-setup-row .number-stepper {
+  margin-top: 0;
+}
+
+.player-setup-row .player-name-picker {
+  grid-template-columns: minmax(0, 1fr) 40px;
+}
+
+.player-setup-row .history-picker-button {
+  min-width: 40px;
+}
+
+.player-setup-row .number-stepper {
+  grid-template-columns: 32px minmax(36px, 1fr) 32px;
+}
+
+.player-setup-row .number-stepper > button {
+  min-width: 32px;
+}
+
 .team-card.team-a {
   background: linear-gradient(180deg, var(--green-2), var(--panel));
 }
@@ -1477,6 +1520,31 @@ textarea {
 
 .teams-grid.landlord-mode .team-card > label {
   min-width: 0;
+}
+
+.teams-grid.landlord-mode .player-setup-row {
+  grid-column: 1 / -1;
+  grid-template-columns: minmax(0, 1fr) minmax(104px, 42%);
+}
+
+#playingList .game-row:nth-child(4n + 1) {
+  border-left-color: #14745d;
+  background: linear-gradient(90deg, #edf7f3 0, #fff 32%);
+}
+
+#playingList .game-row:nth-child(4n + 2) {
+  border-left-color: #b18428;
+  background: linear-gradient(90deg, #fbf5e8 0, #fff 32%);
+}
+
+#playingList .game-row:nth-child(4n + 3) {
+  border-left-color: #477a9f;
+  background: linear-gradient(90deg, #eef5fa 0, #fff 32%);
+}
+
+#playingList .game-row:nth-child(4n) {
+  border-left-color: #79658d;
+  background: linear-gradient(90deg, #f4f0f7 0, #fff 32%);
 }
 
 .action-row,

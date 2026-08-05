@@ -4,6 +4,23 @@ This file records the good baseline versions of the app and how to switch back t
 
 ## Good Baselines
 
+### v5.1.3 - Compact player setup and live-game colors
+
+Date: 2026-08-05
+
+Tag: `v5.1.3`
+
+Live URL:
+
+`https://zxj088.github.io/golf-score-vegas/?v=180`
+
+What is new in this version:
+
+- Player number labels are removed from the new-game player step while accessible labels remain available.
+- Las Vegas keeps player selection and handicap controls on two rows; Wolf & Pack keeps them on one row.
+- Ongoing games on the home page use restrained alternating color accents for easier visual distinction.
+- PWA asset query version is `v180`.
+
 ### v5.1.2 - Scoring ownership reliability
 
 Date: 2026-08-05
