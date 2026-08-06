@@ -1,20 +1,19 @@
-self.__SIMPLE_GOLF_BUILD__ = 'v180';
+self.__SIMPLE_GOLF_BUILD__ = 'v181-retired';
 
-self.addEventListener('install', event => {
+const NEW_SITE = 'https://zxj088.github.io/jfk/';
+
+self.addEventListener('install', () => {
   self.skipWaiting();
 });
 
 self.addEventListener('activate', event => {
   event.waitUntil(
-    caches.keys().then(keys => Promise.all(keys.map(key => caches.delete(key))))
+    self.clients.claim().then(() => self.clients.matchAll({ type: 'window', includeUncontrolled: true }))
+      .then(clients => Promise.all(clients.map(client => client.navigate(NEW_SITE).catch(() => null))))
   );
-  self.clients.claim();
 });
 
 self.addEventListener('fetch', event => {
   if (event.request.mode !== 'navigate') return;
-  event.respondWith(
-    fetch(event.request, { cache: 'reload' })
-      .catch(() => fetch(event.request))
-  );
+  event.respondWith(Response.redirect(NEW_SITE, 302));
 });
